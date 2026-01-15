@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, request, abort, redirect, url_for, session
 
@@ -9,6 +9,7 @@ APP_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(APP_DIR, "data")
 DB_PATH = os.path.join(DATA_DIR, "puantaj.db")
 API_KEY = os.environ.get("API_KEY", "")
+LOCAL_TZ = timezone(timedelta(hours=3))
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "rainstaff-secret")
@@ -109,8 +110,9 @@ def employee_detail(employee_id):
         start_date = ""
         end_date = ""
     if not start_date or not end_date:
-        end_date = datetime.now().date().strftime("%Y-%m-%d")
-        start_date = (datetime.now().date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        today = datetime.now(LOCAL_TZ).date()
+        end_date = today.strftime("%Y-%m-%d")
+        start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
     filtered_rows = filter_rows_by_date(rows, start_date, end_date)
     day_rows, totals = compute_employee_day_rows(filtered_rows, settings)
     return render_template(
@@ -287,11 +289,12 @@ def dashboard():
         start_date = ""
         end_date = ""
     if not start_date or not end_date:
-        end_date = datetime.now().date().strftime("%Y-%m-%d")
-        start_date = (datetime.now().date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        today = datetime.now(LOCAL_TZ).date()
+        end_date = today.strftime("%Y-%m-%d")
+        start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
 
     if db_exists():
-        last_sync = datetime.fromtimestamp(os.path.getmtime(DB_PATH)).strftime("%Y-%m-%d %H:%M")
+        last_sync = datetime.fromtimestamp(os.path.getmtime(DB_PATH), tz=LOCAL_TZ).strftime("%Y-%m-%d %H:%M")
         with get_conn() as conn:
             settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
             summary["employees"] = safe_count(conn, "SELECT COUNT(*) FROM employees;")
