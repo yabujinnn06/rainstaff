@@ -262,14 +262,14 @@
               </thead>
               <tbody>
                 {% if employee_cards %}
-                  {% for row in employee_cards %}
-                    <tr>
-                      <td>{{ row['name'] }}</td>
-                      <td>{{ row['days'] }}</td>
-                      <td>{{ row['worked']|round(2) }}</td>
-                      <td>{{ row['overtime']|round(2) }}</td>
-                      <td>{{ row['night']|round(2) }}</td>
-                      <td>{{ row['special']|round(2) }}</td>
+                {% for row in employee_cards %}
+                  <tr>
+                    <td><a class="link" href="/employee/{{ row['id'] }}">{{ row['name'] }}</a></td>
+                    <td>{{ row['days'] }}</td>
+                    <td>{{ row['worked']|round(2) }}</td>
+                    <td>{{ row['overtime']|round(2) }}</td>
+                    <td>{{ row['night']|round(2) }}</td>
+                    <td>{{ row['special']|round(2) }}</td>
                     </tr>
                   {% endfor %}
                 {% else %}

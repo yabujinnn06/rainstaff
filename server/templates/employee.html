@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calisan Detay - {{ employee['full_name'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-title">Calisan Kart</div>
+        <div class="brand-sub">{{ employee['full_name'] }}</div>
+      </div>
+      <div class="sync">
+        <a class="logout" href="/dashboard">Dashboard</a>
+        <a class="logout" href="/logout">Cikis</a>
+      </div>
+    </header>
+
+    <main class="content single">
+      <section class="section">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Calisan Bilgisi</h2>
+          </div>
+          <div class="info-grid">
+            <div><span>Ad Soyad:</span> {{ employee['full_name'] }}</div>
+            <div><span>Departman:</span> {{ employee['department'] or '-' }}</div>
+            <div><span>Unvan:</span> {{ employee['title'] or '-' }}</div>
+            <div><span>TCKN:</span> {{ employee['identity_no'] or '-' }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Toplamlar</h2>
+          </div>
+          <div class="range-cards">
+            <div class="mini-card">
+              <div class="label">Calisilan Saat</div>
+              <div class="value">{{ totals.worked }}</div>
+            </div>
+            <div class="mini-card warn">
+              <div class="label">Fazla Mesai</div>
+              <div class="value">{{ totals.overtime }}</div>
+            </div>
+            <div class="mini-card">
+              <div class="label">Gece</div>
+              <div class="value">{{ totals.night }}</div>
+            </div>
+            <div class="mini-card">
+              <div class="label">Ozel Gun</div>
+              <div class="value">{{ totals.special }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Gunluk Detay</h2>
+          </div>
+          <div class="table-wrap tall">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Giris</th>
+                  <th>Cikis</th>
+                  <th>Mola</th>
+                  <th>Calisilan</th>
+                  <th>Fazla Mesai</th>
+                  <th>Gece</th>
+                  <th>Ozel Gun</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if day_rows %}
+                  {% for row in day_rows %}
+                    <tr>
+                      <td>{{ row['date'] }}</td>
+                      <td>{{ row['start'] }}</td>
+                      <td>{{ row['end'] }}</td>
+                      <td>{{ row['break'] }}</td>
+                      <td>{{ row['worked'] }}</td>
+                      <td>{{ row['overtime'] }}</td>
+                      <td>{{ row['night'] }}</td>
+                      <td>{{ row['special_hours'] }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="8">Kayit yok</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

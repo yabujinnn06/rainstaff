@@ -338,6 +338,29 @@ tbody tr:hover {
   background: #f2f6fb;
 }
 
+.link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 16px;
+  font-size: 14px;
+}
+
+.info-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+.content.single {
+  padding: 24px 28px 48px;
+}
+
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;

@@ -81,6 +81,27 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/employee/<int:employee_id>")
+def employee_detail(employee_id):
+    if not db_exists():
+        abort(404)
+    with get_conn() as conn:
+        settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
+        employee = conn.execute(
+            "SELECT id, full_name, department, title, identity_no FROM employees WHERE id = ?;",
+            (employee_id,),
+        ).fetchone()
+        if not employee:
+            abort(404)
+        rows = conn.execute(
+            "SELECT work_date, start_time, end_time, break_minutes, is_special "
+            "FROM timesheets WHERE employee_id = ? ORDER BY work_date DESC;",
+            (employee_id,),
+        ).fetchall()
+    day_rows, totals = compute_employee_day_rows(rows, settings)
+    return render_template("employee.html", employee=employee, day_rows=day_rows, totals=totals)
+
+
 def safe_count(conn, query):
     try:
         return conn.execute(query).fetchone()[0]
@@ -158,6 +179,39 @@ def compute_day_metrics(work_date, start_time, end_time, break_minutes, is_speci
         "overnight": overnight_hours,
         "scheduled": round(scheduled_hours, 2),
     }
+
+
+def compute_employee_day_rows(rows, settings):
+    results = []
+    totals = {"worked": 0.0, "overtime": 0.0, "night": 0.0, "special": 0.0}
+    for row in rows:
+        metrics = compute_day_metrics(
+            row["work_date"],
+            row["start_time"],
+            row["end_time"],
+            row["break_minutes"],
+            row["is_special"],
+            settings,
+        )
+        totals["worked"] += metrics["worked"]
+        totals["overtime"] += metrics["overtime"]
+        totals["night"] += metrics["night"]
+        totals["special"] += metrics["special"]
+        results.append(
+            {
+                "date": row["work_date"],
+                "start": row["start_time"],
+                "end": row["end_time"],
+                "break": row["break_minutes"],
+                "special": row["is_special"],
+                "worked": metrics["worked"],
+                "overtime": metrics["overtime"],
+                "night": metrics["night"],
+                "special_hours": metrics["special"],
+            }
+        )
+    totals = {k: round(v, 2) for k, v in totals.items()}
+    return results, totals
 
 
 @app.route("/")
@@ -284,6 +338,7 @@ def dashboard():
                 emp = emp_totals.setdefault(
                     row["employee_id"],
                     {
+                        "id": row["employee_id"],
                         "name": row["name"],
                         "days": 0,
                         "worked": 0.0,
