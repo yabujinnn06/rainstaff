@@ -8,11 +8,30 @@
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">Rainstaff Dashboard</div>
-      <div class="sync">Son senkron: {{ last_sync or 'Yok' }}</div>
+      <div class="brand">Rainstaff Admin Panel</div>
+      <div class="sync">
+        Son senkron: {{ last_sync or 'Yok' }}
+        <a class="logout" href="/logout">Cikis</a>
+      </div>
     </header>
 
-    <main class="wrap">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-title">Genel</div>
+        <a href="#ozet">Ozet</a>
+        <a href="#calisanlar">Calisanlar</a>
+        <a href="#mesailer">Fazla Mesai</a>
+        <a href="#puantaj">Puantaj</a>
+        <div class="menu-title">Araclar</div>
+        <a href="#arizalar">Acik Arizalar</a>
+        <a href="#sanayi">Sanayide</a>
+        <a href="#arackart">Arac Kartlari</a>
+        <a href="#surucu">Suruculer</a>
+        <a href="#kontroller">Kontroller</a>
+      </aside>
+
+      <main class="wrap">
+      <section id="ozet" class="grid">
       <section class="grid">
         <div class="card">
           <div class="label">Calisan</div>
@@ -56,7 +75,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="arizalar" class="panel">
         <h2>Acik Arizalar</h2>
         <table>
           <thead>
@@ -82,7 +101,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="calisanlar" class="panel">
         <h2>Calisan Kartlari</h2>
         <div class="panel-actions">
           <input class="table-search" data-target="employee-table" placeholder="Calisan ara..." />
@@ -117,7 +136,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="mesailer" class="panel">
         <h2>Fazla Mesai Liderleri</h2>
         <table>
           <thead>
@@ -141,7 +160,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="puantaj" class="panel">
         <h2>Son Puantaj Kayitlari</h2>
         <div class="panel-actions">
           <input class="table-search" data-target="timesheet-table" placeholder="Puantaj ara..." />
@@ -176,7 +195,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="sanayi" class="panel">
         <h2>Sanayide Olan Araclar</h2>
         <table>
           <thead>
@@ -202,7 +221,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="arackart" class="panel">
         <h2>Arac Kartlari</h2>
         <div class="panel-actions">
           <input class="table-search" data-target="vehicle-table" placeholder="Plaka ara..." />
@@ -239,7 +258,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="surucu" class="panel">
         <h2>Surucu Kartlari</h2>
         <div class="panel-actions">
           <input class="table-search" data-target="driver-table" placeholder="Surucu ara..." />
@@ -270,7 +289,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="kontroller" class="panel">
         <h2>Son Kontroller</h2>
         <div class="panel-actions">
           <input class="table-search" data-target="inspection-table" placeholder="Kontrol ara..." />
@@ -307,7 +326,7 @@
         </table>
       </section>
 
-      <section class="panel">
+      <section id="ariza-top" class="panel">
         <h2>En Cok Ariza Yapan Araclar</h2>
         <table>
           <thead>
@@ -330,7 +349,8 @@
           </tbody>
         </table>
       </section>
-    </main>
+      </main>
+    </div>
     <script>
       document.querySelectorAll(".table-search").forEach((input) => {
         input.addEventListener("input", () => {

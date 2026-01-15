@@ -2,7 +2,7 @@ import os
 import sqlite3
 from datetime import datetime
 
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, abort, redirect, url_for, session
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -11,6 +11,7 @@ DB_PATH = os.path.join(DATA_DIR, "puantaj.db")
 API_KEY = os.environ.get("API_KEY", "")
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", "rainstaff-secret")
 
 
 def ensure_data_dir():
@@ -45,6 +46,39 @@ def sync():
     file = request.files["db"]
     file.save(DB_PATH)
     return {"ok": True}
+
+
+def is_authenticated():
+    return session.get("user") == "admin"
+
+
+@app.before_request
+def enforce_login():
+    if request.path in ("/login", "/health", "/sync", "/static/style.css"):
+        return
+    if request.path.startswith("/static/"):
+        return
+    if not is_authenticated():
+        return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        if username == "admin" and password == "748774":
+            session["user"] = "admin"
+            return redirect(url_for("dashboard"))
+        error = "Kullanici adi veya sifre hatali."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 def safe_count(conn, query):
