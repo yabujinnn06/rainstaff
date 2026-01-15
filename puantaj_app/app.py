@@ -466,15 +466,26 @@ class PuantajApp(tk.Tk):
     def _unbind_canvas_mousewheel(self, canvas):
         canvas.unbind_all("<MouseWheel>")
 
-    def trigger_sync(self, reason="manual"):
-        if not self.settings.get("sync_enabled") == "1":
+    def trigger_sync(self, reason="manual", force=False):
+        if force and hasattr(self, "sync_enabled_var"):
+            enabled = self.sync_enabled_var.get()
+            sync_url = self.sync_url_var.get().strip()
+            token = self.sync_token_var.get().strip()
+        else:
+            self.settings = db.get_all_settings()
+            enabled = self.settings.get("sync_enabled") == "1"
+            sync_url = self.settings.get("sync_url", "").strip()
+            token = self.settings.get("sync_token", "").strip()
+        if not enabled:
+            self.status_var.set("Senkron kapali")
             return
         if requests is None:
+            self.status_var.set("Senkron icin requests kurulu degil")
             return
-        sync_url = self.settings.get("sync_url", "").strip()
-        token = self.settings.get("sync_token", "").strip()
         if not sync_url:
+            self.status_var.set("Senkron URL bos")
             return
+        self.status_var.set("Senkron basladi...")
         thread = threading.Thread(target=self._sync_worker, args=(sync_url, token, reason), daemon=True)
         thread.start()
 
@@ -486,11 +497,23 @@ class PuantajApp(tk.Tk):
                 url = sync_url.rstrip("/") + "/sync"
                 resp = requests.post(url, headers=headers, files=files, timeout=10)
             if resp.status_code != 200:
-                self.status_var.set(f"Senkron hatasi: {resp.status_code}")
+                msg = f"Senkron hatasi: {resp.status_code}"
             else:
-                self.status_var.set("Senkron basarili")
+                msg = "Senkron basarili"
         except Exception:
-            self.status_var.set("Senkron hatasi")
+            msg = "Senkron hatasi"
+        self.after(0, lambda: self._notify_sync_result(msg, reason))
+
+    def manual_sync(self):
+        if not self.sync_enabled_var.get():
+            messagebox.showwarning("Uyari", "Senkron kapali. Ayarlardan acin.")
+            return
+        self.trigger_sync("manual", force=True)
+
+    def _notify_sync_result(self, message, reason):
+        self.status_var.set(message)
+        if reason == "manual":
+            messagebox.showinfo("Senkron", message)
 
     # Employees tab
     def _build_employees_tab(self):
@@ -2734,6 +2757,7 @@ class PuantajApp(tk.Tk):
         srow2 = ttk.Frame(sync_frame)
         srow2.pack(fill=tk.X, pady=4)
         create_labeled_entry(srow2, "API Token", self.sync_token_var, 40).pack(side=tk.LEFT, padx=6)
+        ttk.Button(srow2, text="Senkronu Dene", command=self.manual_sync).pack(side=tk.LEFT, padx=6)
         ttk.Label(
             sync_frame,
             text="Kayit sonrasi otomatik yukleme yapilir. URL ornek: https://seninapp.onrender.com",

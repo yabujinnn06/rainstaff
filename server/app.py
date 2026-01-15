@@ -69,6 +69,11 @@ def dashboard():
     open_faults = []
     service_open = []
     top_faults = []
+    employee_cards = []
+    recent_timesheets = []
+    vehicle_cards = []
+    driver_cards = []
+    recent_inspections = []
     last_sync = None
 
     if db_exists():
@@ -101,6 +106,39 @@ def dashboard():
                 "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
                 "GROUP BY f.vehicle_id ORDER BY cnt DESC LIMIT 5;"
             ).fetchall()
+            employee_cards = conn.execute(
+                "SELECT e.full_name as name, "
+                "COUNT(t.id) as total_days, "
+                "ROUND(COALESCE(SUM((julianday(t.end_time) - julianday(t.start_time)) * 24.0), 0), 2) as gross_hours "
+                "FROM employees e "
+                "LEFT JOIN timesheets t ON t.employee_id = e.id "
+                "GROUP BY e.id ORDER BY total_days DESC LIMIT 10;"
+            ).fetchall()
+            recent_timesheets = conn.execute(
+                "SELECT e.full_name as name, t.work_date, t.start_time, t.end_time, t.break_minutes, t.is_special "
+                "FROM timesheets t JOIN employees e ON e.id = t.employee_id "
+                "ORDER BY t.work_date DESC, t.id DESC LIMIT 15;"
+            ).fetchall()
+            vehicle_cards = conn.execute(
+                "SELECT v.plate, v.km, v.inspection_date, v.insurance_date, v.maintenance_date, "
+                "f.title as open_fault, s.start_date as in_service "
+                "FROM vehicles v "
+                "LEFT JOIN vehicle_faults f ON f.vehicle_id = v.id AND f.status = 'Acik' "
+                "LEFT JOIN vehicle_service_visits s ON s.vehicle_id = v.id AND (s.end_date IS NULL OR s.end_date = '') "
+                "ORDER BY v.plate LIMIT 10;"
+            ).fetchall()
+            driver_cards = conn.execute(
+                "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                "FROM drivers d ORDER BY d.full_name LIMIT 10;"
+            ).fetchall()
+            recent_inspections = conn.execute(
+                "SELECT v.plate, i.inspection_date, i.week_start, d.full_name as driver, i.km, "
+                "i.fault_status, i.service_visit "
+                "FROM vehicle_inspections i "
+                "JOIN vehicles v ON v.id = i.vehicle_id "
+                "LEFT JOIN drivers d ON d.id = i.driver_id "
+                "ORDER BY i.inspection_date DESC, i.id DESC LIMIT 10;"
+            ).fetchall()
 
     return render_template(
         "dashboard.html",
@@ -108,6 +146,11 @@ def dashboard():
         open_faults=open_faults,
         service_open=service_open,
         top_faults=top_faults,
+        employee_cards=employee_cards,
+        recent_timesheets=recent_timesheets,
+        vehicle_cards=vehicle_cards,
+        driver_cards=driver_cards,
+        recent_inspections=recent_inspections,
         last_sync=last_sync,
     )
 

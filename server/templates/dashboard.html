@@ -67,6 +67,64 @@
       </section>
 
       <section class="panel">
+        <h2>Calisan Kartlari</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Calisan</th>
+              <th>Toplam Gun</th>
+              <th>Toplam Saat (Brut)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if employee_cards %}
+              {% for row in employee_cards %}
+                <tr>
+                  <td>{{ row['name'] }}</td>
+                  <td>{{ row['total_days'] }}</td>
+                  <td>{{ row['gross_hours'] }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="3">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Son Puantaj Kayitlari</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Calisan</th>
+              <th>Tarih</th>
+              <th>Giris</th>
+              <th>Cikis</th>
+              <th>Mola</th>
+              <th>Ozel Gun</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if recent_timesheets %}
+              {% for row in recent_timesheets %}
+                <tr>
+                  <td>{{ row['name'] }}</td>
+                  <td>{{ row['work_date'] }}</td>
+                  <td>{{ row['start_time'] }}</td>
+                  <td>{{ row['end_time'] }}</td>
+                  <td>{{ row['break_minutes'] }}</td>
+                  <td>{{ 'Evet' if row['is_special'] else 'Hayir' }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="6">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
         <h2>Sanayide Olan Araclar</h2>
         <table>
           <thead>
@@ -87,6 +145,102 @@
               {% endfor %}
             {% else %}
               <tr><td colspan="3">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Arac Kartlari</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Plaka</th>
+              <th>KM</th>
+              <th>Muayene</th>
+              <th>Sigorta</th>
+              <th>Bakim</th>
+              <th>Acik Ariza</th>
+              <th>Sanayide</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if vehicle_cards %}
+              {% for row in vehicle_cards %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['km'] or '-' }}</td>
+                  <td>{{ row['inspection_date'] or '-' }}</td>
+                  <td>{{ row['insurance_date'] or '-' }}</td>
+                  <td>{{ row['maintenance_date'] or '-' }}</td>
+                  <td>{{ row['open_fault'] or '-' }}</td>
+                  <td>{{ row['in_service'] or '-' }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="7">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Surucu Kartlari</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Surucu</th>
+              <th>Ehliyet</th>
+              <th>Bitis</th>
+              <th>Telefon</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if driver_cards %}
+              {% for row in driver_cards %}
+                <tr>
+                  <td>{{ row['name'] }}</td>
+                  <td>{{ row['license_class'] or '-' }}</td>
+                  <td>{{ row['license_expiry'] or '-' }}</td>
+                  <td>{{ row['phone'] or '-' }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="4">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Son Kontroller</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Plaka</th>
+              <th>Tarih</th>
+              <th>Hafta</th>
+              <th>Surucu</th>
+              <th>KM</th>
+              <th>Ariza Durum</th>
+              <th>Sanayi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if recent_inspections %}
+              {% for row in recent_inspections %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['inspection_date'] }}</td>
+                  <td>{{ row['week_start'] }}</td>
+                  <td>{{ row['driver'] or '-' }}</td>
+                  <td>{{ row['km'] or '-' }}</td>
+                  <td>{{ row['fault_status'] or '-' }}</td>
+                  <td>{{ 'Evet' if row['service_visit'] else 'Hayir' }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="7">Kayit yok</td></tr>
             {% endif %}
           </tbody>
         </table>

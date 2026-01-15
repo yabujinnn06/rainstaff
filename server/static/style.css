@@ -106,3 +106,7 @@ th {
   color: var(--muted);
   font-weight: 600;
 }
+
+tbody tr:hover {
+  background: #f2f6fb;
+}
