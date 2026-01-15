@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rainstaff Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">Rainstaff Dashboard</div>
+      <div class="sync">Son senkron: {{ last_sync or 'Yok' }}</div>
+    </header>
+
+    <main class="wrap">
+      <section class="grid">
+        <div class="card">
+          <div class="label">Calisan</div>
+          <div class="value">{{ summary.employees }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Puantaj Kaydi</div>
+          <div class="value">{{ summary.timesheets }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Arac</div>
+          <div class="value">{{ summary.vehicles }}</div>
+        </div>
+        <div class="card">
+          <div class="label">Surucu</div>
+          <div class="value">{{ summary.drivers }}</div>
+        </div>
+        <div class="card warn">
+          <div class="label">Acik Ariza</div>
+          <div class="value">{{ summary.open_faults }}</div>
+        </div>
+        <div class="card warn">
+          <div class="label">Sanayide</div>
+          <div class="value">{{ summary.service_open }}</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Acik Arizalar</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Plaka</th>
+              <th>Baslik</th>
+              <th>Acilis</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if open_faults %}
+              {% for row in open_faults %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['title'] }}</td>
+                  <td>{{ row['opened_date'] or '-' }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="3">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Sanayide Olan Araclar</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Plaka</th>
+              <th>Gidis</th>
+              <th>Neden</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if service_open %}
+              {% for row in service_open %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['start_date'] }}</td>
+                  <td>{{ row['reason'] or '-' }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="3">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>En Cok Ariza Yapan Araclar</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Plaka</th>
+              <th>Ariza Adet</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if top_faults %}
+              {% for row in top_faults %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['cnt'] }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="2">Kayit yok</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>
