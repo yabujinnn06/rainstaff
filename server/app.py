@@ -98,8 +98,29 @@ def employee_detail(employee_id):
             "FROM timesheets WHERE employee_id = ? ORDER BY work_date DESC;",
             (employee_id,),
         ).fetchall()
-    day_rows, totals = compute_employee_day_rows(rows, settings)
-    return render_template("employee.html", employee=employee, day_rows=day_rows, totals=totals)
+    start_date = request.args.get("start", "").strip()
+    end_date = request.args.get("end", "").strip()
+    try:
+        if start_date:
+            datetime.strptime(start_date, "%Y-%m-%d")
+        if end_date:
+            datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        start_date = ""
+        end_date = ""
+    if not start_date or not end_date:
+        end_date = datetime.now().date().strftime("%Y-%m-%d")
+        start_date = (datetime.now().date() - timedelta(days=30)).strftime("%Y-%m-%d")
+    filtered_rows = filter_rows_by_date(rows, start_date, end_date)
+    day_rows, totals = compute_employee_day_rows(filtered_rows, settings)
+    return render_template(
+        "employee.html",
+        employee=employee,
+        day_rows=day_rows,
+        totals=totals,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def safe_count(conn, query):
@@ -212,6 +233,12 @@ def compute_employee_day_rows(rows, settings):
         )
     totals = {k: round(v, 2) for k, v in totals.items()}
     return results, totals
+
+
+def filter_rows_by_date(rows, start_date, end_date):
+    if not start_date or not end_date:
+        return rows
+    return [row for row in rows if start_date <= row["work_date"] <= end_date]
 
 
 @app.route("/")

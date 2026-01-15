@@ -33,6 +33,19 @@
         </div>
       </section>
 
+      <section class="section filter-bar">
+        <div class="panel-head">
+          <h2>Tarih Araligi</h2>
+        </div>
+        <form method="get" class="filter-form">
+          <label>Baslangic</label>
+          <input type="date" name="start" value="{{ start_date }}" />
+          <label>Bitis</label>
+          <input type="date" name="end" value="{{ end_date }}" />
+          <button type="submit">Uygula</button>
+        </form>
+      </section>
+
       <section class="section grid-2">
         <div class="panel">
           <div class="panel-head">

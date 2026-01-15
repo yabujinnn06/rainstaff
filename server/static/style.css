@@ -118,6 +118,11 @@ body {
   font-weight: 600;
 }
 
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .layout {
   display: grid;
   grid-template-columns: 240px 1fr;
