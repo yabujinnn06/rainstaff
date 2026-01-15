@@ -11,6 +11,18 @@ DB_PATH = os.path.join(DATA_DIR, "puantaj.db")
 API_KEY = os.environ.get("API_KEY", "")
 LOCAL_TZ = timezone(timedelta(hours=3))
 
+VEHICLE_CHECKLIST = {
+    "body_dent": "Govde ezik/cizik",
+    "paint_damage": "Boya hasari",
+    "interior_clean": "Ic temizligi",
+    "smoke_smell": "Sigara kokusu",
+    "tire_condition": "Lastik durumu",
+    "lights": "Far/stop/sinyal",
+    "glass": "Camlar",
+    "warning_lamps": "Ikaz lambalari",
+    "water_level": "Su seviyesi",
+}
+
 
 def current_month_range():
     today = datetime.now(LOCAL_TZ).date()
@@ -133,6 +145,63 @@ def employee_detail(employee_id):
         start_date=start_date,
         end_date=end_date,
         all_months=all_months,
+    )
+
+
+@app.route("/reports")
+def reports():
+    if not db_exists():
+        abort(404)
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT v.plate, i.week_start, MAX(i.inspection_date) as last_date, COUNT(*) as cnt "
+            "FROM vehicle_inspections i "
+            "JOIN vehicles v ON v.id = i.vehicle_id "
+            "GROUP BY v.plate, i.week_start "
+            "ORDER BY i.week_start DESC, v.plate;"
+        ).fetchall()
+    return render_template("reports.html", reports=rows)
+
+
+@app.route("/reports/weekly/<plate>/<week_start>")
+def weekly_report(plate, week_start):
+    if not db_exists():
+        abort(404)
+    with get_conn() as conn:
+        vehicle = conn.execute(
+            "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date "
+            "FROM vehicles WHERE plate = ?;",
+            (plate,),
+        ).fetchone()
+        if not vehicle:
+            abort(404)
+        inspections = conn.execute(
+            "SELECT i.id, i.inspection_date, i.week_start, d.full_name as driver, i.km, i.notes, "
+            "i.fault_status, i.service_visit "
+            "FROM vehicle_inspections i "
+            "LEFT JOIN drivers d ON d.id = i.driver_id "
+            "WHERE i.vehicle_id = ? AND i.week_start = ? "
+            "ORDER BY i.inspection_date DESC;",
+            (vehicle["id"], week_start),
+        ).fetchall()
+        results = {}
+        if inspections:
+            latest_id = inspections[0]["id"]
+            for row in conn.execute(
+                "SELECT item_key, status, note FROM vehicle_inspection_results WHERE inspection_id = ?;",
+                (latest_id,),
+            ).fetchall():
+                results[row["item_key"]] = {
+                    "status": row["status"],
+                    "note": row["note"],
+                }
+    return render_template(
+        "report_detail.html",
+        vehicle=vehicle,
+        week_start=week_start,
+        inspections=inspections,
+        results=results,
+        checklist=VEHICLE_CHECKLIST,
     )
 
 
