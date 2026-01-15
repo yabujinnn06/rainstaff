@@ -42,6 +42,10 @@
           <input type="date" name="start" value="{{ start_date }}" />
           <label>Bitis</label>
           <input type="date" name="end" value="{{ end_date }}" />
+          <label class="check">
+            <input type="checkbox" name="all" value="1" {% if all_months %}checked{% endif %} />
+            Tum Aylar
+          </label>
           <button type="submit">Uygula</button>
         </form>
       </section>
@@ -112,5 +116,19 @@
         </div>
       </section>
     </main>
+    <script>
+      const allToggle = document.querySelector('input[name="all"]');
+      const startInput = document.querySelector('input[name="start"]');
+      const endInput = document.querySelector('input[name="end"]');
+      if (allToggle && startInput && endInput) {
+        const toggleDates = () => {
+          const disabled = allToggle.checked;
+          startInput.disabled = disabled;
+          endInput.disabled = disabled;
+        };
+        allToggle.addEventListener("change", toggleDates);
+        toggleDates();
+      }
+    </script>
   </body>
 </html>

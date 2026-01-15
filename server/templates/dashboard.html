@@ -13,6 +13,9 @@
         <div class="brand-sub">Yonetim Paneli</div>
       </div>
       <div class="sync">
+        <span class="status {{ 'ok' if desktop_online else 'off' }}">
+          Masaustu {{ 'Acik' if desktop_online else 'Kapali' }}
+        </span>
         Son senkron: {{ last_sync or 'Yok' }}
         <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
         <a class="logout" href="/logout">Cikis</a>
@@ -90,6 +93,10 @@
             <input type="date" name="start" value="{{ start_date }}" />
             <label>Bitis</label>
             <input type="date" name="end" value="{{ end_date }}" />
+            <label class="check">
+              <input type="checkbox" name="all" value="1" {% if all_months %}checked{% endif %} />
+              Tum Aylar
+            </label>
             <button type="submit">Uygula</button>
           </form>
           <div class="range-cards">
@@ -492,6 +499,18 @@
     </div>
 
     <script>
+      const allToggle = document.querySelector('input[name="all"]');
+      const startInput = document.querySelector('input[name="start"]');
+      const endInput = document.querySelector('input[name="end"]');
+      if (allToggle && startInput && endInput) {
+        const toggleDates = () => {
+          const disabled = allToggle.checked;
+          startInput.disabled = disabled;
+          endInput.disabled = disabled;
+        };
+        allToggle.addEventListener("change", toggleDates);
+        toggleDates();
+      }
       document.querySelectorAll(".table-search").forEach((input) => {
         input.addEventListener("input", () => {
           const targetId = input.getAttribute("data-target");

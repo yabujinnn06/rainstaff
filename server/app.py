@@ -11,6 +11,17 @@ DB_PATH = os.path.join(DATA_DIR, "puantaj.db")
 API_KEY = os.environ.get("API_KEY", "")
 LOCAL_TZ = timezone(timedelta(hours=3))
 
+
+def current_month_range():
+    today = datetime.now(LOCAL_TZ).date()
+    start = today.replace(day=1)
+    if start.month == 12:
+        next_month = start.replace(year=start.year + 1, month=1)
+    else:
+        next_month = start.replace(month=start.month + 1)
+    end = next_month - timedelta(days=1)
+    return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "rainstaff-secret")
 
@@ -101,6 +112,7 @@ def employee_detail(employee_id):
         ).fetchall()
     start_date = request.args.get("start", "").strip()
     end_date = request.args.get("end", "").strip()
+    all_months = request.args.get("all", "").strip() == "1"
     try:
         if start_date:
             datetime.strptime(start_date, "%Y-%m-%d")
@@ -110,10 +122,8 @@ def employee_detail(employee_id):
         start_date = ""
         end_date = ""
     if not start_date or not end_date:
-        today = datetime.now(LOCAL_TZ).date()
-        end_date = today.strftime("%Y-%m-%d")
-        start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
-    filtered_rows = filter_rows_by_date(rows, start_date, end_date)
+        start_date, end_date = current_month_range()
+    filtered_rows = rows if all_months else filter_rows_by_date(rows, start_date, end_date)
     day_rows, totals = compute_employee_day_rows(filtered_rows, settings)
     return render_template(
         "employee.html",
@@ -122,6 +132,7 @@ def employee_detail(employee_id):
         totals=totals,
         start_date=start_date,
         end_date=end_date,
+        all_months=all_months,
     )
 
 
@@ -280,6 +291,7 @@ def dashboard():
     last_sync = None
     start_date = request.args.get("start", "").strip()
     end_date = request.args.get("end", "").strip()
+    all_months = request.args.get("all", "").strip() == "1"
     try:
         if start_date:
             datetime.strptime(start_date, "%Y-%m-%d")
@@ -289,12 +301,12 @@ def dashboard():
         start_date = ""
         end_date = ""
     if not start_date or not end_date:
-        today = datetime.now(LOCAL_TZ).date()
-        end_date = today.strftime("%Y-%m-%d")
-        start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
+        start_date, end_date = current_month_range()
 
     if db_exists():
-        last_sync = datetime.fromtimestamp(os.path.getmtime(DB_PATH), tz=LOCAL_TZ).strftime("%Y-%m-%d %H:%M")
+        last_sync_dt = datetime.fromtimestamp(os.path.getmtime(DB_PATH), tz=LOCAL_TZ)
+        last_sync = last_sync_dt.strftime("%Y-%m-%d %H:%M")
+        desktop_online = (datetime.now(LOCAL_TZ) - last_sync_dt) <= timedelta(minutes=10)
         with get_conn() as conn:
             settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
             summary["employees"] = safe_count(conn, "SELECT COUNT(*) FROM employees;")
@@ -352,7 +364,12 @@ def dashboard():
 
             emp_totals = {}
             range_totals = {}
-            for row in timesheet_rows:
+            filtered_rows = (
+                timesheet_rows
+                if all_months
+                else [row for row in timesheet_rows if start_date <= row["work_date"] <= end_date]
+            )
+            for row in filtered_rows:
                 metrics = compute_day_metrics(
                     row["work_date"],
                     row["start_time"],
@@ -382,19 +399,18 @@ def dashboard():
                 emp["overtime"] += metrics["overtime"]
                 emp["night"] += metrics["night"]
                 emp["special"] += metrics["special"]
-                if start_date <= row["work_date"] <= end_date:
-                    day = range_totals.setdefault(
-                        row["work_date"],
-                        {"worked": 0.0, "overtime": 0.0, "night": 0.0, "special": 0.0},
-                    )
-                    day["worked"] += metrics["worked"]
-                    day["overtime"] += metrics["overtime"]
-                    day["night"] += metrics["night"]
-                    day["special"] += metrics["special"]
-                    range_summary["worked"] += metrics["worked"]
-                    range_summary["overtime"] += metrics["overtime"]
-                    range_summary["night"] += metrics["night"]
-                    range_summary["special"] += metrics["special"]
+                day = range_totals.setdefault(
+                    row["work_date"],
+                    {"worked": 0.0, "overtime": 0.0, "night": 0.0, "special": 0.0},
+                )
+                day["worked"] += metrics["worked"]
+                day["overtime"] += metrics["overtime"]
+                day["night"] += metrics["night"]
+                day["special"] += metrics["special"]
+                range_summary["worked"] += metrics["worked"]
+                range_summary["overtime"] += metrics["overtime"]
+                range_summary["night"] += metrics["night"]
+                range_summary["special"] += metrics["special"]
 
             summary["worked_hours"] = round(summary["worked_hours"], 2)
             summary["overtime_hours"] = round(summary["overtime_hours"], 2)
@@ -403,7 +419,7 @@ def dashboard():
 
             employee_cards = sorted(emp_totals.values(), key=lambda x: x["worked"], reverse=True)[:10]
             overtime_leaders = sorted(emp_totals.values(), key=lambda x: x["overtime"], reverse=True)[:10]
-            recent_timesheets = sorted(timesheet_rows, key=lambda x: x["work_date"], reverse=True)[:15]
+            recent_timesheets = sorted(filtered_rows, key=lambda x: x["work_date"], reverse=True)[:15]
 
             monthly_totals = {}
             for row in timesheet_rows:
@@ -445,6 +461,8 @@ def dashboard():
                 for key, val in sorted(range_totals.items(), reverse=True)
             ]
             range_summary = {k: round(v, 2) for k, v in range_summary.items()}
+    else:
+        desktop_online = False
 
     return render_template(
         "dashboard.html",
@@ -463,6 +481,8 @@ def dashboard():
         range_summary=range_summary,
         start_date=start_date,
         end_date=end_date,
+        all_months=all_months,
+        desktop_online=desktop_online,
         last_sync=last_sync,
     )
 
