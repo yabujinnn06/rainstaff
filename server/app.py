@@ -54,6 +54,78 @@ def safe_count(conn, query):
         return 0
 
 
+def parse_time_to_minutes(value):
+    if not value:
+        return None
+    parts = value.split(":")
+    if len(parts) < 2:
+        return None
+    try:
+        return int(parts[0]) * 60 + int(parts[1])
+    except ValueError:
+        return None
+
+
+def compute_day_metrics(work_date, start_time, end_time, break_minutes, is_special, settings):
+    start_min = parse_time_to_minutes(start_time)
+    end_min = parse_time_to_minutes(end_time)
+    if start_min is None or end_min is None:
+        return {
+            "worked": 0.0,
+            "overtime": 0.0,
+            "night": 0.0,
+            "special": 0.0,
+            "overnight": 0.0,
+            "scheduled": 0.0,
+        }
+    if end_min <= start_min:
+        end_min += 1440
+    break_min = break_minutes or 0
+    worked_minutes = max(0, (end_min - start_min) - break_min)
+    worked_hours = round(worked_minutes / 60.0, 2)
+
+    night_minutes = 0
+    night_windows = [(22 * 60, 24 * 60), (0, 6 * 60), (1440, 1440 + 6 * 60)]
+    for n_start, n_end in night_windows:
+        overlap_start = max(start_min, n_start)
+        overlap_end = min(end_min, n_end)
+        if overlap_end > overlap_start:
+            night_minutes += overlap_end - overlap_start
+    night_hours = round(night_minutes / 60.0, 2)
+
+    overnight_minutes = max(0, end_min - 1440)
+    overnight_hours = round(overnight_minutes / 60.0, 2)
+
+    weekday_hours = float(settings.get("weekday_hours", "9") or 9)
+    sat_start = parse_time_to_minutes(settings.get("saturday_start", "09:00")) or 540
+    sat_end = parse_time_to_minutes(settings.get("saturday_end", "14:00")) or 840
+    saturday_hours = max(0, (sat_end - sat_start) / 60.0)
+    scheduled_hours = 0.0
+    if not is_special:
+        try:
+            weekday = datetime.strptime(work_date, "%Y-%m-%d").weekday()
+        except ValueError:
+            weekday = 0
+        if weekday == 5:
+            scheduled_hours = saturday_hours
+        elif weekday < 5:
+            scheduled_hours = weekday_hours
+        else:
+            scheduled_hours = 0.0
+
+    special_hours = worked_hours if is_special else 0.0
+    overtime_hours = 0.0 if is_special else max(0.0, worked_hours - scheduled_hours)
+
+    return {
+        "worked": worked_hours,
+        "overtime": round(overtime_hours, 2),
+        "night": night_hours,
+        "special": special_hours,
+        "overnight": overnight_hours,
+        "scheduled": round(scheduled_hours, 2),
+    }
+
+
 @app.route("/")
 @app.route("/dashboard")
 def dashboard():
@@ -65,11 +137,17 @@ def dashboard():
         "open_faults": 0,
         "service_open": 0,
         "service_total": 0,
+        "worked_hours": 0.0,
+        "overtime_hours": 0.0,
+        "night_hours": 0.0,
+        "special_hours": 0.0,
     }
     open_faults = []
     service_open = []
     top_faults = []
     employee_cards = []
+    overtime_leaders = []
+    timesheet_rows = []
     recent_timesheets = []
     vehicle_cards = []
     driver_cards = []
@@ -79,6 +157,7 @@ def dashboard():
     if db_exists():
         last_sync = datetime.fromtimestamp(os.path.getmtime(DB_PATH)).strftime("%Y-%m-%d %H:%M")
         with get_conn() as conn:
+            settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
             summary["employees"] = safe_count(conn, "SELECT COUNT(*) FROM employees;")
             summary["timesheets"] = safe_count(conn, "SELECT COUNT(*) FROM timesheets;")
             summary["vehicles"] = safe_count(conn, "SELECT COUNT(*) FROM vehicles;")
@@ -106,18 +185,10 @@ def dashboard():
                 "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
                 "GROUP BY f.vehicle_id ORDER BY cnt DESC LIMIT 5;"
             ).fetchall()
-            employee_cards = conn.execute(
-                "SELECT e.full_name as name, "
-                "COUNT(t.id) as total_days, "
-                "ROUND(COALESCE(SUM((julianday(t.end_time) - julianday(t.start_time)) * 24.0), 0), 2) as gross_hours "
-                "FROM employees e "
-                "LEFT JOIN timesheets t ON t.employee_id = e.id "
-                "GROUP BY e.id ORDER BY total_days DESC LIMIT 10;"
-            ).fetchall()
-            recent_timesheets = conn.execute(
-                "SELECT e.full_name as name, t.work_date, t.start_time, t.end_time, t.break_minutes, t.is_special "
-                "FROM timesheets t JOIN employees e ON e.id = t.employee_id "
-                "ORDER BY t.work_date DESC, t.id DESC LIMIT 15;"
+            timesheet_rows = conn.execute(
+                "SELECT t.employee_id, e.full_name as name, t.work_date, t.start_time, t.end_time, "
+                "t.break_minutes, t.is_special "
+                "FROM timesheets t JOIN employees e ON e.id = t.employee_id;"
             ).fetchall()
             vehicle_cards = conn.execute(
                 "SELECT v.plate, v.km, v.inspection_date, v.insurance_date, v.maintenance_date, "
@@ -140,6 +211,46 @@ def dashboard():
                 "ORDER BY i.inspection_date DESC, i.id DESC LIMIT 10;"
             ).fetchall()
 
+            emp_totals = {}
+            for row in timesheet_rows:
+                metrics = compute_day_metrics(
+                    row["work_date"],
+                    row["start_time"],
+                    row["end_time"],
+                    row["break_minutes"],
+                    row["is_special"],
+                    settings,
+                )
+                summary["worked_hours"] += metrics["worked"]
+                summary["overtime_hours"] += metrics["overtime"]
+                summary["night_hours"] += metrics["night"]
+                summary["special_hours"] += metrics["special"]
+                emp = emp_totals.setdefault(
+                    row["employee_id"],
+                    {
+                        "name": row["name"],
+                        "days": 0,
+                        "worked": 0.0,
+                        "overtime": 0.0,
+                        "night": 0.0,
+                        "special": 0.0,
+                    },
+                )
+                emp["days"] += 1
+                emp["worked"] += metrics["worked"]
+                emp["overtime"] += metrics["overtime"]
+                emp["night"] += metrics["night"]
+                emp["special"] += metrics["special"]
+
+            summary["worked_hours"] = round(summary["worked_hours"], 2)
+            summary["overtime_hours"] = round(summary["overtime_hours"], 2)
+            summary["night_hours"] = round(summary["night_hours"], 2)
+            summary["special_hours"] = round(summary["special_hours"], 2)
+
+            employee_cards = sorted(emp_totals.values(), key=lambda x: x["worked"], reverse=True)[:10]
+            overtime_leaders = sorted(emp_totals.values(), key=lambda x: x["overtime"], reverse=True)[:10]
+            recent_timesheets = sorted(timesheet_rows, key=lambda x: x["work_date"], reverse=True)[:15]
+
     return render_template(
         "dashboard.html",
         summary=summary,
@@ -147,6 +258,7 @@ def dashboard():
         service_open=service_open,
         top_faults=top_faults,
         employee_cards=employee_cards,
+        overtime_leaders=overtime_leaders,
         recent_timesheets=recent_timesheets,
         vehicle_cards=vehicle_cards,
         driver_cards=driver_cards,
