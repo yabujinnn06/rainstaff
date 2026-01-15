@@ -186,7 +186,28 @@ def dashboard():
     vehicle_cards = []
     driver_cards = []
     recent_inspections = []
+    monthly_summary = []
+    daily_summary = []
+    range_summary = {
+        "worked": 0.0,
+        "overtime": 0.0,
+        "night": 0.0,
+        "special": 0.0,
+    }
     last_sync = None
+    start_date = request.args.get("start", "").strip()
+    end_date = request.args.get("end", "").strip()
+    try:
+        if start_date:
+            datetime.strptime(start_date, "%Y-%m-%d")
+        if end_date:
+            datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        start_date = ""
+        end_date = ""
+    if not start_date or not end_date:
+        end_date = datetime.now().date().strftime("%Y-%m-%d")
+        start_date = (datetime.now().date() - timedelta(days=30)).strftime("%Y-%m-%d")
 
     if db_exists():
         last_sync = datetime.fromtimestamp(os.path.getmtime(DB_PATH)).strftime("%Y-%m-%d %H:%M")
@@ -246,6 +267,7 @@ def dashboard():
             ).fetchall()
 
             emp_totals = {}
+            range_totals = {}
             for row in timesheet_rows:
                 metrics = compute_day_metrics(
                     row["work_date"],
@@ -275,6 +297,19 @@ def dashboard():
                 emp["overtime"] += metrics["overtime"]
                 emp["night"] += metrics["night"]
                 emp["special"] += metrics["special"]
+                if start_date <= row["work_date"] <= end_date:
+                    day = range_totals.setdefault(
+                        row["work_date"],
+                        {"worked": 0.0, "overtime": 0.0, "night": 0.0, "special": 0.0},
+                    )
+                    day["worked"] += metrics["worked"]
+                    day["overtime"] += metrics["overtime"]
+                    day["night"] += metrics["night"]
+                    day["special"] += metrics["special"]
+                    range_summary["worked"] += metrics["worked"]
+                    range_summary["overtime"] += metrics["overtime"]
+                    range_summary["night"] += metrics["night"]
+                    range_summary["special"] += metrics["special"]
 
             summary["worked_hours"] = round(summary["worked_hours"], 2)
             summary["overtime_hours"] = round(summary["overtime_hours"], 2)
@@ -284,6 +319,47 @@ def dashboard():
             employee_cards = sorted(emp_totals.values(), key=lambda x: x["worked"], reverse=True)[:10]
             overtime_leaders = sorted(emp_totals.values(), key=lambda x: x["overtime"], reverse=True)[:10]
             recent_timesheets = sorted(timesheet_rows, key=lambda x: x["work_date"], reverse=True)[:15]
+
+            monthly_totals = {}
+            for row in timesheet_rows:
+                month_key = row["work_date"][:7]
+                metrics = compute_day_metrics(
+                    row["work_date"],
+                    row["start_time"],
+                    row["end_time"],
+                    row["break_minutes"],
+                    row["is_special"],
+                    settings,
+                )
+                month = monthly_totals.setdefault(
+                    month_key,
+                    {"worked": 0.0, "overtime": 0.0, "night": 0.0, "special": 0.0},
+                )
+                month["worked"] += metrics["worked"]
+                month["overtime"] += metrics["overtime"]
+                month["night"] += metrics["night"]
+                month["special"] += metrics["special"]
+            monthly_summary = [
+                {
+                    "month": key,
+                    "worked": round(val["worked"], 2),
+                    "overtime": round(val["overtime"], 2),
+                    "night": round(val["night"], 2),
+                    "special": round(val["special"], 2),
+                }
+                for key, val in sorted(monthly_totals.items(), reverse=True)[:12]
+            ]
+            daily_summary = [
+                {
+                    "date": key,
+                    "worked": round(val["worked"], 2),
+                    "overtime": round(val["overtime"], 2),
+                    "night": round(val["night"], 2),
+                    "special": round(val["special"], 2),
+                }
+                for key, val in sorted(range_totals.items(), reverse=True)
+            ]
+            range_summary = {k: round(v, 2) for k, v in range_summary.items()}
 
     return render_template(
         "dashboard.html",
@@ -297,6 +373,11 @@ def dashboard():
         vehicle_cards=vehicle_cards,
         driver_cards=driver_cards,
         recent_inspections=recent_inspections,
+        monthly_summary=monthly_summary,
+        daily_summary=daily_summary,
+        range_summary=range_summary,
+        start_date=start_date,
+        end_date=end_date,
         last_sync=last_sync,
     )
 

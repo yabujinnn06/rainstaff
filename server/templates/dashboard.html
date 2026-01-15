@@ -80,6 +80,107 @@
           </div>
         </section>
 
+        <section class="section filter-bar">
+          <div class="panel-head">
+            <h2>Filtre</h2>
+          </div>
+          <form method="get" class="filter-form">
+            <label>Baslangic</label>
+            <input type="date" name="start" value="{{ start_date }}" />
+            <label>Bitis</label>
+            <input type="date" name="end" value="{{ end_date }}" />
+            <button type="submit">Uygula</button>
+          </form>
+          <div class="range-cards">
+            <div class="mini-card">
+              <div class="label">Secili Aralik Calisilan</div>
+              <div class="value">{{ range_summary.worked }}</div>
+            </div>
+            <div class="mini-card warn">
+              <div class="label">Secili Aralik Fazla Mesai</div>
+              <div class="value">{{ range_summary.overtime }}</div>
+            </div>
+            <div class="mini-card">
+              <div class="label">Secili Aralik Gece</div>
+              <div class="value">{{ range_summary.night }}</div>
+            </div>
+            <div class="mini-card">
+              <div class="label">Secili Aralik Ozel Gun</div>
+              <div class="value">{{ range_summary.special }}</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section grid-2">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Aylik Ozet</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ay</th>
+                    <th>Calisilan</th>
+                    <th>Fazla Mesai</th>
+                    <th>Gece</th>
+                    <th>Ozel Gun</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if monthly_summary %}
+                    {% for row in monthly_summary %}
+                      <tr>
+                        <td>{{ row['month'] }}</td>
+                        <td>{{ row['worked'] }}</td>
+                        <td>{{ row['overtime'] }}</td>
+                        <td>{{ row['night'] }}</td>
+                        <td>{{ row['special'] }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr><td colspan="5">Kayit yok</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Gunluk Ozet (Secili Aralik)</h2>
+            </div>
+            <div class="table-wrap tall">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tarih</th>
+                    <th>Calisilan</th>
+                    <th>Fazla Mesai</th>
+                    <th>Gece</th>
+                    <th>Ozel Gun</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if daily_summary %}
+                    {% for row in daily_summary %}
+                      <tr>
+                        <td>{{ row['date'] }}</td>
+                        <td>{{ row['worked'] }}</td>
+                        <td>{{ row['overtime'] }}</td>
+                        <td>{{ row['night'] }}</td>
+                        <td>{{ row['special'] }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr><td colspan="5">Kayit yok</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <section class="section grid-2">
           <div id="faults" class="panel">
             <div class="panel-head">
