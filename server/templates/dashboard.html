@@ -32,6 +32,7 @@
         <div class="menu-title">Araclar</div>
         <a href="#faults">Acik Arizalar</a>
         <a href="#service">Sanayi</a>
+        <a href="#vehicle-reports">Haftalik Raporlar</a>
         <a href="#vehicles">Arac Kartlari</a>
         <a href="#drivers">Suruculer</a>
         <a href="#inspections">Kontroller</a>
@@ -178,6 +179,82 @@
                         <td>{{ row['overtime'] }}</td>
                         <td>{{ row['night'] }}</td>
                         <td>{{ row['special'] }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr><td colspan="5">Kayit yok</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="vehicle-reports" class="section grid-2">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Arac Haftalik Kontroller</h2>
+              <input class="table-search" data-target="weekly-inspections" placeholder="Plaka ara..." />
+            </div>
+            <div class="table-wrap tall">
+              <table id="weekly-inspections">
+                <thead>
+                  <tr>
+                    <th>Plaka</th>
+                    <th>Hafta</th>
+                    <th>Tarih</th>
+                    <th>Surucu</th>
+                    <th>KM</th>
+                    <th>Ariza Durum</th>
+                    <th>Sanayi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if weekly_inspections %}
+                    {% for row in weekly_inspections %}
+                      <tr>
+                        <td>{{ row['plate'] }}</td>
+                        <td>{{ row['week_start'] }}</td>
+                        <td>{{ row['inspection_date'] }}</td>
+                        <td>{{ row['driver'] or '-' }}</td>
+                        <td>{{ row['km'] or '-' }}</td>
+                        <td>{{ row['fault_status'] or '-' }}</td>
+                        <td>{{ 'Evet' if row['service_visit'] else 'Hayir' }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr><td colspan="7">Kayit yok</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Sanayi Kayitlari</h2>
+              <input class="table-search" data-target="service-history" placeholder="Plaka ara..." />
+            </div>
+            <div class="table-wrap tall">
+              <table id="service-history">
+                <thead>
+                  <tr>
+                    <th>Plaka</th>
+                    <th>Gidis</th>
+                    <th>Donus</th>
+                    <th>Neden</th>
+                    <th>Masraf</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if service_history %}
+                    {% for row in service_history %}
+                      <tr>
+                        <td>{{ row['plate'] }}</td>
+                        <td>{{ row['start_date'] }}</td>
+                        <td>{{ row['end_date'] or 'Sanayide' }}</td>
+                        <td>{{ row['reason'] or '-' }}</td>
+                        <td>{{ row['cost'] or '-' }}</td>
                       </tr>
                     {% endfor %}
                   {% else %}

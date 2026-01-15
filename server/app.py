@@ -280,6 +280,9 @@ def dashboard():
     vehicle_cards = []
     driver_cards = []
     recent_inspections = []
+    weekly_inspections = []
+    service_history = []
+    driver_status = []
     monthly_summary = []
     daily_summary = []
     range_summary = {
@@ -360,6 +363,24 @@ def dashboard():
                 "JOIN vehicles v ON v.id = i.vehicle_id "
                 "LEFT JOIN drivers d ON d.id = i.driver_id "
                 "ORDER BY i.inspection_date DESC, i.id DESC LIMIT 10;"
+            ).fetchall()
+            weekly_inspections = conn.execute(
+                "SELECT v.plate, i.week_start, i.inspection_date, d.full_name as driver, i.km, "
+                "i.fault_status, i.service_visit "
+                "FROM vehicle_inspections i "
+                "JOIN vehicles v ON v.id = i.vehicle_id "
+                "LEFT JOIN drivers d ON d.id = i.driver_id "
+                "ORDER BY i.week_start DESC, i.inspection_date DESC LIMIT 20;"
+            ).fetchall()
+            service_history = conn.execute(
+                "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
+                "FROM vehicle_service_visits s "
+                "JOIN vehicles v ON v.id = s.vehicle_id "
+                "ORDER BY s.start_date DESC LIMIT 20;"
+            ).fetchall()
+            driver_status = conn.execute(
+                "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                "FROM drivers d ORDER BY d.full_name LIMIT 20;"
             ).fetchall()
 
             emp_totals = {}
@@ -476,6 +497,9 @@ def dashboard():
         vehicle_cards=vehicle_cards,
         driver_cards=driver_cards,
         recent_inspections=recent_inspections,
+        weekly_inspections=weekly_inspections,
+        service_history=service_history,
+        driver_status=driver_status,
         monthly_summary=monthly_summary,
         daily_summary=daily_summary,
         range_summary=range_summary,
