@@ -722,6 +722,10 @@ tbody tr:hover {
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
   }
 
+  .sidebar-collapse {
+    display: none;
+  }
+
   .content {
     padding: 16px;
   }
@@ -741,6 +745,14 @@ tbody tr:hover {
   body.sidebar-open .backdrop {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  body.sidebar-collapsed .sidebar {
+    transform: translateX(-260px);
+  }
+
+  body.sidebar-collapsed .layout {
+    grid-template-columns: 1fr;
   }
 }
 

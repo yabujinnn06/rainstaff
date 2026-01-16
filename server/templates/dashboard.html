@@ -719,7 +719,11 @@
       const sidebarBackdrop = document.getElementById("sidebarBackdrop");
       const sidebarCollapse = document.getElementById("sidebarCollapse");
       const sidebarHide = document.getElementById("sidebarHide");
-      const toggleSidebar = () => document.body.classList.toggle("sidebar-open");
+      const toggleSidebar = () => {
+        document.body.classList.remove("sidebar-hidden");
+        document.body.classList.remove("sidebar-collapsed");
+        document.body.classList.toggle("sidebar-open");
+      };
       if (sidebarToggle) {
         sidebarToggle.addEventListener("click", toggleSidebar);
       }
@@ -742,6 +746,8 @@
       if (sidebarHide) {
         sidebarHide.addEventListener("click", () => {
           document.body.classList.toggle("sidebar-hidden");
+          document.body.classList.remove("sidebar-open");
+          document.body.classList.remove("sidebar-collapsed");
         });
       }
       document.querySelectorAll(".sidebar a").forEach((link) => {
