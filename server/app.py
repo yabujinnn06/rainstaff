@@ -669,6 +669,8 @@ def dashboard():
         "special": 0.0,
     }
     last_sync = None
+    is_admin = False
+    region = "Ankara"
     start_date = request.args.get("start", "").strip()
     end_date = request.args.get("end", "").strip()
     all_months = request.args.get("all", "").strip() == "1"
