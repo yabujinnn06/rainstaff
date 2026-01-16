@@ -781,6 +781,8 @@ def dashboard():
     top_overtime = None
     oil_alerts = []
     oil_counts = {"due": 0, "soon": 0}
+    quality_alerts = []
+    quality_counts = {"total": 0, "critical": 0}
     range_summary = {
         "worked": 0.0,
         "overtime": 0.0,
@@ -1065,6 +1067,24 @@ def dashboard():
                 range_summary["overtime"] += metrics["overtime"]
                 range_summary["night"] += metrics["night"]
                 range_summary["special"] += metrics["special"]
+                if metrics["worked"] <= 0:
+                    quality_alerts.append(
+                        {
+                            "type": "Gecersiz Mesai",
+                            "entity": row["name"],
+                            "detail": f"{row['work_date']} / {row['start_time']}-{row['end_time']}",
+                            "level": "critical",
+                        }
+                    )
+                elif metrics["worked"] > 16:
+                    quality_alerts.append(
+                        {
+                            "type": "Uzun Mesai",
+                            "entity": row["name"],
+                            "detail": f"{row['work_date']} / {metrics['worked']}s",
+                            "level": "warn",
+                        }
+                    )
 
             summary["worked_hours"] = round(summary["worked_hours"], 2)
             summary["overtime_hours"] = round(summary["overtime_hours"], 2)
@@ -1076,6 +1096,72 @@ def dashboard():
             if overtime_leaders:
                 top_overtime = overtime_leaders[0]
             recent_timesheets = sorted(filtered_rows, key=lambda x: x["work_date"], reverse=True)[:15]
+
+            for row in vehicles_for_oil:
+                plate = row["plate"]
+                km = row["km"]
+                oil_km = row["oil_change_km"]
+                interval_km = row["oil_interval_km"] or DEFAULT_OIL_INTERVAL_KM
+                if km is None:
+                    quality_alerts.append(
+                        {"type": "Eksik KM", "entity": plate, "detail": "KM girilmemis", "level": "warn"}
+                    )
+                if oil_km is None:
+                    quality_alerts.append(
+                        {
+                            "type": "Eksik Yag KM",
+                            "entity": plate,
+                            "detail": "Son yag KM bos",
+                            "level": "warn",
+                        }
+                    )
+                if not row["oil_interval_km"]:
+                    quality_alerts.append(
+                        {
+                            "type": "Eksik Periyot",
+                            "entity": plate,
+                            "detail": f"Varsayilan {DEFAULT_OIL_INTERVAL_KM} km",
+                            "level": "warn",
+                        }
+                    )
+                if km is not None and oil_km is not None and km < oil_km:
+                    quality_alerts.append(
+                        {
+                            "type": "KM Dususu",
+                            "entity": plate,
+                            "detail": f"KM {km} < Yag KM {oil_km}",
+                            "level": "critical",
+                        }
+                    )
+
+            inspection_rows = conn.execute(
+                "SELECT vehicle_id, inspection_date, km FROM vehicle_inspections "
+                + ("WHERE region = ? " if region_filter else "")
+                + "ORDER BY vehicle_id, inspection_date DESC;",
+                (region_filter,) if region_filter else (),
+            ).fetchall()
+            last_km_by_vehicle = {}
+            for row in inspection_rows:
+                veh_id = row["vehicle_id"]
+                km_val = row["km"]
+                if km_val is None:
+                    continue
+                prev_km = last_km_by_vehicle.get(veh_id)
+                if prev_km is not None and km_val < prev_km:
+                    plate_row = conn.execute(
+                        "SELECT plate FROM vehicles WHERE id = ?;",
+                        (veh_id,),
+                    ).fetchone()
+                    plate = plate_row["plate"] if plate_row else str(veh_id)
+                    quality_alerts.append(
+                        {
+                            "type": "Kontrol KM Dususu",
+                            "entity": plate,
+                            "detail": f"{row['inspection_date']} / {km_val} < {prev_km}",
+                            "level": "critical",
+                        }
+                    )
+                last_km_by_vehicle[veh_id] = km_val
 
             for row in vehicles_for_oil:
                 km = row["km"]
@@ -1094,6 +1180,8 @@ def dashboard():
                     )
             oil_counts["due"] = sum(1 for row in oil_alerts if row["status"] == "Geldi")
             oil_counts["soon"] = sum(1 for row in oil_alerts if row["status"] == "Yaklasti")
+            quality_counts["total"] = len(quality_alerts)
+            quality_counts["critical"] = sum(1 for row in quality_alerts if row["level"] == "critical")
 
             monthly_totals = {}
             for row in timesheet_rows:
@@ -1160,6 +1248,8 @@ def dashboard():
         top_overtime=top_overtime,
         oil_alerts=sorted(oil_alerts, key=lambda x: x["remaining"]),
         oil_counts=oil_counts,
+        quality_alerts=quality_alerts[:30],
+        quality_counts=quality_counts,
         range_summary=range_summary,
         start_date=start_date,
         end_date=end_date,

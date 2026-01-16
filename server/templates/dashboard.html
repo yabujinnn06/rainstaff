@@ -52,6 +52,14 @@
           </span>
           <span class="label">Uyarilar</span>
         </a>
+        <a href="#quality" title="Veri Kalitesi">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 3h14v18H5zM8 7h8m-8 4h8m-8 4h6" />
+            </svg>
+          </span>
+          <span class="label">Veri Kalitesi</span>
+        </a>
         <a href="/alerts" title="Tum Uyarilar">
           <span class="icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -263,6 +271,46 @@
           </div>
         </section>
         {% endif %}
+
+        <section id="quality" class="section panel">
+          <div class="panel-head">
+            <h2>Veri Kalitesi Kontrolleri</h2>
+            <div class="alert-stats">
+              <span class="badge bad">Kritik: {{ quality_counts.critical }}</span>
+              <span class="badge repeat">Toplam: {{ quality_counts.total }}</span>
+            </div>
+          </div>
+          {% if quality_alerts %}
+            <div class="table-wrap">
+              <div class="table-tools">
+                <input class="table-search" data-target="quality-table" placeholder="Uyari ara..." />
+              </div>
+              <table id="quality-table">
+                <thead>
+                  <tr>
+                    <th>Tip</th>
+                    <th>Kayit</th>
+                    <th>Detay</th>
+                    <th>Seviye</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in quality_alerts %}
+                    <tr class="{% if row['level'] == 'critical' %}alert-row bad{% else %}alert-row repeat{% endif %}">
+                      <td>{{ row['type'] }}</td>
+                      <td>{{ row['entity'] }}</td>
+                      <td>{{ row['detail'] }}</td>
+                      <td>{{ 'Kritik' if row['level'] == 'critical' else 'Uyari' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <div class="table-footer" data-target="quality-table"></div>
+            </div>
+          {% else %}
+            <div class="muted">Veri kalitesi sorunu bulunamadi</div>
+          {% endif %}
+        </section>
 
         <section id="oil-alerts" class="section panel">
           <div class="panel-head">
