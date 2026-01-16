@@ -352,6 +352,7 @@ class PuantajApp(tk.Tk):
         self.status_var = tk.StringVar()
         self.ts_original = None
         self.ts_editing_id = None
+        self.vehicle_original_plate = None
         self._tab_loaded = {}
 
         if not self._login_prompt():
@@ -2318,6 +2319,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_oil_km_var.set("")
         self.vehicle_oil_interval_var.set(str(DEFAULT_OIL_INTERVAL_KM))
         self.vehicle_notes_var.set("")
+        self.vehicle_original_plate = None
         clear_date_entry(self.vehicle_insp_entry)
         clear_date_entry(self.vehicle_ins_entry)
         clear_date_entry(self.vehicle_maint_entry)
@@ -2349,6 +2351,7 @@ class PuantajApp(tk.Tk):
         ) = row
         self.vehicle_id_var.set(vehicle_id)
         self.vehicle_plate_var.set(plate)
+        self.vehicle_original_plate = plate
         self.vehicle_brand_var.set(brand)
         self.vehicle_model_var.set(model)
         self.vehicle_year_var.set(year)
@@ -2386,39 +2389,51 @@ class PuantajApp(tk.Tk):
             return
 
         vehicle_id = self.vehicle_id_var.get().strip()
-        if vehicle_id:
-            db.update_vehicle(
-                parse_int(vehicle_id),
-                plate,
-                brand,
-                model,
-                year,
-                km,
-                inspection_date,
-                insurance_date,
-                maintenance_date,
-                oil_change_date,
-                oil_change_km,
-                oil_interval_km,
-                notes,
-                self._entry_region(),
+        if vehicle_id and self.vehicle_original_plate and plate != self.vehicle_original_plate:
+            add_new = messagebox.askyesno(
+                "Onay",
+                "Plaka degisti. Yeni arac olarak eklensin mi?\n"
+                "Evet: yeni kayit, Hayir: mevcut araci guncelle.",
             )
-        else:
-            db.add_vehicle(
-                plate,
-                brand,
-                model,
-                year,
-                km,
-                inspection_date,
-                insurance_date,
-                maintenance_date,
-                oil_change_date,
-                oil_change_km,
-                oil_interval_km,
-                notes,
-                self._entry_region(),
-            )
+            if add_new:
+                vehicle_id = ""
+        try:
+            if vehicle_id:
+                db.update_vehicle(
+                    parse_int(vehicle_id),
+                    plate,
+                    brand,
+                    model,
+                    year,
+                    km,
+                    inspection_date,
+                    insurance_date,
+                    maintenance_date,
+                    oil_change_date,
+                    oil_change_km,
+                    oil_interval_km,
+                    notes,
+                    self._entry_region(),
+                )
+            else:
+                db.add_vehicle(
+                    plate,
+                    brand,
+                    model,
+                    year,
+                    km,
+                    inspection_date,
+                    insurance_date,
+                    maintenance_date,
+                    oil_change_date,
+                    oil_change_km,
+                    oil_interval_km,
+                    notes,
+                    self._entry_region(),
+                )
+        except Exception:
+            messagebox.showwarning("Uyari", "Arac kaydi eklenemedi. Plaka zaten var olabilir.")
+            return
         self.refresh_vehicles()
         self.clear_vehicle_form()
         self.trigger_sync("vehicle")
