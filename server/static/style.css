@@ -430,6 +430,11 @@ body {
   border-color: #f3d19a;
 }
 
+.card.pulse {
+  animation: glow 1.4s ease-in-out infinite;
+  border-color: #f59e0b;
+}
+
 .label {
   color: var(--muted);
   font-size: 12px;

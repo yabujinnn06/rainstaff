@@ -282,12 +282,13 @@ def export_vehicle_weekly_report(
         ws.cell(row=7, column=1, value=f"Muayene: {insp_text}")
         ws.cell(row=8, column=1, value=f"Son Bakim: {maintenance_date or '-'}")
         ws.cell(row=9, column=1, value=f"Son Yag Degisimi: {oil_change_date or '-'}")
-        if oil_interval_km and oil_change_km is not None and current_km:
-            remaining = oil_interval_km - (current_km - oil_change_km)
+        interval_km = oil_interval_km or 14000
+        if interval_km and oil_change_km is not None and current_km:
+            remaining = interval_km - (current_km - oil_change_km)
             oil_text = "Geldi" if remaining <= 0 else f"{remaining} km"
         else:
             oil_text = "-"
-        ws.cell(row=10, column=1, value=f"Yag Periyodu: {oil_interval_km or '-'} km, Kalan: {oil_text}")
+        ws.cell(row=10, column=1, value=f"Yag Periyodu: {interval_km or '-'} km, Kalan: {oil_text}")
 
     row = 12
     ws.cell(row=row, column=1, value="Ariza Bilgisi").font = Font(bold=True)
@@ -416,7 +417,7 @@ def export_vehicle_card_report(output_path, plate, vehicle_row, inspections, fau
         ws.cell(row=8, column=1, value=f"Bakim: {maintenance_date or '-'}")
         ws.cell(row=9, column=1, value=f"Yag Degisim: {oil_change_date or '-'}")
         ws.cell(row=10, column=1, value=f"Yag KM: {oil_change_km or '-'}")
-        ws.cell(row=11, column=1, value=f"Yag Periyot: {oil_interval_km or '-'} km")
+        ws.cell(row=11, column=1, value=f"Yag Periyot: {(oil_interval_km or 14000)} km")
         if notes:
             ws.cell(row=12, column=1, value=f"Not: {notes}")
 

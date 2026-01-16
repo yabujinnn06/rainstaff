@@ -19,6 +19,8 @@ DEFAULT_USERS = [
     ("admin", "748774", "admin", "ALL"),
 ]
 REGION_OPTIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
+DEFAULT_OIL_INTERVAL_KM = 14000
+OIL_SOON_THRESHOLD_KM = 2000
 
 VEHICLE_CHECKLIST = {
     "body_dent": "Govde ezik/cizik",
@@ -662,6 +664,8 @@ def dashboard():
     weekly_alerts = []
     alert_counts = {"total": 0, "bad": 0, "repeat": 0, "good": 0}
     top_overtime = None
+    oil_alerts = []
+    oil_counts = {"due": 0, "soon": 0}
     range_summary = {
         "worked": 0.0,
         "overtime": 0.0,
@@ -820,6 +824,11 @@ def dashboard():
                     "FROM drivers d WHERE d.region = ? ORDER BY d.full_name LIMIT 20;",
                     (region_filter,),
                 ).fetchall()
+                vehicles_for_oil = conn.execute(
+                    "SELECT plate, km, oil_change_km, oil_interval_km "
+                    "FROM vehicles WHERE region = ?;",
+                    (region_filter,),
+                ).fetchall()
             else:
                 open_faults = conn.execute(
                     "SELECT v.plate, f.title, f.opened_date "
@@ -879,6 +888,9 @@ def dashboard():
                 driver_status = conn.execute(
                     "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
                     "FROM drivers d ORDER BY d.full_name LIMIT 20;"
+                ).fetchall()
+                vehicles_for_oil = conn.execute(
+                    "SELECT plate, km, oil_change_km, oil_interval_km FROM vehicles;"
                 ).fetchall()
             weekly_alerts = build_weekly_alerts(conn, region_filter)
             alert_counts = {
@@ -950,6 +962,24 @@ def dashboard():
                 top_overtime = overtime_leaders[0]
             recent_timesheets = sorted(filtered_rows, key=lambda x: x["work_date"], reverse=True)[:15]
 
+            for row in vehicles_for_oil:
+                km = row["km"]
+                oil_km = row["oil_change_km"]
+                interval_km = row["oil_interval_km"] or DEFAULT_OIL_INTERVAL_KM
+                if km is None or oil_km is None or interval_km <= 0:
+                    continue
+                remaining = interval_km - (km - oil_km)
+                if remaining <= 0:
+                    oil_alerts.append(
+                        {"plate": row["plate"], "remaining": remaining, "status": "Geldi"}
+                    )
+                elif remaining <= OIL_SOON_THRESHOLD_KM:
+                    oil_alerts.append(
+                        {"plate": row["plate"], "remaining": remaining, "status": "Yaklasti"}
+                    )
+            oil_counts["due"] = sum(1 for row in oil_alerts if row["status"] == "Geldi")
+            oil_counts["soon"] = sum(1 for row in oil_alerts if row["status"] == "Yaklasti")
+
             monthly_totals = {}
             for row in timesheet_rows:
                 month_key = row["work_date"][:7]
@@ -1013,6 +1043,8 @@ def dashboard():
         weekly_alerts=weekly_alerts,
         alert_counts=alert_counts,
         top_overtime=top_overtime,
+        oil_alerts=sorted(oil_alerts, key=lambda x: x["remaining"]),
+        oil_counts=oil_counts,
         range_summary=range_summary,
         start_date=start_date,
         end_date=end_date,

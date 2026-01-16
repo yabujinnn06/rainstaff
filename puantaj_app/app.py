@@ -26,6 +26,7 @@ DATE_FMT = "YYYY-MM-DD"
 TIME_FMT = "HH:MM"
 KEEPALIVE_SECONDS = 300
 REGIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
+DEFAULT_OIL_INTERVAL_KM = 14000
 
 VEHICLE_CHECKLIST = [
     ("body_dent", "Govde ezik/cizik"),
@@ -1738,10 +1739,11 @@ class PuantajApp(tk.Tk):
                 oil_interval_km,
                 _notes,
             ) = vehicle
-            oil_status = "-"
-            if oil_interval_km and oil_change_km is not None and km is not None:
-                remaining = oil_interval_km - (km - oil_change_km)
-                oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
+        oil_status = "-"
+        interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
+        if interval_km and oil_change_km is not None and km is not None:
+            remaining = interval_km - (km - oil_change_km)
+            oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
             self.vehicle_tree.insert(
                 "",
                 tk.END,
@@ -2142,10 +2144,11 @@ class PuantajApp(tk.Tk):
                 _notes,
             ) = vehicle
 
-            oil_status = "-"
-            if oil_interval_km and oil_change_km is not None and km is not None:
-                remaining = oil_interval_km - (km - oil_change_km)
-                oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
+        oil_status = "-"
+        interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
+        if interval_km and oil_change_km is not None and km is not None:
+            remaining = interval_km - (km - oil_change_km)
+            oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
                 if remaining <= 0:
                     oil_due += 1
                     self.vehicle_alert_tree.insert("", tk.END, values=(plate, "Yag Degisimi", "Geldi"))
@@ -2308,7 +2311,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_maintenance_var.set("")
         self.vehicle_oil_var.set("")
         self.vehicle_oil_km_var.set("")
-        self.vehicle_oil_interval_var.set("")
+        self.vehicle_oil_interval_var.set(str(DEFAULT_OIL_INTERVAL_KM))
         self.vehicle_notes_var.set("")
         clear_date_entry(self.vehicle_insp_entry)
         clear_date_entry(self.vehicle_ins_entry)
@@ -2350,7 +2353,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_maintenance_var.set(maintenance_date or "")
         self.vehicle_oil_var.set(oil_change_date or "")
         self.vehicle_oil_km_var.set(oil_change_km or "")
-        self.vehicle_oil_interval_var.set(oil_interval_km or "")
+        self.vehicle_oil_interval_var.set(oil_interval_km or str(DEFAULT_OIL_INTERVAL_KM))
 
     def add_or_update_vehicle(self):
         plate = self.vehicle_plate_var.get().strip()
@@ -3062,7 +3065,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_maintenance_var = tk.StringVar()
         self.vehicle_oil_var = tk.StringVar()
         self.vehicle_oil_km_var = tk.StringVar()
-        self.vehicle_oil_interval_var = tk.StringVar()
+        self.vehicle_oil_interval_var = tk.StringVar(value=str(DEFAULT_OIL_INTERVAL_KM))
         self.vehicle_notes_var = tk.StringVar()
 
         vrow1 = ttk.Frame(vehicle_frame)
