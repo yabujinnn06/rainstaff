@@ -669,6 +669,7 @@ def dashboard():
         "special": 0.0,
     }
     last_sync = None
+    desktop_online = False
     is_admin = False
     region = "Ankara"
     start_date = request.args.get("start", "").strip()
