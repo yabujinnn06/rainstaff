@@ -744,6 +744,13 @@
           document.body.classList.toggle("sidebar-hidden");
         });
       }
+      document.querySelectorAll(".sidebar a").forEach((link) => {
+        link.addEventListener("click", () => {
+          if (window.innerWidth <= 1100) {
+            document.body.classList.remove("sidebar-open");
+          }
+        });
+      });
       const allToggle = document.querySelector('input[name="all"]');
       const startInput = document.querySelector('input[name="start"]');
       const endInput = document.querySelector('input[name="end"]');
