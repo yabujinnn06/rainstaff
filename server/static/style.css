@@ -253,6 +253,16 @@ body {
   font-size: 13px;
 }
 
+.sidebar a.active {
+  background: var(--sidebar-accent);
+  color: white;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.sidebar a.active .icon svg {
+  stroke: #ffffff;
+}
+
 .sidebar a .icon {
   width: 18px;
   height: 18px;
@@ -432,6 +442,37 @@ body {
   height: 100%;
   background: linear-gradient(90deg, #5b6bff, #7aa2ff);
   border-radius: 999px;
+}
+
+.kpi-meta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.kpi-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kpi-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 14px;
 }
 
 .card-link,
