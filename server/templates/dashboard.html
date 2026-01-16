@@ -191,6 +191,15 @@
             <input type="date" name="start" value="{{ start_date }}" />
             <label>Bitis</label>
             <input type="date" name="end" value="{{ end_date }}" />
+            {% if is_admin %}
+            <label>Bolge</label>
+            <select name="region">
+              <option value="ALL" {% if selected_region in ['', 'ALL', None] %}selected{% endif %}>Tum Bolgeler</option>
+              {% for region in regions %}
+              <option value="{{ region }}" {% if selected_region == region %}selected{% endif %}>{{ region }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
             <label class="check">
               <input type="checkbox" name="all" value="1" {% if all_months %}checked{% endif %} />
               Tum Aylar

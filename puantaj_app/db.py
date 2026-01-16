@@ -23,6 +23,7 @@ DEFAULT_SETTINGS = {
     "sync_enabled": "0",
     "sync_url": "",
     "sync_token": "",
+    "admin_entry_region": "Ankara",
 }
 
 DEFAULT_USERS = [

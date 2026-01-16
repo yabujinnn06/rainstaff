@@ -18,6 +18,7 @@ DEFAULT_USERS = [
     ("istanbul1", "340434", "user", "Istanbul"),
     ("admin", "748774", "admin", "ALL"),
 ]
+REGION_OPTIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
 
 VEHICLE_CHECKLIST = {
     "body_dent": "Govde ezik/cizik",
@@ -670,6 +671,7 @@ def dashboard():
     start_date = request.args.get("start", "").strip()
     end_date = request.args.get("end", "").strip()
     all_months = request.args.get("all", "").strip() == "1"
+    selected_region = request.args.get("region", "").strip()
     try:
         if start_date:
             datetime.strptime(start_date, "%Y-%m-%d")
@@ -689,6 +691,11 @@ def dashboard():
             ensure_schema(conn)
             is_admin, region = get_user_context()
             region_filter = None if is_admin else region
+            if is_admin:
+                if selected_region in REGION_OPTIONS:
+                    region_filter = selected_region
+                elif selected_region in ("ALL", ""):
+                    region_filter = None
             settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
             if region_filter:
                 summary["employees"] = safe_count(
@@ -1005,6 +1012,9 @@ def dashboard():
         all_months=all_months,
         desktop_online=desktop_online,
         last_sync=last_sync,
+        is_admin=is_admin,
+        regions=REGION_OPTIONS,
+        selected_region=selected_region if is_admin else region,
     )
 
 

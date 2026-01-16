@@ -25,6 +25,7 @@ except ImportError:
 DATE_FMT = "YYYY-MM-DD"
 TIME_FMT = "HH:MM"
 KEEPALIVE_SECONDS = 300
+REGIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
 
 VEHICLE_CHECKLIST = [
     ("body_dent", "Govde ezik/cizik"),
@@ -336,6 +337,7 @@ class PuantajApp(tk.Tk):
         self.current_user = None
         self.current_region = None
         self.is_admin = False
+        self.admin_region_var = tk.StringVar(value=self.settings.get("admin_entry_region", "Ankara"))
 
         self.settings = db.get_all_settings()
         self.employee_map = {}
@@ -437,7 +439,10 @@ class PuantajApp(tk.Tk):
         return None if self.is_admin else self.current_region
 
     def _entry_region(self):
-        return "Ankara" if self.is_admin else self.current_region
+        if self.is_admin:
+            value = self.admin_region_var.get().strip()
+            return value or "Ankara"
+        return self.current_region
 
     def _configure_style(self):
         style = ttk.Style(self)
@@ -2904,6 +2909,7 @@ class PuantajApp(tk.Tk):
         self.sync_enabled_var = tk.BooleanVar(value=self.settings.get("sync_enabled", "0") == "1")
         self.sync_url_var = tk.StringVar(value=self.settings.get("sync_url", ""))
         self.sync_token_var = tk.StringVar(value=self.settings.get("sync_token", ""))
+        self.admin_region_var.set(self.settings.get("admin_entry_region", "Ankara"))
 
         row1 = ttk.Frame(frame)
         row1.pack(fill=tk.X, pady=4)
@@ -2915,6 +2921,16 @@ class PuantajApp(tk.Tk):
         create_labeled_entry(row2, "Hafta Ici Saat", self.weekday_hours_var, 10).pack(side=tk.LEFT, padx=6)
         create_labeled_entry(row2, "Cumartesi Baslangic", self.sat_start_var, 10).pack(side=tk.LEFT, padx=6)
         create_labeled_entry(row2, "Cumartesi Bitis", self.sat_end_var, 10).pack(side=tk.LEFT, padx=6)
+        if self.is_admin:
+            ttk.Label(row2, text="Admin Bolge").pack(side=tk.LEFT, padx=(12, 6))
+            region_combo = ttk.Combobox(
+                row2,
+                textvariable=self.admin_region_var,
+                values=REGIONS,
+                width=12,
+                state="readonly",
+            )
+            region_combo.pack(side=tk.LEFT, padx=6)
 
         row3 = ttk.Frame(frame)
         row3.pack(fill=tk.X, pady=4)
@@ -4035,6 +4051,8 @@ class PuantajApp(tk.Tk):
         db.set_setting("sync_enabled", "1" if self.sync_enabled_var.get() else "0")
         db.set_setting("sync_url", self.sync_url_var.get().strip())
         db.set_setting("sync_token", self.sync_token_var.get().strip())
+        if self.is_admin:
+            db.set_setting("admin_entry_region", self.admin_region_var.get().strip() or "Ankara")
         self.settings = db.get_all_settings()
         messagebox.showinfo("Basarili", "Ayarlar kaydedildi.")
         self.trigger_sync("settings")
