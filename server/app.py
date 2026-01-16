@@ -131,7 +131,7 @@ def sync():
 
 
 def is_authenticated():
-    return session.get("user") == "admin"
+    return bool(session.get("user"))
 
 
 @app.before_request
