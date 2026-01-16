@@ -804,21 +804,37 @@ tbody tr:hover {
 }
 
 body.sidebar-collapsed .layout {
-  grid-template-columns: 84px 1fr;
+  grid-template-columns: 64px 1fr;
 }
 
 body.sidebar-collapsed .sidebar {
-  padding: 20px 8px;
+  width: 64px;
+  padding: 10px 6px;
+}
+
+body.sidebar-collapsed .sidebar-head {
+  justify-content: center;
 }
 
 body.sidebar-collapsed .sidebar a {
   justify-content: center;
+  padding: 10px 0;
+  margin: 6px auto;
+  width: 44px;
+}
+
+body.sidebar-collapsed .sidebar a:hover {
+  background: #e3eefc;
 }
 
 body.sidebar-collapsed .sidebar a .label,
-body.sidebar-collapsed .menu-title,
 body.sidebar-collapsed .menu-title {
   display: none;
+}
+
+body.sidebar-collapsed .sidebar-collapse {
+  padding: 4px 6px;
+  font-size: 11px;
 }
 
 body.sidebar-hidden .layout {
