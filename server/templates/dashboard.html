@@ -23,7 +23,6 @@
           Uyari {{ alert_counts.total }}
         </a>
         <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
-        <button class="sidebar-btn" id="sidebarHide" type="button">Sidebar</button>
         Son senkron: {{ last_sync or 'Yok' }}
         <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
         <a class="logout" href="/logout">Cikis</a>
@@ -718,7 +717,6 @@
       const sidebarToggle = document.getElementById("sidebarToggle");
       const sidebarBackdrop = document.getElementById("sidebarBackdrop");
       const sidebarCollapse = document.getElementById("sidebarCollapse");
-      const sidebarHide = document.getElementById("sidebarHide");
       const toggleSidebar = () => {
         document.body.classList.remove("sidebar-hidden");
         document.body.classList.remove("sidebar-collapsed");
@@ -734,6 +732,7 @@
       }
       if (sidebarCollapse) {
         sidebarCollapse.addEventListener("click", () => {
+          document.body.classList.remove("sidebar-hidden");
           document.body.classList.toggle("sidebar-collapsed");
           sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
             ? "Genislet"
@@ -742,13 +741,6 @@
         sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
           ? "Genislet"
           : "Daralt";
-      }
-      if (sidebarHide) {
-        sidebarHide.addEventListener("click", () => {
-          document.body.classList.toggle("sidebar-hidden");
-          document.body.classList.remove("sidebar-open");
-          document.body.classList.remove("sidebar-collapsed");
-        });
       }
       document.querySelectorAll(".sidebar a").forEach((link) => {
         link.addEventListener("click", () => {

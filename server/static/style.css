@@ -190,20 +190,6 @@ body {
   background: #e0e7ff;
 }
 
-.sidebar-btn {
-  border: 1px solid var(--border);
-  background: white;
-  color: var(--text);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.sidebar-btn:hover {
-  background: #f1f5f9;
-}
-
 .notification-bar {
   background: linear-gradient(90deg, #fee2e2 0%, #fde68a 100%);
   border: 1px solid #f59e0b;
