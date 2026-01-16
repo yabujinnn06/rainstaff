@@ -26,6 +26,7 @@ DATE_FMT = "YYYY-MM-DD"
 TIME_FMT = "HH:MM"
 KEEPALIVE_SECONDS = 300
 REGIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
+VIEW_REGIONS = ["Tum Bolgeler"] + REGIONS
 DEFAULT_OIL_INTERVAL_KM = 14000
 DEFAULT_OIL_SOON_KM = 2000
 
@@ -194,6 +195,16 @@ def normalize_header(value):
     return "".join(ch for ch in text if ch.isalnum())
 
 
+def split_display_name(value, regions):
+    text = str(value or "").strip()
+    if text.endswith(")") and " (" in text:
+        base, region = text.rsplit(" (", 1)
+        region = region[:-1]
+        if region in regions or region == "-":
+            return base, ("" if region == "-" else region)
+    return text, None
+
+
 def build_header_aliases(raw_map):
     return {key: {normalize_header(a) for a in aliases} for key, aliases in raw_map.items()}
 
@@ -307,6 +318,85 @@ def ensure_logo_asset(path):
     img.save(path)
 
 
+def ensure_guide_assets():
+    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+    os.makedirs(assets_dir, exist_ok=True)
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return
+
+    def build_card(path, step_no, title, lines, accent):
+        if os.path.isfile(path):
+            return
+        width, height = 980, 320
+        img = Image.new("RGB", (width, height), "#eef2f7")
+        draw = ImageDraw.Draw(img)
+        draw.rounded_rectangle([16, 16, width - 16, height - 16], radius=24, fill="#ffffff", outline="#d6dee9")
+        draw.rounded_rectangle([28, 28, 220, height - 28], radius=20, fill=accent)
+        draw.ellipse([64, 64, 184, 184], fill="#ffffff", outline="#e2e8f0")
+        try:
+            font_big = ImageFont.truetype("Consola.ttf", 44)
+            font_title = ImageFont.truetype("Consola.ttf", 24)
+            font_text = ImageFont.truetype("Consola.ttf", 18)
+        except Exception:
+            font_big = ImageFont.load_default()
+            font_title = ImageFont.load_default()
+            font_text = ImageFont.load_default()
+        draw.text((104, 102), str(step_no), fill=accent, font=font_big, anchor="mm")
+        draw.text((250, 60), title, fill="#1f2937", font=font_title)
+        y = 110
+        for line in lines:
+            draw.text((250, y), line, fill="#4b5563", font=font_text)
+            y += 28
+        img.save(path)
+
+    build_card(
+        os.path.join(assets_dir, "guide_01_login.png"),
+        1,
+        "Giris ve Bolge",
+        [
+            "Kullanici adi ve sifre ile giris yapin.",
+            "Admin ise goruntuleme bolgesini secin.",
+            "Tum Bolgeler ile hepsini gorursunuz.",
+        ],
+        "#2f6fed",
+    )
+    build_card(
+        os.path.join(assets_dir, "guide_02_employees.png"),
+        2,
+        "Calisan Kaydi",
+        [
+            "Calisanlar sekmesinde yeni kayit ekleyin.",
+            "Admin ise Kayit Bolge ile bolgeyi belirleyin.",
+            "Excel/CSV iceriden aktarma da desteklenir.",
+        ],
+        "#0ea5a4",
+    )
+    build_card(
+        os.path.join(assets_dir, "guide_03_timesheets.png"),
+        3,
+        "Puantaj Girisi",
+        [
+            "Puantaj sekmesinde tarih ve saatleri girin.",
+            "Ozel gun ve not alanlarini kullanin.",
+            "Filtrelerle calisan ve tarih araligi secin.",
+        ],
+        "#f97316",
+    )
+    build_card(
+        os.path.join(assets_dir, "guide_04_reports.png"),
+        4,
+        "Rapor ve Araclar",
+        [
+            "Rapor sekmesinden Excel cikti alin.",
+            "Araclar ve Servis/Ariza bolumlerini takip edin.",
+            "Dashboard ile kritik hatirlaticilari gorun.",
+        ],
+        "#8b5cf6",
+    )
+
+
 def load_logo_image(path, target_height=48):
     try:
         from PIL import Image, ImageTk
@@ -341,11 +431,18 @@ class PuantajApp(tk.Tk):
         self.is_admin = False
 
         self.settings = db.get_all_settings()
-        self.admin_region_var = tk.StringVar(value=self.settings.get("admin_entry_region", "Ankara"))
+        entry_region = self.settings.get("admin_entry_region", "Ankara")
+        view_region = self.settings.get("admin_view_region", "Tum Bolgeler")
+        if view_region == "ALL":
+            view_region = "Tum Bolgeler"
+        self.admin_entry_region_var = tk.StringVar(value=entry_region)
+        self.admin_view_region_var = tk.StringVar(value=view_region)
         self.employee_map = {}
+        self.employee_display_names = []
         self.employee_details = {}
         self.vehicle_map = {}
         self.driver_map = {}
+        self.driver_display_names = []
         self.fault_map = {}
         self.service_visit_map = {}
         self.shift_template_map = {}
@@ -359,11 +456,83 @@ class PuantajApp(tk.Tk):
             self.destroy()
             return
 
+        self._show_loading("Yukleniyor...")
+        self.after(10, self._finish_startup)
+
+    def _finish_startup(self):
+        self.after(10, self._startup_step_prepare)
+
+    def _startup_step_prepare(self):
+        ensure_guide_assets()
+        self.after(10, self._startup_step_style)
+
+    def _startup_step_style(self):
         self._configure_style()
+        self.after(10, self._startup_step_ui)
+
+    def _startup_step_ui(self):
         self._build_ui()
+        self.after(10, self._startup_step_data)
+
+    def _startup_step_data(self):
         self._load_tab_data(self.tab_employees)
         self._start_keepalive()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._hide_loading()
+
+    def _show_loading(self, text):
+        overlay = tk.Toplevel(self)
+        overlay.title("Yukleniyor")
+        overlay.geometry("460x220")
+        overlay.resizable(False, False)
+        overlay.configure(bg="#EAF2FB")
+        overlay.transient(self)
+        overlay.grab_set()
+        overlay.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        container = tk.Frame(overlay, bg="#EAF2FB")
+        container.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
+
+        card = tk.Frame(container, bg="#ffffff", highlightbackground="#d6dee9", highlightthickness=1)
+        card.pack(fill=tk.BOTH, expand=True)
+
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "rainstaff_logo_1.png")
+        logo_img = load_logo_image(logo_path, target_height=60)
+        if logo_img:
+            self._loading_logo = logo_img
+            tk.Label(card, image=logo_img, bg="#ffffff").pack(pady=(18, 6))
+        else:
+            tk.Label(card, text="RAINSTAFF", bg="#ffffff", fg="#2C3E50", font=("Segoe UI", 16, "bold")).pack(
+                pady=(18, 6)
+            )
+
+        tk.Label(card, text=text, bg="#ffffff", fg="#425466", font=("Segoe UI", 12)).pack(pady=(0, 6))
+
+        spinner = tk.Canvas(card, width=64, height=64, bg="#ffffff", highlightthickness=0)
+        spinner.pack(pady=(4, 12))
+
+        arc = spinner.create_arc(8, 8, 56, 56, start=0, extent=300, style="arc", width=6, outline="#2f6fed")
+
+        def step(angle=0):
+            if getattr(self, "_loading_overlay", None) is None:
+                return
+            spinner.itemconfigure(arc, start=angle)
+            overlay.after(25, step, (angle + 10) % 360)
+
+        step()
+        self._loading_overlay = overlay
+        self._loading_spinner = spinner
+
+    def _hide_loading(self):
+        if hasattr(self, "_loading_spinner"):
+            self._loading_spinner = None
+        if hasattr(self, "_loading_overlay"):
+            try:
+                self._loading_overlay.grab_release()
+                self._loading_overlay.destroy()
+            except Exception:
+                pass
+            self._loading_overlay = None
 
     def _start_keepalive(self):
         self._keepalive_stop = threading.Event()
@@ -432,11 +601,26 @@ class PuantajApp(tk.Tk):
         return success["ok"]
 
     def _view_region(self):
-        return None if self.is_admin else self.current_region
+        if self.is_admin:
+            value = self.admin_view_region_var.get().strip()
+            if value in {"Tum Bolgeler", "ALL"}:
+                return None
+            return value or None
+        return self.current_region
+
+    def _refresh_region_views(self):
+        self.refresh_employees()
+        self.refresh_timesheets()
+        self.refresh_admin_summary()
+        self.refresh_vehicles()
+        self.refresh_drivers()
+        self.refresh_faults()
+        self.refresh_service_visits()
+        self.refresh_vehicle_dashboard()
 
     def _entry_region(self):
         if self.is_admin:
-            value = self.admin_region_var.get().strip()
+            value = self.admin_entry_region_var.get().strip()
             return value or "Ankara"
         return self.current_region
 
@@ -495,6 +679,7 @@ class PuantajApp(tk.Tk):
         self.tab_vehicles = ttk.Frame(self.notebook)
         self.tab_dashboard = ttk.Frame(self.notebook)
         self.tab_service = ttk.Frame(self.notebook)
+        self.tab_guide = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_employees, text="Calisanlar")
         self.notebook.add(self.tab_timesheets, text="Puantaj")
@@ -504,6 +689,7 @@ class PuantajApp(tk.Tk):
         self.notebook.add(self.tab_vehicles, text="Araclar")
         self.notebook.add(self.tab_dashboard, text="Dashboard")
         self.notebook.add(self.tab_service, text="Servis/Ariza")
+        self.notebook.add(self.tab_guide, text="Kullanim Rehberi")
 
         self.tab_employees_body = self._make_tab_scrollable(self.tab_employees)
         self.tab_timesheets_body = self._make_tab_scrollable(self.tab_timesheets)
@@ -513,6 +699,7 @@ class PuantajApp(tk.Tk):
         self.tab_vehicles_body = self._make_tab_scrollable(self.tab_vehicles)
         self.tab_dashboard_body = self._make_tab_scrollable(self.tab_dashboard)
         self.tab_service_body = self._make_tab_scrollable(self.tab_service)
+        self.tab_guide_body = self._make_tab_scrollable(self.tab_guide)
 
         self._build_employees_tab()
         self._build_timesheets_tab()
@@ -522,6 +709,7 @@ class PuantajApp(tk.Tk):
         self._build_vehicles_tab()
         self._build_dashboard_tab()
         self._build_service_tab()
+        self._build_guide_tab()
 
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
@@ -577,6 +765,24 @@ class PuantajApp(tk.Tk):
             "<Configure>",
             lambda e: canvas.itemconfigure(window_id, width=e.width),
         )
+        content.bind("<Enter>", lambda _e: self._bind_canvas_mousewheel(canvas))
+        content.bind("<Leave>", lambda _e: self._unbind_canvas_mousewheel(canvas))
+        return content
+
+    def _make_window_scrollable(self, window):
+        canvas = tk.Canvas(window, highlightthickness=0)
+        vscroll = ttk.Scrollbar(window, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=vscroll.set)
+
+        window.rowconfigure(0, weight=1)
+        window.columnconfigure(0, weight=1)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        vscroll.grid(row=0, column=1, sticky="ns")
+
+        content = ttk.Frame(canvas)
+        window_id = canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(window_id, width=e.width))
         content.bind("<Enter>", lambda _e: self._bind_canvas_mousewheel(canvas))
         content.bind("<Leave>", lambda _e: self._unbind_canvas_mousewheel(canvas))
         return content
@@ -666,18 +872,20 @@ class PuantajApp(tk.Tk):
         list_frame = ttk.Frame(self.tab_employees_body)
         list_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-        columns = ("id", "name", "identity", "department", "title")
+        columns = ("id", "name", "identity", "department", "title", "region")
         self.employee_tree = ttk.Treeview(list_frame, columns=columns, show="headings")
         self.employee_tree.heading("id", text="ID")
         self.employee_tree.heading("name", text="Ad Soyad")
         self.employee_tree.heading("identity", text="TCKN")
         self.employee_tree.heading("department", text="Departman")
         self.employee_tree.heading("title", text="Unvan")
+        self.employee_tree.heading("region", text="Bolge")
         self.employee_tree.column("id", width=60, anchor=tk.CENTER)
         self.employee_tree.column("name", width=220)
         self.employee_tree.column("identity", width=140)
         self.employee_tree.column("department", width=160)
         self.employee_tree.column("title", width=160)
+        self.employee_tree.column("region", width=110)
         self.employee_tree.tag_configure("odd", background="#f5f7fb")
         emp_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.employee_tree.xview)
         emp_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.employee_tree.yview)
@@ -693,21 +901,32 @@ class PuantajApp(tk.Tk):
         for item in self.employee_tree.get_children():
             self.employee_tree.delete(item)
         self.employee_map = {}
+        self.employee_display_names = []
         self.employee_details = {}
+        name_counts = {}
         for emp in db.list_employees(region=self._view_region()):
-            emp_id, name, identity_no, department, title = emp
+            emp_id, name, identity_no, department, title, region = emp
+            name_counts[name] = name_counts.get(name, 0) + 1
+            self.employee_map[(name, region or "")] = emp_id
             tag = "odd" if len(self.employee_tree.get_children()) % 2 else "even"
             self.employee_tree.insert("", tk.END, values=emp, tags=(tag,))
-            self.employee_map[name] = emp_id
-            self.employee_details[name] = {
+            self.employee_details[(name, region or "")] = {
                 "department": department or "",
                 "title": title or "",
                 "identity_no": identity_no or "",
+                "region": region or "",
             }
+        self.employee_display_names = []
+        for emp in db.list_employees(region=self._view_region()):
+            _emp_id, name, _identity_no, _department, _title, region = emp
+            display = name
+            if name_counts.get(name, 0) > 1:
+                display = f"{name} ({region or '-'})"
+            self.employee_display_names.append(display)
         self._refresh_employee_comboboxes()
 
     def _refresh_employee_comboboxes(self):
-        values = ["Tum Calisanlar"] + sorted(self.employee_map.keys())
+        values = ["Tum Calisanlar"] + sorted(self.employee_display_names)
         if hasattr(self, "ts_employee_combo"):
             self.ts_employee_combo["values"] = values
         if hasattr(self, "ts_filter_combo"):
@@ -881,6 +1100,7 @@ class PuantajApp(tk.Tk):
             "special_overtime",
             "special_night",
             "notes",
+            "region",
         )
         self.timesheet_tree = ttk.Treeview(list_frame, columns=columns, show="headings")
         self.timesheet_tree.heading("id", text="ID")
@@ -899,6 +1119,7 @@ class PuantajApp(tk.Tk):
         self.timesheet_tree.heading("special_overtime", text="Ozel Gun Fazla")
         self.timesheet_tree.heading("special_night", text="Ozel Gun Gece")
         self.timesheet_tree.heading("notes", text="Not")
+        self.timesheet_tree.heading("region", text="Bolge")
         self.timesheet_tree.column("id", width=60, anchor=tk.CENTER)
         self.timesheet_tree.column("employee", width=220)
         self.timesheet_tree.column("date", width=100)
@@ -915,6 +1136,7 @@ class PuantajApp(tk.Tk):
         self.timesheet_tree.column("special_overtime", width=110)
         self.timesheet_tree.column("special_night", width=110)
         self.timesheet_tree.column("notes", width=180)
+        self.timesheet_tree.column("region", width=100)
         self.timesheet_tree.tag_configure("odd", background="#f5f7fb")
         ts_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.timesheet_tree.xview)
         ts_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.timesheet_tree.yview)
@@ -968,7 +1190,11 @@ class PuantajApp(tk.Tk):
         values = self.timesheet_tree.item(selected[0], "values")
         self.ts_editing_id = values[0]
         self.ts_id_var.set(values[0])
-        self.ts_employee_var.set(values[1])
+        region = values[16] if len(values) > 16 else ""
+        display_name = values[1]
+        if region:
+            display_name = f"{values[1]} ({region})"
+        self.ts_employee_var.set(display_name)
         self.ts_date_var.set(values[2])
         set_time_vars(values[3], self.ts_start_var)
         set_time_vars(values[4], self.ts_end_var)
@@ -984,7 +1210,13 @@ class PuantajApp(tk.Tk):
         employee_name = self.ts_filter_employee.get()
         employee_id = None
         if employee_name and employee_name != "Tum Calisanlar":
-            employee_id = self.employee_map.get(employee_name)
+            base, region = split_display_name(employee_name, REGIONS)
+            if region is None:
+                employee_id = self.employee_map.get((base, "")) or self.employee_map.get(
+                    (base, self._entry_region())
+                )
+            else:
+                employee_id = self.employee_map.get((base, region))
         start_date = self.ts_filter_start.get().strip() or None
         end_date = self.ts_filter_end.get().strip() or None
         try:
@@ -1003,7 +1235,7 @@ class PuantajApp(tk.Tk):
             region=self._view_region(),
         )
         for ts in records:
-            ts_id, _emp_id, name, work_date, start_time, end_time, break_minutes, is_special, notes = ts
+            ts_id, _emp_id, name, work_date, start_time, end_time, break_minutes, is_special, notes, region = ts
             try:
                 (
                     worked,
@@ -1047,19 +1279,25 @@ class PuantajApp(tk.Tk):
                     spec_ot,
                     spec_night,
                     notes or "",
+                    region or "",
                 ),
                 tags=(tag,),
             )
 
         if hasattr(self, "ts_filter_combo"):
-            self.ts_filter_combo["values"] = ["Tum Calisanlar"] + sorted(self.employee_map.keys())
+            self.ts_filter_combo["values"] = ["Tum Calisanlar"] + sorted(self.employee_display_names)
 
     def add_or_update_timesheet(self):
         name = self.ts_employee_var.get().strip()
         if not name:
             messagebox.showwarning("Uyari", "Calisan secin.")
             return
-        employee_id = self.employee_map.get(name)
+        employee_id = None
+        base, region = split_display_name(name, REGIONS)
+        if region is None:
+            employee_id = self.employee_map.get((base, "")) or self.employee_map.get((base, self._entry_region()))
+        else:
+            employee_id = self.employee_map.get((base, region))
         if not employee_id:
             messagebox.showwarning("Uyari", "Calisan bulunamadi.")
             return
@@ -1228,11 +1466,12 @@ class PuantajApp(tk.Tk):
                 department = str(cell(2)).strip() if len(row) > 2 else ""
                 title = str(cell(3)).strip() if len(row) > 3 else ""
 
-            if not name or name in existing_names:
+            key = (name, self._entry_region())
+            if not name or key in existing_names:
                 skipped += 1
                 continue
             db.add_employee(name, identity_no, department, title, self._entry_region())
-            existing_names.add(name)
+            existing_names.add(key)
             imported += 1
 
         self.refresh_employees()
@@ -1286,7 +1525,14 @@ class PuantajApp(tk.Tk):
             if not employee_name:
                 skipped += 1
                 continue
-            employee_id = self.employee_map.get(employee_name)
+            employee_id = None
+            base, region = split_display_name(employee_name, REGIONS)
+            if region is None:
+                employee_id = self.employee_map.get((base, "")) or self.employee_map.get(
+                    (base, self._entry_region())
+                )
+            else:
+                employee_id = self.employee_map.get((base, region))
             if not employee_id:
                 missing_employee += 1
                 continue
@@ -1407,7 +1653,13 @@ class PuantajApp(tk.Tk):
         employee_name = self.report_employee_var.get().strip()
         employee_id = None
         if employee_name and employee_name != "Tum Calisanlar":
-            employee_id = self.employee_map.get(employee_name)
+            base, region = split_display_name(employee_name, REGIONS)
+            if region is None:
+                employee_id = self.employee_map.get((base, "")) or self.employee_map.get(
+                    (base, self._entry_region())
+                )
+            else:
+                employee_id = self.employee_map.get((base, region))
         start_date = self.report_start_var.get().strip() or None
         end_date = self.report_end_var.get().strip() or None
         try:
@@ -1540,7 +1792,13 @@ class PuantajApp(tk.Tk):
         employee_name = self.admin_employee_var.get().strip()
         employee_id = None
         if employee_name and employee_name != "Tum Calisanlar":
-            employee_id = self.employee_map.get(employee_name)
+            base, region = split_display_name(employee_name, REGIONS)
+            if region is None:
+                employee_id = self.employee_map.get((base, "")) or self.employee_map.get(
+                    (base, self._entry_region())
+                )
+            else:
+                employee_id = self.employee_map.get((base, region))
         department_filter = self.admin_department_var.get().strip()
         title_filter = self.admin_title_var.get().strip()
         search_text = self.admin_search_var.get().strip().lower()
@@ -1566,8 +1824,8 @@ class PuantajApp(tk.Tk):
         dept_overtime = {}
         alerts = []
         work_days = {}
-        for _ts_id, _emp_id, name, work_date, start_time, end_time, break_minutes, is_special, _notes in records:
-            details = self.employee_details.get(name, {})
+        for _ts_id, _emp_id, name, work_date, start_time, end_time, break_minutes, is_special, _notes, _region in records:
+            details = self.employee_details.get((name, _region or ""), {})
             department = details.get("department", "")
             title = details.get("title", "")
             if department_filter and department_filter != "Tum Departmanlar" and department != department_filter:
@@ -1596,19 +1854,22 @@ class PuantajApp(tk.Tk):
                 self.settings,
                 is_special,
             )
-            if name not in totals:
-                totals[name] = {
+            key = (name, _region or "")
+            if key not in totals:
+                totals[key] = {
+                    "name": name,
+                    "region": _region or "",
                     "worked": 0.0,
                     "overtime": 0.0,
                     "night": 0.0,
                     "overnight": 0.0,
                     "special": 0.0,
                 }
-            totals[name]["worked"] += worked
-            totals[name]["overtime"] += overtime
-            totals[name]["night"] += night_hours
-            totals[name]["overnight"] += overnight_hours
-            totals[name]["special"] += spec_norm + spec_ot + spec_night
+            totals[key]["worked"] += worked
+            totals[key]["overtime"] += overtime
+            totals[key]["night"] += night_hours
+            totals[key]["overnight"] += overnight_hours
+            totals[key]["special"] += spec_norm + spec_ot + spec_night
 
             daily_overtime[work_date] = daily_overtime.get(work_date, 0.0) + overtime
             dept_key = department or "Bilinmeyen"
@@ -1645,12 +1906,15 @@ class PuantajApp(tk.Tk):
         max_daily = max(daily_overtime.values()) if daily_overtime else 0.0
         self.admin_stats["max_daily"].set(f"{max_daily:.2f}")
 
-        for name, data in sorted(totals.items(), key=lambda x: x[0]):
+        for _key, data in sorted(totals.items(), key=lambda x: x[1]["name"]):
+            display_name = data["name"]
+            if data.get("region"):
+                display_name = f"{data['name']} ({data['region']})"
             self.admin_tree.insert(
                 "",
                 tk.END,
                 values=(
-                    name,
+                    display_name,
                     round(data["worked"], 2),
                     round(data["overtime"], 2),
                     round(data["night"], 2),
@@ -1743,6 +2007,7 @@ class PuantajApp(tk.Tk):
                 oil_change_km,
                 oil_interval_km,
                 _notes,
+                region,
             ) = vehicle
             oil_status = "-"
             interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
@@ -1763,6 +2028,7 @@ class PuantajApp(tk.Tk):
                     insurance_date,
                     maintenance_date,
                     oil_status,
+                    region or "",
                 ),
             )
             self.vehicle_map[plate] = vehicle_id
@@ -1779,12 +2045,26 @@ class PuantajApp(tk.Tk):
         for item in self.driver_tree.get_children():
             self.driver_tree.delete(item)
         self.driver_map = {}
-        for driver in db.list_drivers(region=self._view_region()):
-            driver_id, name, license_class, license_expiry, phone, _notes = driver
-            self.driver_tree.insert("", tk.END, values=(driver_id, name, license_class, license_expiry, phone))
-            self.driver_map[name] = driver_id
+        self.driver_display_names = []
+        name_counts = {}
+        drivers = db.list_drivers(region=self._view_region())
+        for driver in drivers:
+            driver_id, name, license_class, license_expiry, phone, _notes, region = driver
+            name_counts[name] = name_counts.get(name, 0) + 1
+            self.driver_tree.insert(
+                "",
+                tk.END,
+                values=(driver_id, name, license_class, license_expiry, phone, region or ""),
+            )
+            self.driver_map[(name, region or "")] = driver_id
+        for driver in drivers:
+            _driver_id, name, _license_class, _license_expiry, _phone, _notes, region = driver
+            display = name
+            if name_counts.get(name, 0) > 1:
+                display = f"{name} ({region or '-'})"
+            self.driver_display_names.append(display)
         if hasattr(self, "inspect_driver_combo"):
-            self.inspect_driver_combo["values"] = sorted(self.driver_map.keys())
+            self.inspect_driver_combo["values"] = sorted(self.driver_display_names)
 
     def refresh_faults(self):
         if hasattr(self, "fault_tree"):
@@ -1793,12 +2073,12 @@ class PuantajApp(tk.Tk):
         self.fault_map = {}
         self.fault_display_by_id = {}
         for fault in db.list_vehicle_faults(region=self._view_region()):
-            fault_id, vehicle_id, plate, title, desc, opened_date, closed_date, status = fault
+            fault_id, vehicle_id, plate, title, desc, opened_date, closed_date, status, region = fault
             if hasattr(self, "fault_tree"):
                 self.fault_tree.insert(
                     "",
                     tk.END,
-                    values=(fault_id, plate, title, status, opened_date or "", closed_date or ""),
+                    values=(fault_id, plate, title, status, opened_date or "", closed_date or "", region or ""),
                 )
             display = f"{plate} - {title} (#{fault_id})"
             self.fault_map[display] = fault_id
@@ -1828,6 +2108,7 @@ class PuantajApp(tk.Tk):
                 reason,
                 cost,
                 _notes,
+                region,
             ) = visit
             self.service_tree.insert(
                 "",
@@ -1840,6 +2121,7 @@ class PuantajApp(tk.Tk):
                     end_date or ("Sanayide" if end_date is None or end_date == "" else ""),
                     f"{cost:.2f}" if cost is not None else "",
                     reason or "",
+                    region or "",
                 ),
             )
             self.service_visit_map[visit_id] = visit
@@ -2147,6 +2429,7 @@ class PuantajApp(tk.Tk):
                 oil_change_km,
                 oil_interval_km,
                 _notes,
+                region,
             ) = vehicle
             oil_status = "-"
             oil_flag = None
@@ -2232,12 +2515,13 @@ class PuantajApp(tk.Tk):
                     maintenance_date or "-",
                     last_check,
                     last_driver,
+                    region or "",
                 ),
                 tags=(oil_flag,) if oil_flag else (),
             )
 
         for driver in drivers:
-            _did, name, _cls, license_expiry, _phone, _notes = driver
+            _did, name, _cls, license_expiry, _phone, _notes, _region = driver
             days = days_until(license_expiry)
             if days is not None and days <= 30:
                 lic_due += 1
@@ -2250,7 +2534,7 @@ class PuantajApp(tk.Tk):
         now = datetime.now().date()
         faults_by_plate = {}
         for fault in faults:
-            _fid, _vid, plate, title, _desc, opened_date, _closed_date, status = fault
+            _fid, _vid, plate, title, _desc, opened_date, _closed_date, status, _region = fault
             faults_by_plate.setdefault(plate, []).append(fault)
             if status == "Acik":
                 self.vehicle_alert_tree.insert("", tk.END, values=(plate, "Acik Ariza", title))
@@ -2351,6 +2635,7 @@ class PuantajApp(tk.Tk):
             oil_change_km,
             oil_interval_km,
             _notes,
+            _region,
         ) = row
         self.vehicle_id_var.set(vehicle_id)
         self.vehicle_plate_var.set(plate)
@@ -2524,7 +2809,13 @@ class PuantajApp(tk.Tk):
             messagebox.showwarning("Uyari", "Arac bulunamadi.")
             return
         driver_name = self.inspect_driver_var.get().strip()
-        driver_id = self.driver_map.get(driver_name) if driver_name else None
+        driver_id = None
+        if driver_name:
+            base, region = split_display_name(driver_name, REGIONS)
+            if region is None:
+                driver_id = self.driver_map.get((base, "")) or self.driver_map.get((base, self._entry_region()))
+            else:
+                driver_id = self.driver_map.get((base, region))
         inspect_date = self.inspect_date_var.get().strip()
         if not inspect_date:
             messagebox.showwarning("Uyari", "Tarih zorunlu.")
@@ -2575,7 +2866,8 @@ class PuantajApp(tk.Tk):
                     oil_change_date,
                     oil_change_km,
                     oil_interval_km,
-                  notes,
+                    notes,
+                    _region,
                 ) = current
                 db.update_vehicle(
                     vehicle_id,
@@ -2859,7 +3151,14 @@ class PuantajApp(tk.Tk):
             return
         values = self.admin_tree.item(selected[0], "values")
         employee_name = values[0]
-        employee_id = self.employee_map.get(employee_name)
+        employee_id = None
+        base, region = split_display_name(employee_name, REGIONS)
+        if region is None:
+            employee_id = self.employee_map.get((base, "")) or self.employee_map.get(
+                (base, self._entry_region())
+            )
+        else:
+            employee_id = self.employee_map.get((base, region))
         if not employee_id:
             messagebox.showwarning("Uyari", "Calisan bulunamadi.")
             return
@@ -2916,7 +3215,7 @@ class PuantajApp(tk.Tk):
         yscroll.pack(side=tk.RIGHT, fill=tk.Y)
         xscroll.pack(side=tk.BOTTOM, fill=tk.X)
 
-        for _ts_id, _emp_id, _name, work_date, start_time, end_time, break_minutes, is_special, notes in records:
+        for _ts_id, _emp_id, _name, work_date, start_time, end_time, break_minutes, is_special, notes, _region in records:
             (
                 worked,
                 _scheduled,
@@ -2965,7 +3264,11 @@ class PuantajApp(tk.Tk):
         self.sync_enabled_var = tk.BooleanVar(value=self.settings.get("sync_enabled", "0") == "1")
         self.sync_url_var = tk.StringVar(value=self.settings.get("sync_url", ""))
         self.sync_token_var = tk.StringVar(value=self.settings.get("sync_token", ""))
-        self.admin_region_var.set(self.settings.get("admin_entry_region", "Ankara"))
+        self.admin_entry_region_var.set(self.settings.get("admin_entry_region", "Ankara"))
+        view_region = self.settings.get("admin_view_region", "Tum Bolgeler")
+        if view_region == "ALL":
+            view_region = "Tum Bolgeler"
+        self.admin_view_region_var.set(view_region)
 
         row1 = ttk.Frame(frame)
         row1.pack(fill=tk.X, pady=4)
@@ -2978,15 +3281,25 @@ class PuantajApp(tk.Tk):
         create_labeled_entry(row2, "Cumartesi Baslangic", self.sat_start_var, 10).pack(side=tk.LEFT, padx=6)
         create_labeled_entry(row2, "Cumartesi Bitis", self.sat_end_var, 10).pack(side=tk.LEFT, padx=6)
         if self.is_admin:
-            ttk.Label(row2, text="Admin Bolge").pack(side=tk.LEFT, padx=(12, 6))
-            region_combo = ttk.Combobox(
+            ttk.Label(row2, text="Kayit Bolge").pack(side=tk.LEFT, padx=(12, 6))
+            entry_region_combo = ttk.Combobox(
                 row2,
-                textvariable=self.admin_region_var,
+                textvariable=self.admin_entry_region_var,
                 values=REGIONS,
                 width=12,
                 state="readonly",
             )
-            region_combo.pack(side=tk.LEFT, padx=6)
+            entry_region_combo.pack(side=tk.LEFT, padx=6)
+            ttk.Label(row2, text="Goruntuleme Bolge").pack(side=tk.LEFT, padx=(12, 6))
+            view_region_combo = ttk.Combobox(
+                row2,
+                textvariable=self.admin_view_region_var,
+                values=VIEW_REGIONS,
+                width=14,
+                state="readonly",
+            )
+            view_region_combo.pack(side=tk.LEFT, padx=6)
+            view_region_combo.bind("<<ComboboxSelected>>", lambda _e: self._refresh_region_views())
 
         row3 = ttk.Frame(frame)
         row3.pack(fill=tk.X, pady=4)
@@ -3073,6 +3386,37 @@ class PuantajApp(tk.Tk):
         tpl_xscroll.grid(row=1, column=0, sticky="ew")
         self.template_tree.bind("<<TreeviewSelect>>", self.on_template_select)
 
+    def _build_guide_tab(self):
+        frame = ttk.LabelFrame(self.tab_guide_body, text="Kullanim Rehberi", style="Section.TLabelframe")
+        frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        intro = (
+            "Bu rehber uygulamanin temel akisini gosterir. "
+            "Admin iseniz goruntuleme bolgesi ile filtreleyebilir, "
+            "Kayit Bolge ile yeni kayitlarin bolgesini belirleyebilirsiniz."
+        )
+        ttk.Label(frame, text=intro, wraplength=900, justify=tk.LEFT).pack(anchor="w", padx=8, pady=(4, 12))
+
+        assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+        sections = [
+            ("1) Giris ve Bolge", "guide_01_login.png"),
+            ("2) Calisan Kaydi", "guide_02_employees.png"),
+            ("3) Puantaj Girisi", "guide_03_timesheets.png"),
+            ("4) Rapor ve Araclar", "guide_04_reports.png"),
+        ]
+        self._guide_images = []
+        for title, filename in sections:
+            card = ttk.Frame(frame)
+            card.pack(fill=tk.X, padx=8, pady=8)
+            ttk.Label(card, text=title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 6))
+            image_path = os.path.join(assets_dir, filename)
+            img = load_logo_image(image_path, target_height=220)
+            if img:
+                self._guide_images.append(img)
+                tk.Label(card, image=img, bg="#EAF2FB").pack(anchor="w")
+            else:
+                ttk.Label(card, text=f"Resim yuklenemedi: {filename}").pack(anchor="w")
+
     def _build_vehicles_tab(self):
         vehicle_frame = ttk.LabelFrame(self.tab_vehicles_body, text="Arac Bilgisi", style="Section.TLabelframe")
         vehicle_frame.pack(fill=tk.X, padx=6, pady=6)
@@ -3138,6 +3482,7 @@ class PuantajApp(tk.Tk):
                 "insurance",
                 "maintenance",
                 "oil_due",
+                "region",
             ),
             show="headings",
         )
@@ -3151,6 +3496,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_tree.heading("insurance", text="Sigorta")
         self.vehicle_tree.heading("maintenance", text="Bakim")
         self.vehicle_tree.heading("oil_due", text="Yag Durum")
+        self.vehicle_tree.heading("region", text="Bolge")
         self.vehicle_tree.column("id", width=60, anchor=tk.CENTER)
         self.vehicle_tree.column("plate", width=100)
         self.vehicle_tree.column("brand", width=120)
@@ -3161,6 +3507,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_tree.column("insurance", width=100)
         self.vehicle_tree.column("maintenance", width=100)
         self.vehicle_tree.column("oil_due", width=120)
+        self.vehicle_tree.column("region", width=100)
         v_xscroll = ttk.Scrollbar(vlist_frame, orient=tk.HORIZONTAL, command=self.vehicle_tree.xview)
         v_yscroll = ttk.Scrollbar(vlist_frame, orient=tk.VERTICAL, command=self.vehicle_tree.yview)
         self.vehicle_tree.configure(xscrollcommand=v_xscroll.set, yscrollcommand=v_yscroll.set)
@@ -3209,7 +3556,7 @@ class PuantajApp(tk.Tk):
         dlist_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         self.driver_tree = ttk.Treeview(
             dlist_frame,
-            columns=("id", "name", "license", "expiry", "phone"),
+            columns=("id", "name", "license", "expiry", "phone", "region"),
             show="headings",
         )
         self.driver_tree.heading("id", text="ID")
@@ -3217,11 +3564,13 @@ class PuantajApp(tk.Tk):
         self.driver_tree.heading("license", text="Ehliyet")
         self.driver_tree.heading("expiry", text="Bitis")
         self.driver_tree.heading("phone", text="Telefon")
+        self.driver_tree.heading("region", text="Bolge")
         self.driver_tree.column("id", width=60, anchor=tk.CENTER)
         self.driver_tree.column("name", width=220)
         self.driver_tree.column("license", width=100)
         self.driver_tree.column("expiry", width=100)
         self.driver_tree.column("phone", width=120)
+        self.driver_tree.column("region", width=100)
         d_xscroll = ttk.Scrollbar(dlist_frame, orient=tk.HORIZONTAL, command=self.driver_tree.xview)
         d_yscroll = ttk.Scrollbar(dlist_frame, orient=tk.VERTICAL, command=self.driver_tree.yview)
         self.driver_tree.configure(xscrollcommand=d_xscroll.set, yscrollcommand=d_yscroll.set)
@@ -3385,6 +3734,7 @@ class PuantajApp(tk.Tk):
                 "maintenance",
                 "last_check",
                 "driver",
+                "region",
             ),
             show="headings",
             height=10,
@@ -3397,6 +3747,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_status_tree.heading("maintenance", text="Bakim")
         self.vehicle_status_tree.heading("last_check", text="Son Kontrol")
         self.vehicle_status_tree.heading("driver", text="Surucu")
+        self.vehicle_status_tree.heading("region", text="Bolge")
         self.vehicle_status_tree.column("plate", width=120)
         self.vehicle_status_tree.column("km", width=80)
         self.vehicle_status_tree.column("oil", width=110)
@@ -3405,6 +3756,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_status_tree.column("maintenance", width=110)
         self.vehicle_status_tree.column("last_check", width=110)
         self.vehicle_status_tree.column("driver", width=160)
+        self.vehicle_status_tree.column("region", width=100)
         self.vehicle_status_tree.tag_configure("oil_due", background="#fde68a")
         self.vehicle_status_tree.tag_configure("oil_soon", background="#fff7ed")
         vs_xscroll = ttk.Scrollbar(vehicle_status, orient=tk.HORIZONTAL, command=self.vehicle_status_tree.xview)
@@ -3518,7 +3870,7 @@ class PuantajApp(tk.Tk):
         fault_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         self.fault_tree = ttk.Treeview(
             fault_list,
-            columns=("id", "plate", "title", "status", "opened", "closed"),
+            columns=("id", "plate", "title", "status", "opened", "closed", "region"),
             show="headings",
             height=8,
         )
@@ -3528,12 +3880,14 @@ class PuantajApp(tk.Tk):
         self.fault_tree.heading("status", text="Durum")
         self.fault_tree.heading("opened", text="Acilis")
         self.fault_tree.heading("closed", text="Kapanis")
+        self.fault_tree.heading("region", text="Bolge")
         self.fault_tree.column("id", width=60, anchor=tk.CENTER)
         self.fault_tree.column("plate", width=100)
         self.fault_tree.column("title", width=220)
         self.fault_tree.column("status", width=100)
         self.fault_tree.column("opened", width=120)
         self.fault_tree.column("closed", width=120)
+        self.fault_tree.column("region", width=100)
         f_xscroll = ttk.Scrollbar(fault_list, orient=tk.HORIZONTAL, command=self.fault_tree.xview)
         f_yscroll = ttk.Scrollbar(fault_list, orient=tk.VERTICAL, command=self.fault_tree.yview)
         self.fault_tree.configure(xscrollcommand=f_xscroll.set, yscrollcommand=f_yscroll.set)
@@ -3601,7 +3955,7 @@ class PuantajApp(tk.Tk):
         service_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         self.service_tree = ttk.Treeview(
             service_list,
-            columns=("id", "plate", "fault", "start", "end", "cost", "reason"),
+            columns=("id", "plate", "fault", "start", "end", "cost", "reason", "region"),
             show="headings",
             height=8,
         )
@@ -3612,6 +3966,7 @@ class PuantajApp(tk.Tk):
         self.service_tree.heading("end", text="Donus")
         self.service_tree.heading("cost", text="Masraf")
         self.service_tree.heading("reason", text="Neden")
+        self.service_tree.heading("region", text="Bolge")
         self.service_tree.column("id", width=60, anchor=tk.CENTER)
         self.service_tree.column("plate", width=100)
         self.service_tree.column("fault", width=220)
@@ -3619,6 +3974,7 @@ class PuantajApp(tk.Tk):
         self.service_tree.column("end", width=120)
         self.service_tree.column("cost", width=90)
         self.service_tree.column("reason", width=180)
+        self.service_tree.column("region", width=100)
         s_xscroll = ttk.Scrollbar(service_list, orient=tk.HORIZONTAL, command=self.service_tree.xview)
         s_yscroll = ttk.Scrollbar(service_list, orient=tk.VERTICAL, command=self.service_tree.yview)
         self.service_tree.configure(xscrollcommand=s_xscroll.set, yscrollcommand=s_yscroll.set)
@@ -3695,13 +4051,16 @@ class PuantajApp(tk.Tk):
             oil_change_km,
             oil_interval_km,
             notes,
+            _region,
         ) = vehicle
 
         detail_win = tk.Toplevel(self)
         detail_win.title(f"Arac Karti - {plate}")
         detail_win.geometry("980x700")
 
-        info = ttk.LabelFrame(detail_win, text="Arac Bilgisi", style="Section.TLabelframe")
+        content = self._make_window_scrollable(detail_win)
+
+        info = ttk.LabelFrame(content, text="Arac Bilgisi", style="Section.TLabelframe")
         info.pack(fill=tk.X, padx=10, pady=8)
         info_row1 = ttk.Frame(info)
         info_row1.pack(fill=tk.X, pady=4)
@@ -3730,7 +4089,7 @@ class PuantajApp(tk.Tk):
             info_row4.pack(fill=tk.X, pady=4)
             ttk.Label(info_row4, text=f"Not: {notes}").pack(side=tk.LEFT, padx=6)
 
-        btn_row = ttk.Frame(detail_win)
+        btn_row = ttk.Frame(content)
         btn_row.pack(fill=tk.X, padx=10, pady=4)
         ttk.Button(btn_row, text="Excel Arac Karti", command=lambda: self.export_vehicle_card(plate)).pack(
             side=tk.LEFT, padx=6
@@ -3747,7 +4106,7 @@ class PuantajApp(tk.Tk):
         faults = db.list_vehicle_faults(vehicle_id=vehicle_id, region=self._view_region())
         services = db.list_vehicle_service_visits(vehicle_id=vehicle_id, region=self._view_region())
 
-        inspect_frame = ttk.LabelFrame(detail_win, text="Kontroller", style="Section.TLabelframe")
+        inspect_frame = ttk.LabelFrame(content, text="Kontroller", style="Section.TLabelframe")
         inspect_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
         inspect_tree = ttk.Treeview(
             inspect_frame,
@@ -3815,7 +4174,7 @@ class PuantajApp(tk.Tk):
                 ),
             )
 
-        fault_frame = ttk.LabelFrame(detail_win, text="Ariza Kayitlari", style="Section.TLabelframe")
+        fault_frame = ttk.LabelFrame(content, text="Ariza Kayitlari", style="Section.TLabelframe")
         fault_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
         fault_tree = ttk.Treeview(
             fault_frame,
@@ -3840,10 +4199,10 @@ class PuantajApp(tk.Tk):
         f_yscroll.grid(row=0, column=1, sticky="ns")
         f_xscroll.grid(row=1, column=0, sticky="ew")
         for fault in faults:
-            _fid, _vid, _plate, title, _desc, opened_date, closed_date, status = fault
+            _fid, _vid, _plate, title, _desc, opened_date, closed_date, status, _region = fault
             fault_tree.insert("", tk.END, values=(title, status, opened_date or "", closed_date or ""))
 
-        service_frame = ttk.LabelFrame(detail_win, text="Sanayi Kayitlari", style="Section.TLabelframe")
+        service_frame = ttk.LabelFrame(content, text="Sanayi Kayitlari", style="Section.TLabelframe")
         service_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
         service_tree = ttk.Treeview(
             service_frame,
@@ -3870,12 +4229,12 @@ class PuantajApp(tk.Tk):
         s_yscroll.grid(row=0, column=1, sticky="ns")
         s_xscroll.grid(row=1, column=0, sticky="ew")
         for visit in services:
-            _sid, _vid, _plate, _fid, title, start_date, end_date, reason, cost, _notes = visit
+            _sid, _vid, _plate, _fid, title, start_date, end_date, reason, cost, _notes, _region = visit
             end_value = end_date or "Sanayide"
             cost_value = f"{cost:.2f}" if cost is not None else ""
             service_tree.insert("", tk.END, values=(title or "", start_date, end_value, cost_value, reason or ""))
 
-        compare_frame = ttk.LabelFrame(detail_win, text="Haftalik Karsilastirma", style="Section.TLabelframe")
+        compare_frame = ttk.LabelFrame(content, text="Haftalik Karsilastirma", style="Section.TLabelframe")
         compare_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
         compare_tree = ttk.Treeview(
             compare_frame,
@@ -3954,7 +4313,9 @@ class PuantajApp(tk.Tk):
         detail_win.title(f"Surucu Karti - {name}")
         detail_win.geometry("960x680")
 
-        info = ttk.LabelFrame(detail_win, text="Surucu Bilgisi", style="Section.TLabelframe")
+        content = self._make_window_scrollable(detail_win)
+
+        info = ttk.LabelFrame(content, text="Surucu Bilgisi", style="Section.TLabelframe")
         info.pack(fill=tk.X, padx=10, pady=8)
         info_row1 = ttk.Frame(info)
         info_row1.pack(fill=tk.X, pady=4)
@@ -3967,7 +4328,7 @@ class PuantajApp(tk.Tk):
         if notes:
             ttk.Label(info_row2, text=f"Not: {notes}").pack(side=tk.LEFT, padx=12)
 
-        vehicle_frame = ttk.LabelFrame(detail_win, text="Surucunun Araclari", style="Section.TLabelframe")
+        vehicle_frame = ttk.LabelFrame(content, text="Surucunun Araclari", style="Section.TLabelframe")
         vehicle_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
         vehicle_tree = ttk.Treeview(
             vehicle_frame,
@@ -4001,7 +4362,7 @@ class PuantajApp(tk.Tk):
         for plate, info_row in sorted(vehicle_summary.items()):
             vehicle_tree.insert("", tk.END, values=(plate, info_row["last"] or "-", info_row["count"]))
 
-        history_frame = ttk.LabelFrame(detail_win, text="Kontrol Gecmisi", style="Section.TLabelframe")
+        history_frame = ttk.LabelFrame(content, text="Kontrol Gecmisi", style="Section.TLabelframe")
         history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
         history_tree = ttk.Treeview(
             history_frame,
@@ -4246,6 +4607,8 @@ class PuantajApp(tk.Tk):
             self.logo_path_var.set(path)
 
     def save_settings(self):
+        prev_entry_region = self.settings.get("admin_entry_region", "Ankara")
+        prev_view_region = self.settings.get("admin_view_region", "Tum Bolgeler")
         db.set_setting("company_name", self.company_name_var.get().strip())
         db.set_setting("report_title", self.report_title_var.get().strip())
         db.set_setting("weekday_hours", self.weekday_hours_var.get().strip())
@@ -4256,8 +4619,13 @@ class PuantajApp(tk.Tk):
         db.set_setting("sync_url", self.sync_url_var.get().strip())
         db.set_setting("sync_token", self.sync_token_var.get().strip())
         if self.is_admin:
-            db.set_setting("admin_entry_region", self.admin_region_var.get().strip() or "Ankara")
+            new_entry_region = self.admin_entry_region_var.get().strip() or "Ankara"
+            new_view_region = self.admin_view_region_var.get().strip() or "Tum Bolgeler"
+            db.set_setting("admin_entry_region", new_entry_region)
+            db.set_setting("admin_view_region", new_view_region)
         self.settings = db.get_all_settings()
+        if self.is_admin and prev_view_region != (self.admin_view_region_var.get().strip() or "Tum Bolgeler"):
+            self._refresh_region_views()
         messagebox.showinfo("Basarili", "Ayarlar kaydedildi.")
         self.trigger_sync("settings")
 
