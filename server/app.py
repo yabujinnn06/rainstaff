@@ -569,6 +569,7 @@ def dashboard():
                 "repeat": sum(1 for row in weekly_alerts if row["level"] == "repeat"),
                 "good": sum(1 for row in weekly_alerts if row["level"] == "good"),
             }
+            alert_counts["urgent"] = alert_counts["bad"] + alert_counts["repeat"]
 
             emp_totals = {}
             range_totals = {}

@@ -19,7 +19,9 @@
         <span class="status {{ 'ok' if desktop_online else 'off' }}">
           Masaustu {{ 'Acik' if desktop_online else 'Kapali' }}
         </span>
-        <span class="alert-pill">Uyari {{ alert_counts.total }}</span>
+        <span class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}">
+          Uyari {{ alert_counts.total }}
+        </span>
         Son senkron: {{ last_sync or 'Yok' }}
         <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
         <a class="logout" href="/logout">Cikis</a>
@@ -126,6 +128,15 @@
           </div>
         </section>
 
+        {% if alert_counts.urgent %}
+        <section class="section notification-bar">
+          <div class="notify-title">Dikkat: Kritik Uyari Var</div>
+          <div class="notify-text">
+            Kotulesti: {{ alert_counts.bad }} | Tekrar: {{ alert_counts.repeat }}
+          </div>
+        </section>
+        {% endif %}
+
         <section id="alerts" class="section panel">
           <div class="panel-head">
             <h2>Haftalik Kontrol Uyarilari</h2>
@@ -134,6 +145,18 @@
               <span class="badge repeat">Tekrar: {{ alert_counts.repeat }}</span>
               <span class="badge good">Duzeldi: {{ alert_counts.good }}</span>
             </div>
+          </div>
+          <div class="alert-feed">
+            {% if weekly_alerts %}
+              {% for row in weekly_alerts[:5] %}
+                <div class="alert-item {{ row['level'] }}">
+                  <span class="tag">{{ row['change'] }}</span>
+                  <span class="text">{{ row['plate'] }} - {{ row['item'] }} ({{ row['week_start'] }})</span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="alert-item">Yeni uyarı yok</div>
+            {% endif %}
           </div>
           <div class="table-wrap tall">
             <table id="alert-table">
