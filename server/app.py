@@ -205,6 +205,39 @@ def weekly_report(plate, week_start):
     )
 
 
+@app.route("/alerts")
+def alerts():
+    if not db_exists():
+        abort(404)
+    with get_conn() as conn:
+        weekly_alerts = build_weekly_alerts(conn)
+        open_faults = conn.execute(
+            "SELECT v.plate, f.title, f.opened_date, f.status "
+            "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+            "ORDER BY f.opened_date DESC;"
+        ).fetchall()
+        service_open = conn.execute(
+            "SELECT v.plate, s.start_date, s.reason, s.cost "
+            "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+            "WHERE s.end_date IS NULL OR s.end_date = '' "
+            "ORDER BY s.start_date DESC;"
+        ).fetchall()
+        service_history = conn.execute(
+            "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
+            "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+            "ORDER BY s.start_date DESC LIMIT 50;"
+        ).fetchall()
+    total_alerts = len(weekly_alerts) + len(open_faults) + len(service_open)
+    return render_template(
+        "alerts.html",
+        weekly_alerts=weekly_alerts,
+        open_faults=open_faults,
+        service_open=service_open,
+        service_history=service_history,
+        total_alerts=total_alerts,
+    )
+
+
 def safe_count(conn, query):
     try:
         return conn.execute(query).fetchone()[0]

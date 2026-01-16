@@ -19,9 +19,9 @@
         <span class="status {{ 'ok' if desktop_online else 'off' }}">
           Masaustu {{ 'Acik' if desktop_online else 'Kapali' }}
         </span>
-        <span class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}">
+        <a class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}" href="/alerts">
           Uyari {{ alert_counts.total }}
-        </span>
+        </a>
         <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
         Son senkron: {{ last_sync or 'Yok' }}
         <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
@@ -51,6 +51,14 @@
             </svg>
           </span>
           <span class="label">Uyarilar</span>
+        </a>
+        <a href="/alerts" title="Tum Uyarilar">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 4h12v16H6zM8 8h8m-8 4h8m-8 4h6" />
+            </svg>
+          </span>
+          <span class="label">Tum Uyarilar</span>
         </a>
         <a href="#employees" title="Calisanlar">
           <span class="icon">
@@ -220,7 +228,7 @@
 
         <section id="alerts" class="section panel">
           <div class="panel-head">
-            <h2>Haftalik Kontrol Uyarilari</h2>
+            <h2>Haftalik Kontrol Uyarilari ({{ alert_counts.total }})</h2>
             <div class="alert-stats">
               <span class="badge bad">Kotulesti: {{ alert_counts.bad }}</span>
               <span class="badge repeat">Tekrar: {{ alert_counts.repeat }}</span>
@@ -235,8 +243,9 @@
                   <span class="text">{{ row['plate'] }} - {{ row['item'] }} ({{ row['week_start'] }})</span>
                 </div>
               {% endfor %}
+              <a class="more-link" href="/alerts">Daha fazla gormek icin tiklayiniz</a>
             {% else %}
-              <div class="alert-item">Yeni uyarı yok</div>
+              <div class="alert-item">Yeni uyari yok</div>
             {% endif %}
           </div>
           <div class="table-wrap tall">
@@ -716,7 +725,13 @@
       if (sidebarCollapse) {
         sidebarCollapse.addEventListener("click", () => {
           document.body.classList.toggle("sidebar-collapsed");
+          sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
+            ? "Genislet"
+            : "Daralt";
         });
+        sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
+          ? "Genislet"
+          : "Daralt";
       }
       const allToggle = document.querySelector('input[name="all"]');
       const startInput = document.querySelector('input[name="start"]');

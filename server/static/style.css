@@ -165,6 +165,9 @@ body {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .alert-pill.pulse {
@@ -593,6 +596,18 @@ tbody tr:hover {
 .alert-item.good {
   background: #f0fdf4;
   border-color: #86efac;
+}
+
+.more-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  padding-left: 6px;
+}
+
+.more-link:hover {
+  text-decoration: underline;
 }
 
 .alert-row.bad,
