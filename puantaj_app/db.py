@@ -313,11 +313,8 @@ def _ensure_region_columns(conn):
 
 
 def _seed_default_users(conn):
-    cur = conn.execute("SELECT COUNT(*) FROM users;")
-    if cur.fetchone()[0] != 0:
-        return
     conn.executemany(
-        "INSERT INTO users (username, password_hash, role, region) VALUES (?, ?, ?, ?);",
+        "INSERT OR IGNORE INTO users (username, password_hash, role, region) VALUES (?, ?, ?, ?);",
         [(u, hash_password(p), r, reg) for u, p, r, reg in DEFAULT_USERS],
     )
 

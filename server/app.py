@@ -95,12 +95,10 @@ def ensure_schema(conn):
         );
         """
     )
-    cur = conn.execute("SELECT COUNT(*) FROM users;")
-    if cur.fetchone()[0] == 0:
-        conn.executemany(
-            "INSERT INTO users (username, password_hash, role, region) VALUES (?, ?, ?, ?);",
-            [(u, hash_password(p), r, reg) for u, p, r, reg in DEFAULT_USERS],
-        )
+    conn.executemany(
+        "INSERT OR IGNORE INTO users (username, password_hash, role, region) VALUES (?, ?, ?, ?);",
+        [(u, hash_password(p), r, reg) for u, p, r, reg in DEFAULT_USERS],
+    )
     conn.commit()
 
 
