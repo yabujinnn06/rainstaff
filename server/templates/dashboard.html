@@ -147,56 +147,68 @@
         <section id="overview" class="section">
           <div class="section-title">Genel Ozet</div>
           <div class="kpi-grid">
-            <div class="card">
-              <div class="label">Calisan</div>
-              <div class="value">{{ summary.employees }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Calisan</div>
+              <div class="kpi-value">{{ summary.employees }}</div>
+              <div class="kpi-bar"><span style="width: 70%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">Puantaj Kaydi</div>
-              <div class="value">{{ summary.timesheets }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Puantaj Kaydi</div>
+              <div class="kpi-value">{{ summary.timesheets }}</div>
+              <div class="kpi-bar"><span style="width: 64%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">En Fazla Mesai Yapan</div>
-              <div class="value">{{ top_overtime['overtime']|round(2) if top_overtime else 0 }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">En Fazla Mesai Yapan</div>
+              <div class="kpi-value">{{ top_overtime['overtime']|round(2) if top_overtime else 0 }}</div>
               <div class="card-sub">{{ top_overtime['name'] if top_overtime else 'Kayit yok' }}</div>
+              <div class="kpi-bar"><span style="width: 58%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">Toplam Fazla Mesai</div>
-              <div class="value">{{ summary.overtime_hours }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Toplam Fazla Mesai</div>
+              <div class="kpi-value">{{ summary.overtime_hours }}</div>
+              <div class="kpi-bar"><span style="width: 75%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">Toplam Calisilan Saat</div>
-              <div class="value">{{ summary.worked_hours }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Toplam Calisilan Saat</div>
+              <div class="kpi-value">{{ summary.worked_hours }}</div>
+              <div class="kpi-bar"><span style="width: 82%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">Toplam Gece</div>
-              <div class="value">{{ summary.night_hours }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Toplam Gece</div>
+              <div class="kpi-value">{{ summary.night_hours }}</div>
+              <div class="kpi-bar"><span style="width: 44%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">Toplam Ozel Gun</div>
-              <div class="value">{{ summary.special_hours }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Toplam Ozel Gun</div>
+              <div class="kpi-value">{{ summary.special_hours }}</div>
+              <div class="kpi-bar"><span style="width: 36%"></span></div>
             </div>
-            <button class="card warn card-action" type="button" data-toggle="openFaultsPanel">
-              <div class="label">Acik Ariza</div>
-              <div class="value">{{ summary.open_faults }}</div>
+            <button class="kpi-card warn card-action" type="button" data-toggle="openFaultsPanel">
+              <div class="kpi-label">Acik Ariza</div>
+              <div class="kpi-value">{{ summary.open_faults }}</div>
               <div class="card-sub">Detaylari gor</div>
+              <div class="kpi-bar"><span style="width: 62%"></span></div>
             </button>
-            <div class="card warn {% if oil_counts.due %}pulse{% endif %}">
-              <div class="label">Yag Bakimi</div>
-              <div class="value">{{ oil_counts.due }}</div>
+            <div class="kpi-card warn {% if oil_counts.due %}pulse{% endif %}">
+              <div class="kpi-label">Yag Bakimi</div>
+              <div class="kpi-value">{{ oil_counts.due }}</div>
               <div class="card-sub">Yaklasti: {{ oil_counts.soon }}</div>
+              <div class="kpi-bar"><span style="width: 68%"></span></div>
             </div>
-            <a class="card warn card-link" href="#service">
-              <div class="label">Sanayide</div>
-              <div class="value">{{ summary.service_open }}</div>
+            <a class="kpi-card warn card-link" href="#service">
+              <div class="kpi-label">Sanayide</div>
+              <div class="kpi-value">{{ summary.service_open }}</div>
+              <div class="kpi-bar"><span style="width: 52%"></span></div>
             </a>
-            <div class="card">
-              <div class="label">Arac</div>
-              <div class="value">{{ summary.vehicles }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Arac</div>
+              <div class="kpi-value">{{ summary.vehicles }}</div>
+              <div class="kpi-bar"><span style="width: 60%"></span></div>
             </div>
-            <div class="card">
-              <div class="label">Surucu</div>
-              <div class="value">{{ summary.drivers }}</div>
+            <div class="kpi-card">
+              <div class="kpi-label">Surucu</div>
+              <div class="kpi-value">{{ summary.drivers }}</div>
+              <div class="kpi-bar"><span style="width: 55%"></span></div>
             </div>
           </div>
           <div class="kpi-detail" id="openFaultsPanel">
