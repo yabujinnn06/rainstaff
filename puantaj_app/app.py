@@ -337,9 +337,9 @@ class PuantajApp(tk.Tk):
         self.current_user = None
         self.current_region = None
         self.is_admin = False
-        self.admin_region_var = tk.StringVar(value=self.settings.get("admin_entry_region", "Ankara"))
 
         self.settings = db.get_all_settings()
+        self.admin_region_var = tk.StringVar(value=self.settings.get("admin_entry_region", "Ankara"))
         self.employee_map = {}
         self.employee_details = {}
         self.vehicle_map = {}
