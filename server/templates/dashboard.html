@@ -6,7 +6,7 @@
     <title>Rainstaff Admin Panel</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   </head>
-  <body class="admin">
+  <body class="admin" data-alert-urgent="{{ alert_counts.urgent }}" data-alert-bad="{{ alert_counts.bad }}" data-alert-repeat="{{ alert_counts.repeat }}">
     <header class="topbar">
       <div class="brand">
         <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">Menu</button>
@@ -22,6 +22,7 @@
         <span class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}">
           Uyari {{ alert_counts.total }}
         </span>
+        <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
         Son senkron: {{ last_sync or 'Yok' }}
         <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
         <a class="logout" href="/logout">Cikis</a>
@@ -31,19 +32,99 @@
 
     <div class="layout">
       <aside class="sidebar">
-        <div class="menu-title">Genel</div>
-        <a href="#overview">Ozet</a>
-        <a href="#alerts">Uyarilar</a>
-        <a href="#employees">Calisanlar</a>
-        <a href="#overtime">Fazla Mesai</a>
-        <a href="#timesheets">Puantaj</a>
+        <div class="sidebar-head">
+          <span class="menu-title">Genel</span>
+          <button class="sidebar-collapse" id="sidebarCollapse" aria-label="Sidebar Daralt">Daralt</button>
+        </div>
+        <a href="#overview" title="Ozet">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h6v8H4zM14 4h6v16h-6zM4 4h6v6H4z" />
+            </svg>
+          </span>
+          <span class="label">Ozet</span>
+        </a>
+        <a href="#alerts" title="Uyarilar">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l9 16H3zM12 9v4m0 4h.01" />
+            </svg>
+          </span>
+          <span class="label">Uyarilar</span>
+        </a>
+        <a href="#employees" title="Calisanlar">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 5v2h14v-2c0-3-3-5-7-5z" />
+            </svg>
+          </span>
+          <span class="label">Calisanlar</span>
+        </a>
+        <a href="#overtime" title="Fazla Mesai">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 8v5l3 2M12 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8z" />
+            </svg>
+          </span>
+          <span class="label">Fazla Mesai</span>
+        </a>
+        <a href="#timesheets" title="Puantaj">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 4h12v16H6zM8 8h8m-8 4h8m-8 4h6" />
+            </svg>
+          </span>
+          <span class="label">Puantaj</span>
+        </a>
         <div class="menu-title">Araclar</div>
-        <a href="#faults">Acik Arizalar</a>
-        <a href="#service">Sanayi</a>
-        <a href="/reports">Haftalik Raporlar</a>
-        <a href="#vehicles">Arac Kartlari</a>
-        <a href="#drivers">Suruculer</a>
-        <a href="#inspections">Kontroller</a>
+        <a href="#faults" title="Acik Arizalar">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2l10 18H2zM12 8v6m0 4h.01" />
+            </svg>
+          </span>
+          <span class="label">Acik Arizalar</span>
+        </a>
+        <a href="#service" title="Sanayi">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 14l5-5 4 4 7-7 2 2-9 9-4-4-3 3z" />
+            </svg>
+          </span>
+          <span class="label">Sanayi</span>
+        </a>
+        <a href="/reports" title="Haftalik Raporlar">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 4h14v16H5zM7 8h10m-10 4h10m-10 4h6" />
+            </svg>
+          </span>
+          <span class="label">Haftalik Raporlar</span>
+        </a>
+        <a href="#vehicles" title="Arac Kartlari">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 11l2-5h10l2 5M4 11h16v6H4zM7 17h2m6 0h2" />
+            </svg>
+          </span>
+          <span class="label">Arac Kartlari</span>
+        </a>
+        <a href="#drivers" title="Suruculer">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 5v2h14v-2c0-3-3-5-7-5z" />
+            </svg>
+          </span>
+          <span class="label">Suruculer</span>
+        </a>
+        <a href="#inspections" title="Kontroller">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16v12H4zM8 10h8m-8 4h6" />
+            </svg>
+          </span>
+          <span class="label">Kontroller</span>
+        </a>
       </aside>
 
       <main class="content">
@@ -159,6 +240,11 @@
             {% endif %}
           </div>
           <div class="table-wrap tall">
+            <div class="table-tools">
+              <input class="table-search" data-target="alert-table" placeholder="Uyari ara..." />
+              <input class="table-date" data-target="alert-table" data-date-col="1" data-date-type="start" type="date" />
+              <input class="table-date" data-target="alert-table" data-date-col="1" data-date-type="end" type="date" />
+            </div>
             <table id="alert-table">
               <thead>
                 <tr>
@@ -187,6 +273,7 @@
                 {% endif %}
               </tbody>
             </table>
+            <div class="table-footer" data-target="alert-table"></div>
           </div>
         </section>
 
@@ -196,7 +283,10 @@
               <h2>Aylik Ozet</h2>
             </div>
             <div class="table-wrap">
-              <table>
+              <div class="table-tools">
+                <input class="table-search" data-target="monthly-table" placeholder="Ara..." />
+              </div>
+              <table id="monthly-table">
                 <thead>
                   <tr>
                     <th>Ay</th>
@@ -222,6 +312,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="monthly-table"></div>
             </div>
           </div>
 
@@ -230,7 +321,10 @@
               <h2>Gunluk Ozet (Secili Aralik)</h2>
             </div>
             <div class="table-wrap tall">
-              <table>
+              <div class="table-tools">
+                <input class="table-search" data-target="daily-table" placeholder="Ara..." />
+              </div>
+              <table id="daily-table">
                 <thead>
                   <tr>
                     <th>Tarih</th>
@@ -256,6 +350,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="daily-table"></div>
             </div>
           </div>
         </section>
@@ -267,7 +362,10 @@
               <h2>Acik Arizalar</h2>
             </div>
             <div class="table-wrap">
-              <table>
+              <div class="table-tools">
+                <input class="table-search" data-target="faults-table" placeholder="Ara..." />
+              </div>
+              <table id="faults-table">
                 <thead>
                   <tr>
                     <th>Plaka</th>
@@ -289,6 +387,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="faults-table"></div>
             </div>
           </div>
 
@@ -297,7 +396,10 @@
               <h2>Sanayide Olan Araclar</h2>
             </div>
             <div class="table-wrap">
-              <table>
+              <div class="table-tools">
+                <input class="table-search" data-target="service-table" placeholder="Ara..." />
+              </div>
+              <table id="service-table">
                 <thead>
                   <tr>
                     <th>Plaka</th>
@@ -319,6 +421,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="service-table"></div>
             </div>
           </div>
         </section>
@@ -326,9 +429,11 @@
         <section id="employees" class="section panel">
           <div class="panel-head">
             <h2>Calisan Kartlari</h2>
-            <input class="table-search" data-target="employee-table" placeholder="Calisan ara..." />
           </div>
           <div class="table-wrap tall">
+            <div class="table-tools">
+              <input class="table-search" data-target="employee-table" placeholder="Calisan ara..." />
+            </div>
             <table id="employee-table">
               <thead>
                 <tr>
@@ -357,6 +462,7 @@
                 {% endif %}
               </tbody>
             </table>
+            <div class="table-footer" data-target="employee-table"></div>
           </div>
         </section>
 
@@ -366,7 +472,10 @@
               <h2>Fazla Mesai Liderleri</h2>
             </div>
             <div class="table-wrap">
-              <table>
+              <div class="table-tools">
+                <input class="table-search" data-target="overtime-table" placeholder="Ara..." />
+              </div>
+              <table id="overtime-table">
                 <thead>
                   <tr>
                     <th>Calisan</th>
@@ -386,6 +495,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="overtime-table"></div>
             </div>
           </div>
 
@@ -394,7 +504,10 @@
               <h2>En Cok Ariza Yapan Araclar</h2>
             </div>
             <div class="table-wrap">
-              <table>
+              <div class="table-tools">
+                <input class="table-search" data-target="topfaults-table" placeholder="Ara..." />
+              </div>
+              <table id="topfaults-table">
                 <thead>
                   <tr>
                     <th>Plaka</th>
@@ -414,6 +527,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="topfaults-table"></div>
             </div>
           </div>
         </section>
@@ -421,9 +535,13 @@
         <section id="timesheets" class="section panel">
           <div class="panel-head">
             <h2>Son Puantaj Kayitlari</h2>
-            <input class="table-search" data-target="timesheet-table" placeholder="Puantaj ara..." />
           </div>
           <div class="table-wrap tall">
+            <div class="table-tools">
+              <input class="table-search" data-target="timesheet-table" placeholder="Puantaj ara..." />
+              <input class="table-date" data-target="timesheet-table" data-date-col="1" data-date-type="start" type="date" />
+              <input class="table-date" data-target="timesheet-table" data-date-col="1" data-date-type="end" type="date" />
+            </div>
             <table id="timesheet-table">
               <thead>
                 <tr>
@@ -452,6 +570,7 @@
                 {% endif %}
               </tbody>
             </table>
+            <div class="table-footer" data-target="timesheet-table"></div>
           </div>
         </section>
 
@@ -459,9 +578,11 @@
           <div id="vehicles" class="panel">
             <div class="panel-head">
               <h2>Arac Kartlari</h2>
-              <input class="table-search" data-target="vehicle-table" placeholder="Plaka ara..." />
             </div>
             <div class="table-wrap">
+              <div class="table-tools">
+                <input class="table-search" data-target="vehicle-table" placeholder="Plaka ara..." />
+              </div>
               <table id="vehicle-table">
                 <thead>
                   <tr>
@@ -492,15 +613,18 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="vehicle-table"></div>
             </div>
           </div>
 
           <div id="drivers" class="panel">
             <div class="panel-head">
               <h2>Surucu Kartlari</h2>
-              <input class="table-search" data-target="driver-table" placeholder="Surucu ara..." />
             </div>
             <div class="table-wrap">
+              <div class="table-tools">
+                <input class="table-search" data-target="driver-table" placeholder="Surucu ara..." />
+              </div>
               <table id="driver-table">
                 <thead>
                   <tr>
@@ -525,6 +649,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="table-footer" data-target="driver-table"></div>
             </div>
           </div>
         </section>
@@ -532,9 +657,13 @@
         <section id="inspections" class="section panel">
           <div class="panel-head">
             <h2>Son Kontroller</h2>
-            <input class="table-search" data-target="inspection-table" placeholder="Kontrol ara..." />
           </div>
           <div class="table-wrap">
+            <div class="table-tools">
+              <input class="table-search" data-target="inspection-table" placeholder="Kontrol ara..." />
+              <input class="table-date" data-target="inspection-table" data-date-col="1" data-date-type="start" type="date" />
+              <input class="table-date" data-target="inspection-table" data-date-col="1" data-date-type="end" type="date" />
+            </div>
             <table id="inspection-table">
               <thead>
                 <tr>
@@ -565,6 +694,7 @@
                 {% endif %}
               </tbody>
             </table>
+            <div class="table-footer" data-target="inspection-table"></div>
           </div>
         </section>
       </main>
@@ -573,6 +703,7 @@
     <script>
       const sidebarToggle = document.getElementById("sidebarToggle");
       const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+      const sidebarCollapse = document.getElementById("sidebarCollapse");
       const toggleSidebar = () => document.body.classList.toggle("sidebar-open");
       if (sidebarToggle) {
         sidebarToggle.addEventListener("click", toggleSidebar);
@@ -580,6 +711,11 @@
       if (sidebarBackdrop) {
         sidebarBackdrop.addEventListener("click", () => {
           document.body.classList.remove("sidebar-open");
+        });
+      }
+      if (sidebarCollapse) {
+        sidebarCollapse.addEventListener("click", () => {
+          document.body.classList.toggle("sidebar-collapsed");
         });
       }
       const allToggle = document.querySelector('input[name="all"]');
@@ -594,18 +730,166 @@
         allToggle.addEventListener("change", toggleDates);
         toggleDates();
       }
-      document.querySelectorAll(".table-search").forEach((input) => {
-        input.addEventListener("input", () => {
-          const targetId = input.getAttribute("data-target");
-          const table = document.getElementById(targetId);
-          if (!table) return;
-          const needle = input.value.toLowerCase();
-          table.querySelectorAll("tbody tr").forEach((row) => {
-            const text = row.innerText.toLowerCase();
-            row.style.display = text.includes(needle) ? "" : "none";
+      const PAGE_SIZE = 200;
+      const tableStates = new Map();
+
+      const buildFooter = (footer, state) => {
+        const prevDisabled = state.page <= 1 ? "disabled" : "";
+        const nextDisabled = state.page >= state.pages ? "disabled" : "";
+        footer.innerHTML = `
+          <div>Sayfa ${state.page} / ${state.pages} (Kayit: ${state.total})</div>
+          <div>
+            <button data-action="prev" ${prevDisabled}>Onceki</button>
+            <button data-action="next" ${nextDisabled}>Sonraki</button>
+          </div>
+        `;
+        footer.querySelectorAll("button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (btn.dataset.action === "prev") {
+              state.page = Math.max(1, state.page - 1);
+            } else {
+              state.page = Math.min(state.pages, state.page + 1);
+            }
+            renderTable(state);
           });
         });
-      });
+      };
+
+      const filterRows = (state) => {
+        const needle = state.search.toLowerCase();
+        const start = state.dateStart;
+        const end = state.dateEnd;
+        return state.rows.filter((row) => {
+          const text = row.innerText.toLowerCase();
+          if (needle && !text.includes(needle)) return false;
+          if (state.dateCol !== null && (start || end)) {
+            const cell = row.children[state.dateCol];
+            if (!cell) return false;
+            const raw = (cell.innerText || "").trim().slice(0, 10);
+            if (!raw) return false;
+            if (start && raw < start) return false;
+            if (end && raw > end) return false;
+          }
+          return true;
+        });
+      };
+
+      const renderTable = (state) => {
+        const visibleRows = filterRows(state);
+        state.total = visibleRows.length;
+        state.pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
+        if (state.page > state.pages) state.page = state.pages;
+        const startIndex = (state.page - 1) * PAGE_SIZE;
+        const endIndex = startIndex + PAGE_SIZE;
+        const pageRows = visibleRows.slice(startIndex, endIndex);
+        state.rows.forEach((row) => {
+          row.style.display = pageRows.includes(row) ? "" : "none";
+        });
+        if (state.emptyRow) {
+          state.emptyRow.remove();
+          state.emptyRow = null;
+        }
+        if (!pageRows.length) {
+          const empty = document.createElement("tr");
+          empty.className = "empty-row";
+          const cell = document.createElement("td");
+          cell.colSpan = state.colCount;
+          cell.innerText = "Kayit yok";
+          empty.appendChild(cell);
+          state.tbody.appendChild(empty);
+          state.emptyRow = empty;
+        }
+        buildFooter(state.footer, state);
+      };
+
+      const setupTable = (table) => {
+        if (!table || !table.id) return;
+        const tbody = table.querySelector("tbody");
+        if (!tbody) return;
+        const rawRows = Array.from(tbody.querySelectorAll("tr"));
+        const rows = rawRows.filter((row) => {
+          return !row.innerText.toLowerCase().includes("kayit yok");
+        });
+        rawRows
+          .filter((row) => row !== null && row.innerText.toLowerCase().includes("kayit yok"))
+          .forEach((row) => row.remove());
+        const footer = document.querySelector(`.table-footer[data-target="${table.id}"]`);
+        if (!footer) return;
+        const dateInput = document.querySelector(`.table-date[data-target="${table.id}"]`);
+        const dateCol = dateInput ? Number(dateInput.dataset.dateCol) : null;
+        const state = {
+          table,
+          tbody,
+          rows,
+          footer,
+          page: 1,
+          pages: 1,
+          total: rows.length,
+          search: "",
+          dateStart: "",
+          dateEnd: "",
+          dateCol: Number.isNaN(dateCol) ? null : dateCol,
+          colCount: table.querySelectorAll("thead th").length || 1,
+          emptyRow: null,
+        };
+        tableStates.set(table.id, state);
+        const searchInputs = document.querySelectorAll(`.table-search[data-target="${table.id}"]`);
+        searchInputs.forEach((input) => {
+          input.addEventListener("input", () => {
+            state.search = input.value || "";
+            state.page = 1;
+            renderTable(state);
+          });
+        });
+        const dateInputs = document.querySelectorAll(`.table-date[data-target="${table.id}"]`);
+        dateInputs.forEach((input) => {
+          input.addEventListener("change", () => {
+            if (input.dataset.dateType === "start") {
+              state.dateStart = input.value || "";
+            } else {
+              state.dateEnd = input.value || "";
+            }
+            state.page = 1;
+            renderTable(state);
+          });
+        });
+        renderTable(state);
+      };
+
+      document.querySelectorAll("table").forEach(setupTable);
+
+      const notifyBtn = document.getElementById("notifyBtn");
+      const alertUrgent = Number(document.body.dataset.alertUrgent || 0);
+      const alertBad = Number(document.body.dataset.alertBad || 0);
+      const alertRepeat = Number(document.body.dataset.alertRepeat || 0);
+      if (!("Notification" in window)) {
+        if (notifyBtn) notifyBtn.style.display = "none";
+      } else {
+        const updateNotifyBtn = () => {
+          if (!notifyBtn) return;
+          notifyBtn.style.display = Notification.permission === "granted" ? "none" : "inline-flex";
+        };
+        updateNotifyBtn();
+        if (notifyBtn) {
+          notifyBtn.addEventListener("click", async () => {
+            const result = await Notification.requestPermission();
+            if (result === "granted" && alertUrgent > 0) {
+              new Notification("Rainstaff Uyari", {
+                body: `Kotulesti: ${alertBad} | Tekrar: ${alertRepeat}`,
+              });
+              if (navigator.vibrate) {
+                navigator.vibrate([200, 120, 200]);
+              }
+            }
+            updateNotifyBtn();
+          });
+        }
+        if (Notification.permission === "granted" && alertUrgent > 0) {
+          new Notification("Rainstaff Uyari", {
+            body: `Kotulesti: ${alertBad} | Tekrar: ${alertRepeat}`,
+          });
+        }
+      }
     </script>
   </body>
 </html>
