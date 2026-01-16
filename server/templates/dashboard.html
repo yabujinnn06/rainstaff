@@ -685,7 +685,7 @@
                   {% if vehicle_cards %}
                     {% for row in vehicle_cards %}
                       <tr>
-                        <td>{{ row['plate'] }}</td>
+                        <td><a class="link" href="/vehicle/{{ row['plate'] }}">{{ row['plate'] }}</a></td>
                         <td>{{ row['km'] or '-' }}</td>
                         <td>{{ row['inspection_date'] or '-' }}</td>
                         <td>{{ row['insurance_date'] or '-' }}</td>
@@ -724,7 +724,7 @@
                   {% if driver_cards %}
                     {% for row in driver_cards %}
                       <tr>
-                        <td>{{ row['name'] }}</td>
+                        <td><a class="link" href="/driver/{{ row['id'] }}">{{ row['name'] }}</a></td>
                         <td>{{ row['license_class'] or '-' }}</td>
                         <td>{{ row['license_expiry'] or '-' }}</td>
                         <td>{{ row['phone'] or '-' }}</td>

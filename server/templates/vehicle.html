@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Arac Karti - {{ vehicle['plate'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-title">Arac Karti</div>
+        <div class="brand-sub">{{ vehicle['plate'] }}</div>
+      </div>
+      <div class="sync">
+        <a class="logout" href="/dashboard">Dashboard</a>
+      </div>
+    </header>
+
+    <main class="content single">
+      <section class="section panel">
+        <div class="panel-head">
+          <h2>Arac Bilgisi</h2>
+        </div>
+        <div class="info-grid">
+          <div><span>Plaka:</span> {{ vehicle['plate'] }}</div>
+          <div><span>Marka/Model:</span> {{ vehicle['brand'] or '-' }} {{ vehicle['model'] or '' }}</div>
+          <div><span>Yil:</span> {{ vehicle['year'] or '-' }}</div>
+          <div><span>KM:</span> {{ vehicle['km'] or '-' }}</div>
+          <div><span>Muayene:</span> {{ vehicle['inspection_date'] or '-' }}</div>
+          <div><span>Sigorta:</span> {{ vehicle['insurance_date'] or '-' }}</div>
+          <div><span>Bakim:</span> {{ vehicle['maintenance_date'] or '-' }}</div>
+          <div><span>Yag Degisim:</span> {{ vehicle['oil_change_date'] or '-' }}</div>
+          <div><span>Yag KM:</span> {{ vehicle['oil_change_km'] or '-' }}</div>
+          <div><span>Periyot:</span> {{ interval_km }} km</div>
+          <div><span>Yag Durum:</span> {{ oil_status }}</div>
+        </div>
+      </section>
+
+      <section class="section panel">
+        <div class="panel-head">
+          <h2>Haftalik Kontroller</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Hafta</th>
+                <th>Surucu</th>
+                <th>KM</th>
+                <th>Ariza</th>
+                <th>Durum</th>
+                <th>Sanayi</th>
+                <th>Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if inspections %}
+                {% for row in inspections %}
+                  <tr>
+                    <td>{{ row['inspection_date'] }}</td>
+                    <td>
+                      <a class="link" href="/reports/weekly/{{ vehicle['plate'] }}/{{ row['week_start'] }}">{{ row['week_start'] }}</a>
+                    </td>
+                    <td>{{ row['driver'] or '-' }}</td>
+                    <td>{{ row['km'] or '-' }}</td>
+                    <td>{{ row['fault_title'] or '-' }}</td>
+                    <td>{{ row['fault_status'] or '-' }}</td>
+                    <td>{{ 'Evet' if row['service_visit'] else 'Hayir' }}</td>
+                    <td>{{ row['notes'] or '-' }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="8">Kayit yok</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Ariza Kayitlari</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Baslik</th>
+                  <th>Durum</th>
+                  <th>Acilis</th>
+                  <th>Kapanis</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if faults %}
+                  {% for row in faults %}
+                    <tr>
+                      <td>{{ row['title'] }}</td>
+                      <td>{{ row['status'] }}</td>
+                      <td>{{ row['opened_date'] or '-' }}</td>
+                      <td>{{ row['closed_date'] or '-' }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="4">Kayit yok</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Sanayi Kayitlari</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ariza</th>
+                  <th>Gidis</th>
+                  <th>Donus</th>
+                  <th>Masraf</th>
+                  <th>Neden</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if services %}
+                  {% for row in services %}
+                    <tr>
+                      <td>{{ row['fault_title'] or '-' }}</td>
+                      <td>{{ row['start_date'] or '-' }}</td>
+                      <td>{{ row['end_date'] or 'Sanayide' }}</td>
+                      <td>{{ row['cost'] or '-' }}</td>
+                      <td>{{ row['reason'] or '-' }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="5">Kayit yok</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

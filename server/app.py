@@ -243,6 +243,121 @@ def employee_detail(employee_id):
     )
 
 
+@app.route("/vehicle/<plate>")
+def vehicle_detail(plate):
+    if not db_exists():
+        abort(404)
+    with get_conn() as conn:
+        ensure_schema(conn)
+        is_admin, region = get_user_context()
+        if is_admin:
+            vehicle = conn.execute(
+                "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date, "
+                "oil_change_date, oil_change_km, oil_interval_km, notes "
+                "FROM vehicles WHERE plate = ?;",
+                (plate,),
+            ).fetchone()
+        else:
+            vehicle = conn.execute(
+                "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date, "
+                "oil_change_date, oil_change_km, oil_interval_km, notes "
+                "FROM vehicles WHERE plate = ? AND region = ?;",
+                (plate, region),
+            ).fetchone()
+        if not vehicle:
+            abort(404)
+        inspections = conn.execute(
+            "SELECT i.inspection_date, i.week_start, d.full_name as driver, i.km, "
+            "f.title as fault_title, i.fault_status, i.service_visit, i.notes "
+            "FROM vehicle_inspections i "
+            "LEFT JOIN drivers d ON d.id = i.driver_id "
+            "LEFT JOIN vehicle_faults f ON f.id = i.fault_id "
+            "WHERE i.vehicle_id = ? "
+            + ("AND i.region = ? " if not is_admin else "")
+            + "ORDER BY i.inspection_date DESC;",
+            (vehicle["id"], region) if not is_admin else (vehicle["id"],),
+        ).fetchall()
+        faults = conn.execute(
+            "SELECT title, description, opened_date, closed_date, status "
+            "FROM vehicle_faults WHERE vehicle_id = ? "
+            + ("AND region = ? " if not is_admin else "")
+            + "ORDER BY opened_date DESC;",
+            (vehicle["id"], region) if not is_admin else (vehicle["id"],),
+        ).fetchall()
+        services = conn.execute(
+            "SELECT f.title as fault_title, s.start_date, s.end_date, s.reason, s.cost "
+            "FROM vehicle_service_visits s "
+            "LEFT JOIN vehicle_faults f ON f.id = s.fault_id "
+            "WHERE s.vehicle_id = ? "
+            + ("AND s.region = ? " if not is_admin else "")
+            + "ORDER BY s.start_date DESC;",
+            (vehicle["id"], region) if not is_admin else (vehicle["id"],),
+        ).fetchall()
+    interval_km = vehicle["oil_interval_km"] or DEFAULT_OIL_INTERVAL_KM
+    oil_status = "-"
+    if interval_km and vehicle["oil_change_km"] is not None and vehicle["km"] is not None:
+        remaining = interval_km - (vehicle["km"] - vehicle["oil_change_km"])
+        oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
+    return render_template(
+        "vehicle.html",
+        vehicle=vehicle,
+        oil_status=oil_status,
+        interval_km=interval_km,
+        inspections=inspections,
+        faults=faults,
+        services=services,
+    )
+
+
+@app.route("/driver/<int:driver_id>")
+def driver_detail(driver_id):
+    if not db_exists():
+        abort(404)
+    with get_conn() as conn:
+        ensure_schema(conn)
+        is_admin, region = get_user_context()
+        if is_admin:
+            driver = conn.execute(
+                "SELECT id, full_name, license_class, license_expiry, phone, notes "
+                "FROM drivers WHERE id = ?;",
+                (driver_id,),
+            ).fetchone()
+        else:
+            driver = conn.execute(
+                "SELECT id, full_name, license_class, license_expiry, phone, notes "
+                "FROM drivers WHERE id = ? AND region = ?;",
+                (driver_id, region),
+            ).fetchone()
+        if not driver:
+            abort(404)
+        inspections = conn.execute(
+            "SELECT i.inspection_date, i.week_start, v.plate, i.km, "
+            "f.title as fault_title, i.fault_status, i.service_visit, i.notes "
+            "FROM vehicle_inspections i "
+            "JOIN vehicles v ON v.id = i.vehicle_id "
+            "LEFT JOIN vehicle_faults f ON f.id = i.fault_id "
+            "WHERE i.driver_id = ? "
+            + ("AND i.region = ? " if not is_admin else "")
+            + "ORDER BY i.inspection_date DESC;",
+            (driver_id, region) if not is_admin else (driver_id,),
+        ).fetchall()
+    vehicle_summary = {}
+    for row in inspections:
+        plate_val = row["plate"]
+        entry = vehicle_summary.setdefault(plate_val, {"last": row["inspection_date"], "count": 0})
+        entry["count"] += 1
+        if row["inspection_date"] and (not entry["last"] or row["inspection_date"] > entry["last"]):
+            entry["last"] = row["inspection_date"]
+    vehicles = [{"plate": k, "last": v["last"], "count": v["count"]} for k, v in vehicle_summary.items()]
+    vehicles.sort(key=lambda x: (x["last"] or ""), reverse=True)
+    return render_template(
+        "driver.html",
+        driver=driver,
+        vehicles=vehicles,
+        inspections=inspections,
+    )
+
+
 @app.route("/reports")
 def reports():
     if not db_exists():
@@ -787,7 +902,7 @@ def dashboard():
                     (region_filter,),
                 ).fetchall()
                 driver_cards = conn.execute(
-                    "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                    "SELECT d.id, d.full_name as name, d.license_class, d.license_expiry, d.phone "
                     "FROM drivers d WHERE d.region = ? ORDER BY d.full_name LIMIT 10;",
                     (region_filter,),
                 ).fetchall()
@@ -860,7 +975,7 @@ def dashboard():
                     "ORDER BY v.plate LIMIT 10;"
                 ).fetchall()
                 driver_cards = conn.execute(
-                    "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                    "SELECT d.id, d.full_name as name, d.license_class, d.license_expiry, d.phone "
                     "FROM drivers d ORDER BY d.full_name LIMIT 10;"
                 ).fetchall()
                 recent_inspections = conn.execute(
