@@ -661,6 +661,7 @@ def dashboard():
     daily_summary = []
     weekly_alerts = []
     alert_counts = {"total": 0, "bad": 0, "repeat": 0, "good": 0}
+    top_overtime = None
     range_summary = {
         "worked": 0.0,
         "overtime": 0.0,
@@ -942,6 +943,8 @@ def dashboard():
 
             employee_cards = sorted(emp_totals.values(), key=lambda x: x["worked"], reverse=True)[:10]
             overtime_leaders = sorted(emp_totals.values(), key=lambda x: x["overtime"], reverse=True)[:10]
+            if overtime_leaders:
+                top_overtime = overtime_leaders[0]
             recent_timesheets = sorted(filtered_rows, key=lambda x: x["work_date"], reverse=True)[:15]
 
             monthly_totals = {}
@@ -1006,6 +1009,7 @@ def dashboard():
         daily_summary=daily_summary,
         weekly_alerts=weekly_alerts,
         alert_counts=alert_counts,
+        top_overtime=top_overtime,
         range_summary=range_summary,
         start_date=start_date,
         end_date=end_date,

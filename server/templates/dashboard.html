@@ -148,28 +148,17 @@
               <div class="value">{{ summary.timesheets }}</div>
             </div>
             <div class="card">
-              <div class="label">Arac</div>
-              <div class="value">{{ summary.vehicles }}</div>
+              <div class="label">En Fazla Mesai Yapan</div>
+              <div class="value">{{ top_overtime['overtime']|round(2) if top_overtime else 0 }}</div>
+              <div class="card-sub">{{ top_overtime['name'] if top_overtime else 'Kayit yok' }}</div>
             </div>
             <div class="card">
-              <div class="label">Surucu</div>
-              <div class="value">{{ summary.drivers }}</div>
-            </div>
-            <div class="card warn">
-              <div class="label">Acik Ariza</div>
-              <div class="value">{{ summary.open_faults }}</div>
-            </div>
-            <div class="card warn">
-              <div class="label">Sanayide</div>
-              <div class="value">{{ summary.service_open }}</div>
+              <div class="label">Toplam Fazla Mesai</div>
+              <div class="value">{{ summary.overtime_hours }}</div>
             </div>
             <div class="card">
               <div class="label">Toplam Calisilan Saat</div>
               <div class="value">{{ summary.worked_hours }}</div>
-            </div>
-            <div class="card warn">
-              <div class="label">Toplam Fazla Mesai</div>
-              <div class="value">{{ summary.overtime_hours }}</div>
             </div>
             <div class="card">
               <div class="label">Toplam Gece</div>
@@ -179,6 +168,41 @@
               <div class="label">Toplam Ozel Gun</div>
               <div class="value">{{ summary.special_hours }}</div>
             </div>
+            <button class="card warn card-action" type="button" data-toggle="openFaultsPanel">
+              <div class="label">Acik Ariza</div>
+              <div class="value">{{ summary.open_faults }}</div>
+              <div class="card-sub">Detaylari gor</div>
+            </button>
+            <a class="card warn card-link" href="#service">
+              <div class="label">Sanayide</div>
+              <div class="value">{{ summary.service_open }}</div>
+            </a>
+            <div class="card">
+              <div class="label">Arac</div>
+              <div class="value">{{ summary.vehicles }}</div>
+            </div>
+            <div class="card">
+              <div class="label">Surucu</div>
+              <div class="value">{{ summary.drivers }}</div>
+            </div>
+          </div>
+          <div class="kpi-detail" id="openFaultsPanel">
+            <div class="detail-head">
+              <div class="detail-title">Acik Ariza Detaylari</div>
+              <a href="/alerts" class="detail-link">Tum uyarilar</a>
+            </div>
+            {% if open_faults %}
+            <ul class="detail-list">
+              {% for row in open_faults %}
+              <li>
+                <strong>{{ row['plate'] }}</strong> - {{ row['title'] }}
+                <span class="muted">({{ row['opened_date'] }})</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="muted">Acik ariza yok</div>
+            {% endif %}
           </div>
         </section>
 
@@ -247,10 +271,10 @@
           <div class="alert-feed">
             {% if weekly_alerts %}
               {% for row in weekly_alerts[:5] %}
-                <div class="alert-item {{ row['level'] }}">
+                <a class="alert-item {{ row['level'] }}" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">
                   <span class="tag">{{ row['change'] }}</span>
                   <span class="text">{{ row['plate'] }} - {{ row['item'] }} ({{ row['week_start'] }})</span>
-                </div>
+                </a>
               {% endfor %}
               <a class="more-link" href="/alerts">Daha fazla gormek icin tiklayiniz</a>
             {% else %}
@@ -930,6 +954,17 @@
           });
         }
       }
+
+      document.querySelectorAll("[data-toggle]").forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const target = document.getElementById(trigger.dataset.toggle);
+          if (!target) return;
+          target.classList.toggle("active");
+          if (target.classList.contains("active")) {
+            target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        });
+      });
     </script>
   </body>
 </html>
