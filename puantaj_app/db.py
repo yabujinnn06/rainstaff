@@ -745,6 +745,34 @@ def list_vehicle_inspections(vehicle_id=None, week_start=None, region=None):
         return cur.fetchall()
 
 
+def get_driver(driver_id):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT id, full_name, license_class, license_expiry, phone, notes FROM drivers WHERE id = ?;",
+            (driver_id,),
+        )
+        return cur.fetchone()
+
+
+def list_driver_inspections(driver_id, region=None):
+    query = (
+        "SELECT i.id, i.vehicle_id, v.plate, i.driver_id, d.full_name, i.inspection_date, i.week_start, i.km, "
+        "i.notes, i.fault_id, i.fault_status, i.service_visit "
+        "FROM vehicle_inspections i "
+        "JOIN vehicles v ON v.id = i.vehicle_id "
+        "LEFT JOIN drivers d ON d.id = i.driver_id "
+        "WHERE i.driver_id = ?"
+    )
+    params = [driver_id]
+    if region and region != "ALL":
+        query += " AND i.region = ?"
+        params.append(region)
+    query += " ORDER BY i.inspection_date DESC;"
+    with get_conn() as conn:
+        cur = conn.execute(query, params)
+        return cur.fetchall()
+
+
 def list_vehicle_inspection_results(inspection_id):
     with get_conn() as conn:
         cur = conn.execute(

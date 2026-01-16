@@ -3152,6 +3152,7 @@ class PuantajApp(tk.Tk):
         v_yscroll.grid(row=0, column=1, sticky="ns")
         v_xscroll.grid(row=1, column=0, sticky="ew")
         self.vehicle_tree.bind("<<TreeviewSelect>>", self.on_vehicle_select)
+        self.vehicle_tree.bind("<Double-1>", lambda _e: self.show_vehicle_card_from_list())
 
         vcard_row = ttk.Frame(self.tab_vehicles_body)
         vcard_row.pack(fill=tk.X, padx=6, pady=4)
@@ -3212,6 +3213,7 @@ class PuantajApp(tk.Tk):
         d_yscroll.grid(row=0, column=1, sticky="ns")
         d_xscroll.grid(row=1, column=0, sticky="ew")
         self.driver_tree.bind("<<TreeviewSelect>>", self.on_driver_select)
+        self.driver_tree.bind("<Double-1>", lambda _e: self.show_driver_detail_from_list())
 
         inspect_frame = ttk.LabelFrame(self.tab_vehicles_body, text="Haftalik Kontrol", style="Section.TLabelframe")
         inspect_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
@@ -3640,6 +3642,17 @@ class PuantajApp(tk.Tk):
         plate = values[1]
         self._open_vehicle_card(plate)
 
+    def show_driver_detail_from_list(self):
+        selected = self.driver_tree.selection()
+        if not selected:
+            messagebox.showwarning("Uyari", "Surucu secin.")
+            return
+        values = self.driver_tree.item(selected[0], "values")
+        if not values:
+            return
+        driver_id = parse_int(values[0])
+        self._open_driver_card(driver_id)
+
     def _open_vehicle_card(self, plate):
         vehicle_id = self.vehicle_map.get(plate)
         if not vehicle_id:
@@ -3682,7 +3695,13 @@ class PuantajApp(tk.Tk):
         ttk.Label(info_row2, text=f"KM: {km or '-'}").pack(side=tk.LEFT, padx=6)
         ttk.Label(info_row2, text=f"Yag Degisim: {oil_change_date or '-'}").pack(side=tk.LEFT, padx=12)
         ttk.Label(info_row2, text=f"Yag KM: {oil_change_km or '-'}").pack(side=tk.LEFT, padx=12)
-        ttk.Label(info_row2, text=f"Periyot: {oil_interval_km or '-'} km").pack(side=tk.LEFT, padx=12)
+        interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
+        oil_status = "-"
+        if interval_km and oil_change_km is not None and km is not None:
+            remaining = interval_km - (km - oil_change_km)
+            oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
+        ttk.Label(info_row2, text=f"Periyot: {interval_km or '-'} km").pack(side=tk.LEFT, padx=12)
+        ttk.Label(info_row2, text=f"Yag Durum: {oil_status}").pack(side=tk.LEFT, padx=12)
         info_row3 = ttk.Frame(info)
         info_row3.pack(fill=tk.X, pady=4)
         ttk.Label(info_row3, text=f"Muayene: {inspection_date or '-'}").pack(side=tk.LEFT, padx=6)
@@ -3904,6 +3923,133 @@ class PuantajApp(tk.Tk):
             curr_service = "Evet" if current_inspection[11] else "Hayir"
             change = "Ayni" if prev_service == curr_service else "Degisti"
             compare_tree.insert("", tk.END, values=("Sanayiye Gitti", prev_service, curr_service, change))
+
+    def _open_driver_card(self, driver_id):
+        driver = db.get_driver(driver_id)
+        if not driver:
+            messagebox.showwarning("Uyari", "Surucu bulunamadi.")
+            return
+        _did, name, license_class, license_expiry, phone, notes = driver
+        inspections = db.list_driver_inspections(driver_id, region=self._view_region())
+
+        detail_win = tk.Toplevel(self)
+        detail_win.title(f"Surucu Karti - {name}")
+        detail_win.geometry("960x680")
+
+        info = ttk.LabelFrame(detail_win, text="Surucu Bilgisi", style="Section.TLabelframe")
+        info.pack(fill=tk.X, padx=10, pady=8)
+        info_row1 = ttk.Frame(info)
+        info_row1.pack(fill=tk.X, pady=4)
+        ttk.Label(info_row1, text=f"Ad Soyad: {name}").pack(side=tk.LEFT, padx=6)
+        ttk.Label(info_row1, text=f"Ehliyet: {license_class or '-'}").pack(side=tk.LEFT, padx=12)
+        ttk.Label(info_row1, text=f"Bitis: {license_expiry or '-'}").pack(side=tk.LEFT, padx=12)
+        info_row2 = ttk.Frame(info)
+        info_row2.pack(fill=tk.X, pady=4)
+        ttk.Label(info_row2, text=f"Telefon: {phone or '-'}").pack(side=tk.LEFT, padx=6)
+        if notes:
+            ttk.Label(info_row2, text=f"Not: {notes}").pack(side=tk.LEFT, padx=12)
+
+        vehicle_frame = ttk.LabelFrame(detail_win, text="Surucunun Araclari", style="Section.TLabelframe")
+        vehicle_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+        vehicle_tree = ttk.Treeview(
+            vehicle_frame,
+            columns=("plate", "last_date", "count"),
+            show="headings",
+            height=5,
+        )
+        vehicle_tree.heading("plate", text="Plaka")
+        vehicle_tree.heading("last_date", text="Son Kontrol")
+        vehicle_tree.heading("count", text="Kontrol Sayisi")
+        vehicle_tree.column("plate", width=140)
+        vehicle_tree.column("last_date", width=140)
+        vehicle_tree.column("count", width=120, anchor=tk.CENTER)
+        v_xscroll = ttk.Scrollbar(vehicle_frame, orient=tk.HORIZONTAL, command=vehicle_tree.xview)
+        v_yscroll = ttk.Scrollbar(vehicle_frame, orient=tk.VERTICAL, command=vehicle_tree.yview)
+        vehicle_tree.configure(xscrollcommand=v_xscroll.set, yscrollcommand=v_yscroll.set)
+        vehicle_frame.columnconfigure(0, weight=1)
+        vehicle_frame.rowconfigure(0, weight=1)
+        vehicle_tree.grid(row=0, column=0, sticky="nsew")
+        v_yscroll.grid(row=0, column=1, sticky="ns")
+        v_xscroll.grid(row=1, column=0, sticky="ew")
+
+        vehicle_summary = {}
+        for row in inspections:
+            plate = row[2]
+            inspect_date = row[5]
+            entry = vehicle_summary.setdefault(plate, {"last": inspect_date, "count": 0})
+            entry["count"] += 1
+            if inspect_date and (not entry["last"] or inspect_date > entry["last"]):
+                entry["last"] = inspect_date
+        for plate, info_row in sorted(vehicle_summary.items()):
+            vehicle_tree.insert("", tk.END, values=(plate, info_row["last"] or "-", info_row["count"]))
+
+        history_frame = ttk.LabelFrame(detail_win, text="Kontrol Gecmisi", style="Section.TLabelframe")
+        history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+        history_tree = ttk.Treeview(
+            history_frame,
+            columns=("date", "week", "plate", "km", "fault", "status", "service", "note"),
+            show="headings",
+            height=8,
+        )
+        history_tree.heading("date", text="Tarih")
+        history_tree.heading("week", text="Hafta")
+        history_tree.heading("plate", text="Plaka")
+        history_tree.heading("km", text="KM")
+        history_tree.heading("fault", text="Ariza")
+        history_tree.heading("status", text="Durum")
+        history_tree.heading("service", text="Sanayi")
+        history_tree.heading("note", text="Not")
+        history_tree.column("date", width=110)
+        history_tree.column("week", width=110)
+        history_tree.column("plate", width=120)
+        history_tree.column("km", width=70)
+        history_tree.column("fault", width=160)
+        history_tree.column("status", width=90)
+        history_tree.column("service", width=80)
+        history_tree.column("note", width=200)
+        h_xscroll = ttk.Scrollbar(history_frame, orient=tk.HORIZONTAL, command=history_tree.xview)
+        h_yscroll = ttk.Scrollbar(history_frame, orient=tk.VERTICAL, command=history_tree.yview)
+        history_tree.configure(xscrollcommand=h_xscroll.set, yscrollcommand=h_yscroll.set)
+        history_frame.columnconfigure(0, weight=1)
+        history_frame.rowconfigure(0, weight=1)
+        history_tree.grid(row=0, column=0, sticky="nsew")
+        h_yscroll.grid(row=0, column=1, sticky="ns")
+        h_xscroll.grid(row=1, column=0, sticky="ew")
+
+        for row in inspections[:50]:
+            (
+                _iid,
+                _veh_id,
+                plate,
+                _driver_id,
+                _driver_name,
+                inspect_date,
+                week_start,
+                km_val,
+                note_val,
+                fault_id,
+                fault_status,
+                service_visit,
+            ) = row
+            fault_title = ""
+            if fault_id:
+                fault = db.get_vehicle_fault(fault_id)
+                if fault:
+                    fault_title = fault[2] or ""
+            history_tree.insert(
+                "",
+                tk.END,
+                values=(
+                    inspect_date,
+                    week_start,
+                    plate,
+                    km_val or "-",
+                    fault_title,
+                    fault_status or "",
+                    "Evet" if service_visit else "",
+                    note_val or "",
+                ),
+            )
 
     def _build_admin_tab(self):
         content = self.tab_admin_body
