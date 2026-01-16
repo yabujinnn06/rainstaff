@@ -1741,11 +1741,11 @@ class PuantajApp(tk.Tk):
                 oil_interval_km,
                 _notes,
             ) = vehicle
-        oil_status = "-"
-        interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
-        if interval_km and oil_change_km is not None and km is not None:
-            remaining = interval_km - (km - oil_change_km)
-            oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
+            oil_status = "-"
+            interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
+            if interval_km and oil_change_km is not None and km is not None:
+                remaining = interval_km - (km - oil_change_km)
+                oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
             self.vehicle_tree.insert(
                 "",
                 tk.END,
