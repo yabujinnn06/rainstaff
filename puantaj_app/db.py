@@ -859,7 +859,7 @@ def list_open_vehicle_faults(vehicle_id=None, region=None):
 def add_vehicle_service_visit(vehicle_id, fault_id, start_date, end_date, reason, cost, notes, region="Ankara"):
     with get_conn() as conn:
         cur = conn.execute(
-            "INSERT INTO vehicle_service_visits (vehicle_id, fault_id, start_date, end_date, reason, cost, notes) "
+            "INSERT INTO vehicle_service_visits (vehicle_id, fault_id, start_date, end_date, reason, cost, notes, region) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
             (vehicle_id, fault_id, start_date, end_date, reason, cost, notes, region),
         )

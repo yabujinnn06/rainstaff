@@ -1725,6 +1725,9 @@ class PuantajApp(tk.Tk):
         for item in self.vehicle_tree.get_children():
             self.vehicle_tree.delete(item)
         self.vehicle_map = {}
+        km = None
+        oil_change_km = None
+        oil_interval_km = None
         for vehicle in db.list_vehicles(region=self._view_region()):
             (
                 vehicle_id,
