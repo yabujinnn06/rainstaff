@@ -27,6 +27,7 @@ TIME_FMT = "HH:MM"
 KEEPALIVE_SECONDS = 300
 REGIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
 DEFAULT_OIL_INTERVAL_KM = 14000
+DEFAULT_OIL_SOON_KM = 2000
 
 VEHICLE_CHECKLIST = [
     ("body_dent", "Govde ezik/cizik"),
@@ -2143,15 +2144,18 @@ class PuantajApp(tk.Tk):
                 oil_interval_km,
                 _notes,
             ) = vehicle
-
-        oil_status = "-"
-        interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
-        if interval_km and oil_change_km is not None and km is not None:
-            remaining = interval_km - (km - oil_change_km)
-            oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
+            oil_status = "-"
+            oil_flag = None
+            interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
+            if interval_km and oil_change_km is not None and km is not None:
+                remaining = interval_km - (km - oil_change_km)
+                oil_status = "Geldi" if remaining <= 0 else f"{remaining} km"
                 if remaining <= 0:
                     oil_due += 1
+                    oil_flag = "oil_due"
                     self.vehicle_alert_tree.insert("", tk.END, values=(plate, "Yag Degisimi", "Geldi"))
+                elif remaining <= DEFAULT_OIL_SOON_KM:
+                    oil_flag = "oil_soon"
 
             insp_days = days_until(inspection_date)
             if insp_days is not None and insp_days <= 30:
@@ -2225,6 +2229,7 @@ class PuantajApp(tk.Tk):
                     last_check,
                     last_driver,
                 ),
+                tags=(oil_flag,) if oil_flag else (),
             )
 
         for driver in drivers:
@@ -3380,6 +3385,8 @@ class PuantajApp(tk.Tk):
         self.vehicle_status_tree.column("maintenance", width=110)
         self.vehicle_status_tree.column("last_check", width=110)
         self.vehicle_status_tree.column("driver", width=160)
+        self.vehicle_status_tree.tag_configure("oil_due", background="#fde68a")
+        self.vehicle_status_tree.tag_configure("oil_soon", background="#fff7ed")
         vs_xscroll = ttk.Scrollbar(vehicle_status, orient=tk.HORIZONTAL, command=self.vehicle_status_tree.xview)
         vs_yscroll = ttk.Scrollbar(vehicle_status, orient=tk.VERTICAL, command=self.vehicle_status_tree.yview)
         self.vehicle_status_tree.configure(xscrollcommand=vs_xscroll.set, yscrollcommand=vs_yscroll.set)
