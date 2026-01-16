@@ -29,6 +29,7 @@ DEFAULT_USERS = [
     ("ankara1", "060106", "user", "Ankara"),
     ("izmir1", "350235", "user", "Izmir"),
     ("bursa1", "160316", "user", "Bursa"),
+    ("istanbul1", "340434", "user", "Istanbul"),
     ("admin", "748774", "admin", "ALL"),
 ]
 
