@@ -224,6 +224,115 @@ def parse_time_to_minutes(value):
         return None
 
 
+def normalize_status(value):
+    if value is None:
+        return ""
+    return str(value).strip().lower()
+
+
+def classify_status(value):
+    status = normalize_status(value)
+    if status in ("olumsuz", "issue", "bad", "negatif", "problem"):
+        return "neg"
+    if status in ("olumlu", "ok", "good", "pozitif"):
+        return "pos"
+    return "unk"
+
+
+def display_status(value):
+    status = normalize_status(value)
+    if status in ("olumsuz", "issue", "bad", "negatif", "problem"):
+        return "Olumsuz"
+    if status in ("olumlu", "ok", "good", "pozitif"):
+        return "Olumlu"
+    if status == "":
+        return "-"
+    return "Bilinmiyor"
+
+
+def get_latest_inspection_id(conn, vehicle_id, week_start):
+    row = conn.execute(
+        "SELECT id FROM vehicle_inspections "
+        "WHERE vehicle_id = ? AND week_start = ? "
+        "ORDER BY inspection_date DESC, id DESC LIMIT 1;",
+        (vehicle_id, week_start),
+    ).fetchone()
+    return row["id"] if row else None
+
+
+def get_inspection_results(conn, inspection_id):
+    results = {}
+    for row in conn.execute(
+        "SELECT item_key, status FROM vehicle_inspection_results WHERE inspection_id = ?;",
+        (inspection_id,),
+    ).fetchall():
+        results[row["item_key"]] = row["status"]
+    return results
+
+
+def build_weekly_alerts(conn):
+    rows = conn.execute(
+        "SELECT v.id as vehicle_id, v.plate, i.week_start "
+        "FROM vehicle_inspections i "
+        "JOIN vehicles v ON v.id = i.vehicle_id "
+        "GROUP BY v.id, v.plate, i.week_start "
+        "ORDER BY i.week_start DESC;"
+    ).fetchall()
+    vehicle_weeks = {}
+    for row in rows:
+        entry = vehicle_weeks.setdefault(
+            row["vehicle_id"],
+            {"plate": row["plate"], "weeks": []},
+        )
+        entry["weeks"].append(row["week_start"])
+
+    alerts = []
+    for vehicle_id, info in vehicle_weeks.items():
+        weeks = sorted(set(info["weeks"]), reverse=True)
+        if len(weeks) < 2:
+            continue
+        current_week, prev_week = weeks[0], weeks[1]
+        current_id = get_latest_inspection_id(conn, vehicle_id, current_week)
+        prev_id = get_latest_inspection_id(conn, vehicle_id, prev_week)
+        if not current_id or not prev_id:
+            continue
+        current_results = get_inspection_results(conn, current_id)
+        prev_results = get_inspection_results(conn, prev_id)
+        for key, label in VEHICLE_CHECKLIST.items():
+            current_status = current_results.get(key)
+            prev_status = prev_results.get(key)
+            if prev_status is None or current_status is None:
+                continue
+            current_class = classify_status(current_status)
+            prev_class = classify_status(prev_status)
+            if prev_class == "neg" and current_class == "neg":
+                change = "Tekrar"
+                level = "repeat"
+            elif prev_class != "neg" and current_class == "neg":
+                change = "Kotulesti"
+                level = "bad"
+            elif prev_class == "neg" and current_class != "neg":
+                change = "Duzeldi"
+                level = "good"
+            elif prev_class != current_class:
+                change = "Degisti"
+                level = "info"
+            else:
+                continue
+            alerts.append(
+                {
+                    "plate": info["plate"],
+                    "week_start": current_week,
+                    "item": label,
+                    "prev_status": display_status(prev_status),
+                    "current_status": display_status(current_status),
+                    "change": change,
+                    "level": level,
+                }
+            )
+    return alerts
+
+
 def compute_day_metrics(work_date, start_time, end_time, break_minutes, is_special, settings):
     start_min = parse_time_to_minutes(start_time)
     end_min = parse_time_to_minutes(end_time)
@@ -354,6 +463,8 @@ def dashboard():
     driver_status = []
     monthly_summary = []
     daily_summary = []
+    weekly_alerts = []
+    alert_counts = {"total": 0, "bad": 0, "repeat": 0, "good": 0}
     range_summary = {
         "worked": 0.0,
         "overtime": 0.0,
@@ -451,6 +562,13 @@ def dashboard():
                 "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
                 "FROM drivers d ORDER BY d.full_name LIMIT 20;"
             ).fetchall()
+            weekly_alerts = build_weekly_alerts(conn)
+            alert_counts = {
+                "total": len(weekly_alerts),
+                "bad": sum(1 for row in weekly_alerts if row["level"] == "bad"),
+                "repeat": sum(1 for row in weekly_alerts if row["level"] == "repeat"),
+                "good": sum(1 for row in weekly_alerts if row["level"] == "good"),
+            }
 
             emp_totals = {}
             range_totals = {}
@@ -571,6 +689,8 @@ def dashboard():
         driver_status=driver_status,
         monthly_summary=monthly_summary,
         daily_summary=daily_summary,
+        weekly_alerts=weekly_alerts,
+        alert_counts=alert_counts,
         range_summary=range_summary,
         start_date=start_date,
         end_date=end_date,
