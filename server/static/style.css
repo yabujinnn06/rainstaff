@@ -190,6 +190,20 @@ body {
   background: #e0e7ff;
 }
 
+.sidebar-btn {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sidebar-btn:hover {
+  background: #f1f5f9;
+}
+
 .notification-bar {
   background: linear-gradient(90deg, #fee2e2 0%, #fde68a 100%);
   border: 1px solid #f59e0b;
@@ -757,6 +771,14 @@ body.sidebar-collapsed .sidebar a {
 
 body.sidebar-collapsed .sidebar a .label,
 body.sidebar-collapsed .menu-title,
-body.sidebar-collapsed .sidebar-collapse {
+body.sidebar-collapsed .menu-title {
+  display: none;
+}
+
+body.sidebar-hidden .layout {
+  grid-template-columns: 1fr;
+}
+
+body.sidebar-hidden .sidebar {
   display: none;
 }

@@ -23,6 +23,7 @@
           Uyari {{ alert_counts.total }}
         </a>
         <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
+        <button class="sidebar-btn" id="sidebarHide" type="button">Sidebar</button>
         Son senkron: {{ last_sync or 'Yok' }}
         <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
         <a class="logout" href="/logout">Cikis</a>
@@ -263,6 +264,7 @@
                   <th>Onceki</th>
                   <th>Bu Hafta</th>
                   <th>Durum</th>
+                  <th>Rapor</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,10 +277,13 @@
                       <td>{{ row['prev_status'] }}</td>
                       <td>{{ row['current_status'] }}</td>
                       <td>{{ row['change'] }}</td>
+                      <td>
+                        <a class="link" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">Ac</a>
+                      </td>
                     </tr>
                   {% endfor %}
                 {% else %}
-                  <tr><td colspan="6">Kayit yok</td></tr>
+                  <tr><td colspan="7">Kayit yok</td></tr>
                 {% endif %}
               </tbody>
             </table>
@@ -713,6 +718,7 @@
       const sidebarToggle = document.getElementById("sidebarToggle");
       const sidebarBackdrop = document.getElementById("sidebarBackdrop");
       const sidebarCollapse = document.getElementById("sidebarCollapse");
+      const sidebarHide = document.getElementById("sidebarHide");
       const toggleSidebar = () => document.body.classList.toggle("sidebar-open");
       if (sidebarToggle) {
         sidebarToggle.addEventListener("click", toggleSidebar);
@@ -732,6 +738,11 @@
         sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
           ? "Genislet"
           : "Daralt";
+      }
+      if (sidebarHide) {
+        sidebarHide.addEventListener("click", () => {
+          document.body.classList.toggle("sidebar-hidden");
+        });
       }
       const allToggle = document.querySelector('input[name="all"]');
       const startInput = document.querySelector('input[name="start"]');
