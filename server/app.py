@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, request, abort, redirect, url_for, session
@@ -10,6 +11,12 @@ DATA_DIR = os.path.join(APP_DIR, "data")
 DB_PATH = os.path.join(DATA_DIR, "puantaj.db")
 API_KEY = os.environ.get("API_KEY", "")
 LOCAL_TZ = timezone(timedelta(hours=3))
+DEFAULT_USERS = [
+    ("ankara1", "060106", "user", "Ankara"),
+    ("izmir1", "350235", "user", "Izmir"),
+    ("bursa1", "160316", "user", "Bursa"),
+    ("admin", "748774", "admin", "ALL"),
+]
 
 VEHICLE_CHECKLIST = {
     "body_dent": "Govde ezik/cizik",
@@ -53,6 +60,55 @@ def db_exists():
     return os.path.isfile(DB_PATH)
 
 
+def hash_password(password):
+    text = f"rainstaff::{password}"
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def ensure_schema(conn):
+    tables = [
+        "employees",
+        "timesheets",
+        "vehicles",
+        "drivers",
+        "vehicle_faults",
+        "vehicle_inspections",
+        "vehicle_service_visits",
+    ]
+    for table in tables:
+        cur = conn.execute(f"PRAGMA table_info({table});")
+        columns = {row[1] for row in cur.fetchall()}
+        if "region" not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN region TEXT DEFAULT 'Ankara';")
+        conn.execute(
+            f"UPDATE {table} SET region = 'Ankara' WHERE region IS NULL OR TRIM(region) = '';"
+        )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            region TEXT NOT NULL
+        );
+        """
+    )
+    cur = conn.execute("SELECT COUNT(*) FROM users;")
+    if cur.fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT INTO users (username, password_hash, role, region) VALUES (?, ?, ?, ?);",
+            [(u, hash_password(p), r, reg) for u, p, r, reg in DEFAULT_USERS],
+        )
+    conn.commit()
+
+
+def get_user_context():
+    role = session.get("role")
+    region = session.get("region")
+    return role == "admin", region
+
+
 @app.route("/health")
 def health():
     return {"ok": True, "db": db_exists()}
@@ -69,6 +125,8 @@ def sync():
     ensure_data_dir()
     file = request.files["db"]
     file.save(DB_PATH)
+    with get_conn() as conn:
+        ensure_schema(conn)
     return {"ok": True}
 
 
@@ -92,8 +150,28 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-        if username == "admin" and password == "748774":
-            session["user"] = "admin"
+        authenticated = False
+        role = None
+        region = None
+        if db_exists():
+            with get_conn() as conn:
+                ensure_schema(conn)
+                row = conn.execute(
+                    "SELECT username, password_hash, role, region FROM users WHERE username = ?;",
+                    (username,),
+                ).fetchone()
+            if row and row["password_hash"] == hash_password(password):
+                authenticated = True
+                role = row["role"]
+                region = row["region"]
+        if not authenticated and username == "admin" and password == "748774":
+            authenticated = True
+            role = "admin"
+            region = "ALL"
+        if authenticated:
+            session["user"] = username
+            session["role"] = role or "user"
+            session["region"] = region or "Ankara"
             return redirect(url_for("dashboard"))
         error = "Kullanici adi veya sifre hatali."
     return render_template("login.html", error=error)
@@ -110,18 +188,33 @@ def employee_detail(employee_id):
     if not db_exists():
         abort(404)
     with get_conn() as conn:
+        ensure_schema(conn)
+        is_admin, region = get_user_context()
         settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
-        employee = conn.execute(
-            "SELECT id, full_name, department, title, identity_no FROM employees WHERE id = ?;",
-            (employee_id,),
-        ).fetchone()
+        if is_admin:
+            employee = conn.execute(
+                "SELECT id, full_name, department, title, identity_no FROM employees WHERE id = ?;",
+                (employee_id,),
+            ).fetchone()
+        else:
+            employee = conn.execute(
+                "SELECT id, full_name, department, title, identity_no FROM employees WHERE id = ? AND region = ?;",
+                (employee_id, region),
+            ).fetchone()
         if not employee:
             abort(404)
-        rows = conn.execute(
-            "SELECT work_date, start_time, end_time, break_minutes, is_special "
-            "FROM timesheets WHERE employee_id = ? ORDER BY work_date DESC;",
-            (employee_id,),
-        ).fetchall()
+        if is_admin:
+            rows = conn.execute(
+                "SELECT work_date, start_time, end_time, break_minutes, is_special "
+                "FROM timesheets WHERE employee_id = ? ORDER BY work_date DESC;",
+                (employee_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT work_date, start_time, end_time, break_minutes, is_special "
+                "FROM timesheets WHERE employee_id = ? AND region = ? ORDER BY work_date DESC;",
+                (employee_id, region),
+            ).fetchall()
     start_date = request.args.get("start", "").strip()
     end_date = request.args.get("end", "").strip()
     all_months = request.args.get("all", "").strip() == "1"
@@ -153,13 +246,26 @@ def reports():
     if not db_exists():
         abort(404)
     with get_conn() as conn:
-        rows = conn.execute(
-            "SELECT v.plate, i.week_start, MAX(i.inspection_date) as last_date, COUNT(*) as cnt "
-            "FROM vehicle_inspections i "
-            "JOIN vehicles v ON v.id = i.vehicle_id "
-            "GROUP BY v.plate, i.week_start "
-            "ORDER BY i.week_start DESC, v.plate;"
-        ).fetchall()
+        ensure_schema(conn)
+        is_admin, region = get_user_context()
+        if is_admin:
+            rows = conn.execute(
+                "SELECT v.plate, i.week_start, MAX(i.inspection_date) as last_date, COUNT(*) as cnt "
+                "FROM vehicle_inspections i "
+                "JOIN vehicles v ON v.id = i.vehicle_id "
+                "GROUP BY v.plate, i.week_start "
+                "ORDER BY i.week_start DESC, v.plate;"
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT v.plate, i.week_start, MAX(i.inspection_date) as last_date, COUNT(*) as cnt "
+                "FROM vehicle_inspections i "
+                "JOIN vehicles v ON v.id = i.vehicle_id "
+                "WHERE i.region = ? "
+                "GROUP BY v.plate, i.week_start "
+                "ORDER BY i.week_start DESC, v.plate;",
+                (region,),
+            ).fetchall()
     return render_template("reports.html", reports=rows)
 
 
@@ -168,22 +274,42 @@ def weekly_report(plate, week_start):
     if not db_exists():
         abort(404)
     with get_conn() as conn:
-        vehicle = conn.execute(
-            "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date "
-            "FROM vehicles WHERE plate = ?;",
-            (plate,),
-        ).fetchone()
+        ensure_schema(conn)
+        is_admin, region = get_user_context()
+        if is_admin:
+            vehicle = conn.execute(
+                "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date "
+                "FROM vehicles WHERE plate = ?;",
+                (plate,),
+            ).fetchone()
+        else:
+            vehicle = conn.execute(
+                "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date "
+                "FROM vehicles WHERE plate = ? AND region = ?;",
+                (plate, region),
+            ).fetchone()
         if not vehicle:
             abort(404)
-        inspections = conn.execute(
-            "SELECT i.id, i.inspection_date, i.week_start, d.full_name as driver, i.km, i.notes, "
-            "i.fault_status, i.service_visit "
-            "FROM vehicle_inspections i "
-            "LEFT JOIN drivers d ON d.id = i.driver_id "
-            "WHERE i.vehicle_id = ? AND i.week_start = ? "
-            "ORDER BY i.inspection_date DESC;",
-            (vehicle["id"], week_start),
-        ).fetchall()
+        if is_admin:
+            inspections = conn.execute(
+                "SELECT i.id, i.inspection_date, i.week_start, d.full_name as driver, i.km, i.notes, "
+                "i.fault_status, i.service_visit "
+                "FROM vehicle_inspections i "
+                "LEFT JOIN drivers d ON d.id = i.driver_id "
+                "WHERE i.vehicle_id = ? AND i.week_start = ? "
+                "ORDER BY i.inspection_date DESC;",
+                (vehicle["id"], week_start),
+            ).fetchall()
+        else:
+            inspections = conn.execute(
+                "SELECT i.id, i.inspection_date, i.week_start, d.full_name as driver, i.km, i.notes, "
+                "i.fault_status, i.service_visit "
+                "FROM vehicle_inspections i "
+                "LEFT JOIN drivers d ON d.id = i.driver_id "
+                "WHERE i.vehicle_id = ? AND i.week_start = ? AND i.region = ? "
+                "ORDER BY i.inspection_date DESC;",
+                (vehicle["id"], week_start, region),
+            ).fetchall()
         results = {}
         if inspections:
             latest_id = inspections[0]["id"]
@@ -210,23 +336,49 @@ def alerts():
     if not db_exists():
         abort(404)
     with get_conn() as conn:
-        weekly_alerts = build_weekly_alerts(conn)
-        open_faults = conn.execute(
-            "SELECT v.plate, f.title, f.opened_date, f.status "
-            "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
-            "ORDER BY f.opened_date DESC;"
-        ).fetchall()
-        service_open = conn.execute(
-            "SELECT v.plate, s.start_date, s.reason, s.cost "
-            "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
-            "WHERE s.end_date IS NULL OR s.end_date = '' "
-            "ORDER BY s.start_date DESC;"
-        ).fetchall()
-        service_history = conn.execute(
-            "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
-            "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
-            "ORDER BY s.start_date DESC LIMIT 50;"
-        ).fetchall()
+        ensure_schema(conn)
+        is_admin, region = get_user_context()
+        region_filter = None if is_admin else region
+        weekly_alerts = build_weekly_alerts(conn, region_filter)
+        if region_filter:
+            open_faults = conn.execute(
+                "SELECT v.plate, f.title, f.opened_date, f.status "
+                "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+                "WHERE f.region = ? "
+                "ORDER BY f.opened_date DESC;",
+                (region_filter,),
+            ).fetchall()
+            service_open = conn.execute(
+                "SELECT v.plate, s.start_date, s.reason, s.cost "
+                "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+                "WHERE (s.end_date IS NULL OR s.end_date = '') AND s.region = ? "
+                "ORDER BY s.start_date DESC;",
+                (region_filter,),
+            ).fetchall()
+            service_history = conn.execute(
+                "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
+                "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+                "WHERE s.region = ? "
+                "ORDER BY s.start_date DESC LIMIT 50;",
+                (region_filter,),
+            ).fetchall()
+        else:
+            open_faults = conn.execute(
+                "SELECT v.plate, f.title, f.opened_date, f.status "
+                "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+                "ORDER BY f.opened_date DESC;"
+            ).fetchall()
+            service_open = conn.execute(
+                "SELECT v.plate, s.start_date, s.reason, s.cost "
+                "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+                "WHERE s.end_date IS NULL OR s.end_date = '' "
+                "ORDER BY s.start_date DESC;"
+            ).fetchall()
+            service_history = conn.execute(
+                "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
+                "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+                "ORDER BY s.start_date DESC LIMIT 50;"
+            ).fetchall()
     total_alerts = len(weekly_alerts) + len(open_faults) + len(service_open)
     return render_template(
         "alerts.html",
@@ -238,9 +390,9 @@ def alerts():
     )
 
 
-def safe_count(conn, query):
+def safe_count(conn, query, params=None):
     try:
-        return conn.execute(query).fetchone()[0]
+        return conn.execute(query, params or []).fetchone()[0]
     except sqlite3.Error:
         return 0
 
@@ -303,14 +455,25 @@ def get_inspection_results(conn, inspection_id):
     return results
 
 
-def build_weekly_alerts(conn):
-    rows = conn.execute(
-        "SELECT v.id as vehicle_id, v.plate, i.week_start "
-        "FROM vehicle_inspections i "
-        "JOIN vehicles v ON v.id = i.vehicle_id "
-        "GROUP BY v.id, v.plate, i.week_start "
-        "ORDER BY i.week_start DESC;"
-    ).fetchall()
+def build_weekly_alerts(conn, region=None):
+    if region:
+        rows = conn.execute(
+            "SELECT v.id as vehicle_id, v.plate, i.week_start "
+            "FROM vehicle_inspections i "
+            "JOIN vehicles v ON v.id = i.vehicle_id "
+            "WHERE i.region = ? "
+            "GROUP BY v.id, v.plate, i.week_start "
+            "ORDER BY i.week_start DESC;",
+            (region,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT v.id as vehicle_id, v.plate, i.week_start "
+            "FROM vehicle_inspections i "
+            "JOIN vehicles v ON v.id = i.vehicle_id "
+            "GROUP BY v.id, v.plate, i.week_start "
+            "ORDER BY i.week_start DESC;"
+        ).fetchall()
     vehicle_weeks = {}
     for row in rows:
         entry = vehicle_weeks.setdefault(
@@ -524,78 +687,190 @@ def dashboard():
         last_sync = last_sync_dt.strftime("%Y-%m-%d %H:%M")
         desktop_online = (datetime.now(LOCAL_TZ) - last_sync_dt) <= timedelta(minutes=10)
         with get_conn() as conn:
+            ensure_schema(conn)
+            is_admin, region = get_user_context()
+            region_filter = None if is_admin else region
             settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings;")}
-            summary["employees"] = safe_count(conn, "SELECT COUNT(*) FROM employees;")
-            summary["timesheets"] = safe_count(conn, "SELECT COUNT(*) FROM timesheets;")
-            summary["vehicles"] = safe_count(conn, "SELECT COUNT(*) FROM vehicles;")
-            summary["drivers"] = safe_count(conn, "SELECT COUNT(*) FROM drivers;")
+            if region_filter:
+                summary["employees"] = safe_count(
+                    conn, "SELECT COUNT(*) FROM employees WHERE region = ?;", [region_filter]
+                )
+            else:
+                summary["employees"] = safe_count(conn, "SELECT COUNT(*) FROM employees;")
+            if region_filter:
+                summary["timesheets"] = safe_count(
+                    conn, "SELECT COUNT(*) FROM timesheets WHERE region = ?;", [region_filter]
+                )
+            else:
+                summary["timesheets"] = safe_count(conn, "SELECT COUNT(*) FROM timesheets;")
+            if region_filter:
+                summary["vehicles"] = safe_count(
+                    conn, "SELECT COUNT(*) FROM vehicles WHERE region = ?;", [region_filter]
+                )
+            else:
+                summary["vehicles"] = safe_count(conn, "SELECT COUNT(*) FROM vehicles;")
+            if region_filter:
+                summary["drivers"] = safe_count(
+                    conn, "SELECT COUNT(*) FROM drivers WHERE region = ?;", [region_filter]
+                )
+            else:
+                summary["drivers"] = safe_count(conn, "SELECT COUNT(*) FROM drivers;")
             summary["open_faults"] = safe_count(
-                conn, "SELECT COUNT(*) FROM vehicle_faults WHERE status = 'Acik';"
+                conn,
+                "SELECT COUNT(*) FROM vehicle_faults WHERE status = 'Acik' "
+                + ("AND region = ?;" if region_filter else ";"),
+                [region_filter] if region_filter else None,
             )
-            summary["service_total"] = safe_count(conn, "SELECT COUNT(*) FROM vehicle_service_visits;")
+            if region_filter:
+                summary["service_total"] = safe_count(
+                    conn, "SELECT COUNT(*) FROM vehicle_service_visits WHERE region = ?;", [region_filter]
+                )
+            else:
+                summary["service_total"] = safe_count(conn, "SELECT COUNT(*) FROM vehicle_service_visits;")
             summary["service_open"] = safe_count(
-                conn, "SELECT COUNT(*) FROM vehicle_service_visits WHERE end_date IS NULL OR end_date = '';"
+                conn,
+                "SELECT COUNT(*) FROM vehicle_service_visits WHERE (end_date IS NULL OR end_date = '') "
+                + ("AND region = ?;" if region_filter else ";"),
+                [region_filter] if region_filter else None,
             )
-            open_faults = conn.execute(
-                "SELECT v.plate, f.title, f.opened_date "
-                "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
-                "WHERE f.status = 'Acik' ORDER BY f.opened_date DESC LIMIT 10;"
-            ).fetchall()
-            service_open = conn.execute(
-                "SELECT v.plate, s.start_date, s.reason "
-                "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
-                "WHERE s.end_date IS NULL OR s.end_date = '' "
-                "ORDER BY s.start_date DESC LIMIT 10;"
-            ).fetchall()
-            top_faults = conn.execute(
-                "SELECT v.plate, COUNT(*) as cnt "
-                "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
-                "GROUP BY f.vehicle_id ORDER BY cnt DESC LIMIT 5;"
-            ).fetchall()
-            timesheet_rows = conn.execute(
-                "SELECT t.employee_id, e.full_name as name, t.work_date, t.start_time, t.end_time, "
-                "t.break_minutes, t.is_special "
-                "FROM timesheets t JOIN employees e ON e.id = t.employee_id;"
-            ).fetchall()
-            vehicle_cards = conn.execute(
-                "SELECT v.plate, v.km, v.inspection_date, v.insurance_date, v.maintenance_date, "
-                "f.title as open_fault, s.start_date as in_service "
-                "FROM vehicles v "
-                "LEFT JOIN vehicle_faults f ON f.vehicle_id = v.id AND f.status = 'Acik' "
-                "LEFT JOIN vehicle_service_visits s ON s.vehicle_id = v.id AND (s.end_date IS NULL OR s.end_date = '') "
-                "ORDER BY v.plate LIMIT 10;"
-            ).fetchall()
-            driver_cards = conn.execute(
-                "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
-                "FROM drivers d ORDER BY d.full_name LIMIT 10;"
-            ).fetchall()
-            recent_inspections = conn.execute(
-                "SELECT v.plate, i.inspection_date, i.week_start, d.full_name as driver, i.km, "
-                "i.fault_status, i.service_visit "
-                "FROM vehicle_inspections i "
-                "JOIN vehicles v ON v.id = i.vehicle_id "
-                "LEFT JOIN drivers d ON d.id = i.driver_id "
-                "ORDER BY i.inspection_date DESC, i.id DESC LIMIT 10;"
-            ).fetchall()
-            weekly_inspections = conn.execute(
-                "SELECT v.plate, i.week_start, i.inspection_date, d.full_name as driver, i.km, "
-                "i.fault_status, i.service_visit "
-                "FROM vehicle_inspections i "
-                "JOIN vehicles v ON v.id = i.vehicle_id "
-                "LEFT JOIN drivers d ON d.id = i.driver_id "
-                "ORDER BY i.week_start DESC, i.inspection_date DESC LIMIT 20;"
-            ).fetchall()
-            service_history = conn.execute(
-                "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
-                "FROM vehicle_service_visits s "
-                "JOIN vehicles v ON v.id = s.vehicle_id "
-                "ORDER BY s.start_date DESC LIMIT 20;"
-            ).fetchall()
-            driver_status = conn.execute(
-                "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
-                "FROM drivers d ORDER BY d.full_name LIMIT 20;"
-            ).fetchall()
-            weekly_alerts = build_weekly_alerts(conn)
+            if region_filter:
+                open_faults = conn.execute(
+                    "SELECT v.plate, f.title, f.opened_date "
+                    "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+                    "WHERE f.status = 'Acik' AND f.region = ? "
+                    "ORDER BY f.opened_date DESC LIMIT 10;",
+                    (region_filter,),
+                ).fetchall()
+                service_open = conn.execute(
+                    "SELECT v.plate, s.start_date, s.reason "
+                    "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+                    "WHERE (s.end_date IS NULL OR s.end_date = '') AND s.region = ? "
+                    "ORDER BY s.start_date DESC LIMIT 10;",
+                    (region_filter,),
+                ).fetchall()
+                top_faults = conn.execute(
+                    "SELECT v.plate, COUNT(*) as cnt "
+                    "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+                    "WHERE f.region = ? "
+                    "GROUP BY f.vehicle_id ORDER BY cnt DESC LIMIT 5;",
+                    (region_filter,),
+                ).fetchall()
+                timesheet_rows = conn.execute(
+                    "SELECT t.employee_id, e.full_name as name, t.work_date, t.start_time, t.end_time, "
+                    "t.break_minutes, t.is_special "
+                    "FROM timesheets t JOIN employees e ON e.id = t.employee_id "
+                    "WHERE t.region = ?;",
+                    (region_filter,),
+                ).fetchall()
+                vehicle_cards = conn.execute(
+                    "SELECT v.plate, v.km, v.inspection_date, v.insurance_date, v.maintenance_date, "
+                    "f.title as open_fault, s.start_date as in_service "
+                    "FROM vehicles v "
+                    "LEFT JOIN vehicle_faults f ON f.vehicle_id = v.id AND f.status = 'Acik' "
+                    "LEFT JOIN vehicle_service_visits s ON s.vehicle_id = v.id AND (s.end_date IS NULL OR s.end_date = '') "
+                    "WHERE v.region = ? "
+                    "ORDER BY v.plate LIMIT 10;",
+                    (region_filter,),
+                ).fetchall()
+                driver_cards = conn.execute(
+                    "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                    "FROM drivers d WHERE d.region = ? ORDER BY d.full_name LIMIT 10;",
+                    (region_filter,),
+                ).fetchall()
+                recent_inspections = conn.execute(
+                    "SELECT v.plate, i.inspection_date, i.week_start, d.full_name as driver, i.km, "
+                    "i.fault_status, i.service_visit "
+                    "FROM vehicle_inspections i "
+                    "JOIN vehicles v ON v.id = i.vehicle_id "
+                    "LEFT JOIN drivers d ON d.id = i.driver_id "
+                    "WHERE i.region = ? "
+                    "ORDER BY i.inspection_date DESC, i.id DESC LIMIT 10;",
+                    (region_filter,),
+                ).fetchall()
+                weekly_inspections = conn.execute(
+                    "SELECT v.plate, i.week_start, i.inspection_date, d.full_name as driver, i.km, "
+                    "i.fault_status, i.service_visit "
+                    "FROM vehicle_inspections i "
+                    "JOIN vehicles v ON v.id = i.vehicle_id "
+                    "LEFT JOIN drivers d ON d.id = i.driver_id "
+                    "WHERE i.region = ? "
+                    "ORDER BY i.week_start DESC, i.inspection_date DESC LIMIT 20;",
+                    (region_filter,),
+                ).fetchall()
+                service_history = conn.execute(
+                    "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
+                    "FROM vehicle_service_visits s "
+                    "JOIN vehicles v ON v.id = s.vehicle_id "
+                    "WHERE s.region = ? "
+                    "ORDER BY s.start_date DESC LIMIT 20;",
+                    (region_filter,),
+                ).fetchall()
+                driver_status = conn.execute(
+                    "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                    "FROM drivers d WHERE d.region = ? ORDER BY d.full_name LIMIT 20;",
+                    (region_filter,),
+                ).fetchall()
+            else:
+                open_faults = conn.execute(
+                    "SELECT v.plate, f.title, f.opened_date "
+                    "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+                    "WHERE f.status = 'Acik' ORDER BY f.opened_date DESC LIMIT 10;"
+                ).fetchall()
+                service_open = conn.execute(
+                    "SELECT v.plate, s.start_date, s.reason "
+                    "FROM vehicle_service_visits s JOIN vehicles v ON v.id = s.vehicle_id "
+                    "WHERE s.end_date IS NULL OR s.end_date = '' "
+                    "ORDER BY s.start_date DESC LIMIT 10;"
+                ).fetchall()
+                top_faults = conn.execute(
+                    "SELECT v.plate, COUNT(*) as cnt "
+                    "FROM vehicle_faults f JOIN vehicles v ON v.id = f.vehicle_id "
+                    "GROUP BY f.vehicle_id ORDER BY cnt DESC LIMIT 5;"
+                ).fetchall()
+                timesheet_rows = conn.execute(
+                    "SELECT t.employee_id, e.full_name as name, t.work_date, t.start_time, t.end_time, "
+                    "t.break_minutes, t.is_special "
+                    "FROM timesheets t JOIN employees e ON e.id = t.employee_id;"
+                ).fetchall()
+                vehicle_cards = conn.execute(
+                    "SELECT v.plate, v.km, v.inspection_date, v.insurance_date, v.maintenance_date, "
+                    "f.title as open_fault, s.start_date as in_service "
+                    "FROM vehicles v "
+                    "LEFT JOIN vehicle_faults f ON f.vehicle_id = v.id AND f.status = 'Acik' "
+                    "LEFT JOIN vehicle_service_visits s ON s.vehicle_id = v.id AND (s.end_date IS NULL OR s.end_date = '') "
+                    "ORDER BY v.plate LIMIT 10;"
+                ).fetchall()
+                driver_cards = conn.execute(
+                    "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                    "FROM drivers d ORDER BY d.full_name LIMIT 10;"
+                ).fetchall()
+                recent_inspections = conn.execute(
+                    "SELECT v.plate, i.inspection_date, i.week_start, d.full_name as driver, i.km, "
+                    "i.fault_status, i.service_visit "
+                    "FROM vehicle_inspections i "
+                    "JOIN vehicles v ON v.id = i.vehicle_id "
+                    "LEFT JOIN drivers d ON d.id = i.driver_id "
+                    "ORDER BY i.inspection_date DESC, i.id DESC LIMIT 10;"
+                ).fetchall()
+                weekly_inspections = conn.execute(
+                    "SELECT v.plate, i.week_start, i.inspection_date, d.full_name as driver, i.km, "
+                    "i.fault_status, i.service_visit "
+                    "FROM vehicle_inspections i "
+                    "JOIN vehicles v ON v.id = i.vehicle_id "
+                    "LEFT JOIN drivers d ON d.id = i.driver_id "
+                    "ORDER BY i.week_start DESC, i.inspection_date DESC LIMIT 20;"
+                ).fetchall()
+                service_history = conn.execute(
+                    "SELECT v.plate, s.start_date, s.end_date, s.reason, s.cost "
+                    "FROM vehicle_service_visits s "
+                    "JOIN vehicles v ON v.id = s.vehicle_id "
+                    "ORDER BY s.start_date DESC LIMIT 20;"
+                ).fetchall()
+                driver_status = conn.execute(
+                    "SELECT d.full_name as name, d.license_class, d.license_expiry, d.phone "
+                    "FROM drivers d ORDER BY d.full_name LIMIT 20;"
+                ).fetchall()
+            weekly_alerts = build_weekly_alerts(conn, region_filter)
             alert_counts = {
                 "total": len(weekly_alerts),
                 "bad": sum(1 for row in weekly_alerts if row["level"] == "bad"),

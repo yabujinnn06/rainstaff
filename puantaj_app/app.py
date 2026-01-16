@@ -24,6 +24,7 @@ except ImportError:
 
 DATE_FMT = "YYYY-MM-DD"
 TIME_FMT = "HH:MM"
+KEEPALIVE_SECONDS = 300
 
 VEHICLE_CHECKLIST = [
     ("body_dent", "Govde ezik/cizik"),
@@ -332,6 +333,10 @@ class PuantajApp(tk.Tk):
         self.geometry("1100x720")
         self.minsize(980, 640)
 
+        self.current_user = None
+        self.current_region = None
+        self.is_admin = False
+
         self.settings = db.get_all_settings()
         self.employee_map = {}
         self.employee_details = {}
@@ -344,6 +349,10 @@ class PuantajApp(tk.Tk):
         self.ts_original = None
         self.ts_editing_id = None
 
+        if not self._login_prompt():
+            self.destroy()
+            return
+
         self._configure_style()
         self._build_ui()
         self.refresh_employees()
@@ -355,6 +364,80 @@ class PuantajApp(tk.Tk):
         self.refresh_faults()
         self.refresh_service_visits()
         self.refresh_vehicle_dashboard()
+        self._start_keepalive()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _start_keepalive(self):
+        self._keepalive_stop = threading.Event()
+        thread = threading.Thread(target=self._keepalive_worker, daemon=True)
+        thread.start()
+
+    def _keepalive_worker(self):
+        while not self._keepalive_stop.wait(KEEPALIVE_SECONDS):
+            if requests is None:
+                continue
+            settings = db.get_all_settings()
+            enabled = settings.get("sync_enabled") == "1"
+            sync_url = settings.get("sync_url", "").strip()
+            token = settings.get("sync_token", "").strip()
+            if not enabled or not sync_url:
+                continue
+            try:
+                headers = {"X-API-KEY": token} if token else {}
+                url = sync_url.rstrip("/") + "/health"
+                requests.get(url, headers=headers, timeout=6)
+            except Exception:
+                pass
+
+    def _on_close(self):
+        if hasattr(self, "_keepalive_stop"):
+            self._keepalive_stop.set()
+        self.destroy()
+
+    def _login_prompt(self):
+        dialog = tk.Toplevel(self)
+        dialog.title("Giris")
+        dialog.geometry("320x180")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+
+        username_var = tk.StringVar()
+        password_var = tk.StringVar()
+
+        tk.Label(dialog, text="Kullanici Adi").pack(pady=(16, 4))
+        tk.Entry(dialog, textvariable=username_var).pack()
+        tk.Label(dialog, text="Sifre").pack(pady=(8, 4))
+        tk.Entry(dialog, textvariable=password_var, show="*").pack()
+
+        status_var = tk.StringVar()
+        tk.Label(dialog, textvariable=status_var, fg="#b94a48").pack(pady=(6, 0))
+
+        success = {"ok": False}
+
+        def attempt_login():
+            user = db.verify_user(username_var.get().strip(), password_var.get().strip())
+            if not user:
+                status_var.set("Giris hatali.")
+                return
+            self.current_user = user["username"]
+            self.is_admin = user["role"] == "admin"
+            self.current_region = user["region"] if not self.is_admin else "ALL"
+            success["ok"] = True
+            dialog.destroy()
+
+        btn = tk.Button(dialog, text="Giris", command=attempt_login)
+        btn.pack(pady=12)
+        dialog.bind("<Return>", lambda _e: attempt_login())
+
+        self.wait_window(dialog)
+        return success["ok"]
+
+    def _view_region(self):
+        return None if self.is_admin else self.current_region
+
+    def _entry_region(self):
+        return "Ankara" if self.is_admin else self.current_region
 
     def _configure_style(self):
         style = ttk.Style(self)
@@ -573,7 +656,7 @@ class PuantajApp(tk.Tk):
             self.employee_tree.delete(item)
         self.employee_map = {}
         self.employee_details = {}
-        for emp in db.list_employees():
+        for emp in db.list_employees(region=self._view_region()):
             emp_id, name, identity_no, department, title = emp
             tag = "odd" if len(self.employee_tree.get_children()) % 2 else "even"
             self.employee_tree.insert("", tk.END, values=emp, tags=(tag,))
@@ -631,9 +714,16 @@ class PuantajApp(tk.Tk):
 
         emp_id = self.emp_id_var.get().strip()
         if emp_id:
-            db.update_employee(parse_int(emp_id), name, identity_no, department, title)
+            db.update_employee(
+                parse_int(emp_id),
+                name,
+                identity_no,
+                department,
+                title,
+                self._entry_region(),
+            )
         else:
-            db.add_employee(name, identity_no, department, title)
+            db.add_employee(name, identity_no, department, title, self._entry_region())
         self.refresh_employees()
         self.clear_employee_form()
         self.trigger_sync("employee")
@@ -868,7 +958,12 @@ class PuantajApp(tk.Tk):
             messagebox.showwarning("Uyari", str(exc))
             return
 
-        records = db.list_timesheets(employee_id=employee_id, start_date=start_date, end_date=end_date)
+        records = db.list_timesheets(
+            employee_id=employee_id,
+            start_date=start_date,
+            end_date=end_date,
+            region=self._view_region(),
+        )
         for ts in records:
             ts_id, _emp_id, name, work_date, start_time, end_time, break_minutes, is_special, notes = ts
             try:
@@ -956,9 +1051,19 @@ class PuantajApp(tk.Tk):
                 break_minutes,
                 is_special,
                 notes,
+                self._entry_region(),
             )
         else:
-            db.add_timesheet(employee_id, work_date, start_time, end_time, break_minutes, is_special, notes)
+            db.add_timesheet(
+                employee_id,
+                work_date,
+                start_time,
+                end_time,
+                break_minutes,
+                is_special,
+                notes,
+                self._entry_region(),
+            )
         self.refresh_timesheets()
         self.clear_timesheet_form()
         self.trigger_sync("timesheet")
@@ -1088,7 +1193,7 @@ class PuantajApp(tk.Tk):
             if not name or name in existing_names:
                 skipped += 1
                 continue
-            db.add_employee(name, identity_no, department, title)
+            db.add_employee(name, identity_no, department, title, self._entry_region())
             existing_names.add(name)
             imported += 1
 
@@ -1157,7 +1262,16 @@ class PuantajApp(tk.Tk):
             break_minutes = parse_int(break_minutes, 0)
             is_special = 1 if parse_bool(is_special) else 0
 
-            db.add_timesheet(employee_id, work_date, start_time, end_time, break_minutes, is_special, notes)
+            db.add_timesheet(
+                employee_id,
+                work_date,
+                start_time,
+                end_time,
+                break_minutes,
+                is_special,
+                notes,
+                self._entry_region(),
+            )
             imported += 1
 
         self.refresh_timesheets()
@@ -1271,7 +1385,12 @@ class PuantajApp(tk.Tk):
             messagebox.showwarning("Uyari", str(exc))
             return
 
-        records = db.list_timesheets(employee_id=employee_id, start_date=start_date, end_date=end_date)
+        records = db.list_timesheets(
+            employee_id=employee_id,
+            start_date=start_date,
+            end_date=end_date,
+            region=self._view_region(),
+        )
         if not records:
             messagebox.showinfo("Bilgi", "Rapor icin veri bulunamadi.")
             return
@@ -1398,7 +1517,12 @@ class PuantajApp(tk.Tk):
             messagebox.showwarning("Uyari", str(exc))
             return
 
-        records = db.list_timesheets(employee_id=employee_id, start_date=start_date, end_date=end_date)
+        records = db.list_timesheets(
+            employee_id=employee_id,
+            start_date=start_date,
+            end_date=end_date,
+            region=self._view_region(),
+        )
         totals = {}
         daily_overtime = {}
         dept_overtime = {}
@@ -1563,7 +1687,7 @@ class PuantajApp(tk.Tk):
         for item in self.vehicle_tree.get_children():
             self.vehicle_tree.delete(item)
         self.vehicle_map = {}
-        for vehicle in db.list_vehicles():
+        for vehicle in db.list_vehicles(region=self._view_region()):
             (
                 vehicle_id,
                 plate,
@@ -1613,7 +1737,7 @@ class PuantajApp(tk.Tk):
         for item in self.driver_tree.get_children():
             self.driver_tree.delete(item)
         self.driver_map = {}
-        for driver in db.list_drivers():
+        for driver in db.list_drivers(region=self._view_region()):
             driver_id, name, license_class, license_expiry, phone, _notes = driver
             self.driver_tree.insert("", tk.END, values=(driver_id, name, license_class, license_expiry, phone))
             self.driver_map[name] = driver_id
@@ -1626,7 +1750,7 @@ class PuantajApp(tk.Tk):
                 self.fault_tree.delete(item)
         self.fault_map = {}
         self.fault_display_by_id = {}
-        for fault in db.list_vehicle_faults():
+        for fault in db.list_vehicle_faults(region=self._view_region()):
             fault_id, vehicle_id, plate, title, desc, opened_date, closed_date, status = fault
             if hasattr(self, "fault_tree"):
                 self.fault_tree.insert(
@@ -1650,7 +1774,7 @@ class PuantajApp(tk.Tk):
         for item in self.service_tree.get_children():
             self.service_tree.delete(item)
         self.service_visit_map = {}
-        for visit in db.list_vehicle_service_visits():
+        for visit in db.list_vehicle_service_visits(region=self._view_region()):
             (
                 visit_id,
                 _vehicle_id,
@@ -1722,9 +1846,26 @@ class PuantajApp(tk.Tk):
         desc = self.fault_desc_var.get().strip()
         fault_id = parse_int(self.fault_id_var.get())
         if fault_id:
-            db.update_vehicle_fault(fault_id, vehicle_id, title, desc, opened_date, closed_date, status)
+            db.update_vehicle_fault(
+                fault_id,
+                vehicle_id,
+                title,
+                desc,
+                opened_date,
+                closed_date,
+                status,
+                self._entry_region(),
+            )
         else:
-            db.add_vehicle_fault(vehicle_id, title, desc, opened_date, closed_date, status)
+            db.add_vehicle_fault(
+                vehicle_id,
+                title,
+                desc,
+                opened_date,
+                closed_date,
+                status,
+                self._entry_region(),
+            )
         self.refresh_faults()
         self.refresh_vehicle_dashboard()
         self.clear_fault_form()
@@ -1833,10 +1974,27 @@ class PuantajApp(tk.Tk):
         visit_id = parse_int(self.service_id_var.get())
         if visit_id:
             db.update_vehicle_service_visit(
-                visit_id, vehicle_id, fault_id, start_date, end_date, reason, cost_val, notes
+                visit_id,
+                vehicle_id,
+                fault_id,
+                start_date,
+                end_date,
+                reason,
+                cost_val,
+                notes,
+                self._entry_region(),
             )
         else:
-            db.add_vehicle_service_visit(vehicle_id, fault_id, start_date, end_date, reason, cost_val, notes)
+            db.add_vehicle_service_visit(
+                vehicle_id,
+                fault_id,
+                start_date,
+                end_date,
+                reason,
+                cost_val,
+                notes,
+                self._entry_region(),
+            )
         self.refresh_service_visits()
         self.refresh_vehicle_dashboard()
         self.clear_service_visit_form()
@@ -1921,8 +2079,8 @@ class PuantajApp(tk.Tk):
         for item in self.driver_alert_tree.get_children():
             self.driver_alert_tree.delete(item)
 
-        vehicles = db.list_vehicles()
-        drivers = db.list_drivers()
+        vehicles = db.list_vehicles(region=self._view_region())
+        drivers = db.list_drivers(region=self._view_region())
         driver_by_id = {row[0]: row for row in drivers}
         driver_latest = {}
 
@@ -1981,7 +2139,7 @@ class PuantajApp(tk.Tk):
                     detail = f"{maintenance_date} ({abs(maint_days)} gun gecikme)"
                 self.vehicle_alert_tree.insert("", tk.END, values=(plate, "Bakim", detail))
 
-            inspections = db.list_vehicle_inspections(vehicle_id=_vid)
+            inspections = db.list_vehicle_inspections(vehicle_id=_vid, region=self._view_region())
             last_check = "-"
             last_driver = "-"
             if inspections:
@@ -2041,7 +2199,7 @@ class PuantajApp(tk.Tk):
                     detail = f"{license_expiry} ({abs(days)} gun gecikme)"
                 self.driver_alert_tree.insert("", tk.END, values=(name, "Ehliyet", detail))
 
-        faults = db.list_vehicle_faults()
+        faults = db.list_vehicle_faults(region=self._view_region())
         now = datetime.now().date()
         faults_by_plate = {}
         for fault in faults:
@@ -2200,6 +2358,7 @@ class PuantajApp(tk.Tk):
                 oil_change_km,
                 oil_interval_km,
                 notes,
+                self._entry_region(),
             )
         else:
             db.add_vehicle(
@@ -2215,6 +2374,7 @@ class PuantajApp(tk.Tk):
                 oil_change_km,
                 oil_interval_km,
                 notes,
+                self._entry_region(),
             )
         self.refresh_vehicles()
         self.clear_vehicle_form()
@@ -2267,9 +2427,17 @@ class PuantajApp(tk.Tk):
             return
         driver_id = self.driver_id_var.get().strip()
         if driver_id:
-            db.update_driver(parse_int(driver_id), name, license_class, license_expiry, phone, notes)
+            db.update_driver(
+                parse_int(driver_id),
+                name,
+                license_class,
+                license_expiry,
+                phone,
+                notes,
+                self._entry_region(),
+            )
         else:
-            db.add_driver(name, license_class, license_expiry, phone, notes)
+            db.add_driver(name, license_class, license_expiry, phone, notes, self._entry_region())
         self.refresh_drivers()
         self.clear_driver_form()
         self.trigger_sync("driver")
@@ -2361,7 +2529,8 @@ class PuantajApp(tk.Tk):
                     oil_change_date or "",
                     oil_change_km or 0,
                     oil_interval_km or 0,
-                  notes or "",
+                    notes or "",
+                    self._entry_region(),
                 )
                 self.refresh_vehicles()
         if fault_id and fault_status == "Kapandi":
@@ -2386,6 +2555,7 @@ class PuantajApp(tk.Tk):
                     opened_date,
                     closed_date,
                     "Kapandi",
+                    self._entry_region(),
                 )
                 self.refresh_faults()
         messagebox.showinfo("Basarili", "Haftalik kontrol kaydedildi.")
@@ -2396,7 +2566,7 @@ class PuantajApp(tk.Tk):
         vehicle_id = self.vehicle_map.get(plate)
         if not vehicle_id:
             return
-        faults = db.list_open_vehicle_faults(vehicle_id=vehicle_id)
+        faults = db.list_open_vehicle_faults(vehicle_id=vehicle_id, region=self._view_region())
         if not faults:
             self.inspect_fault_var.set("")
             self.inspect_fault_status_var.set("Acik")
@@ -2409,7 +2579,11 @@ class PuantajApp(tk.Tk):
             self.inspect_fault_status_var.set(latest[7] or "Acik")
 
     def _get_latest_inspection(self, vehicle_id, week_start):
-        inspections = db.list_vehicle_inspections(vehicle_id=vehicle_id, week_start=week_start)
+        inspections = db.list_vehicle_inspections(
+            vehicle_id=vehicle_id,
+            week_start=week_start,
+            region=self._view_region(),
+        )
         if not inspections:
             return None
         inspections.sort(key=lambda x: x[5], reverse=True)
@@ -2543,6 +2717,7 @@ class PuantajApp(tk.Tk):
             vehicle_id=vehicle_id,
             start_date=week_start,
             end_date=week_end,
+            region=self._view_region(),
         )
 
         output_path = filedialog.asksaveasfilename(
@@ -2553,7 +2728,7 @@ class PuantajApp(tk.Tk):
         if not output_path:
             return
         vehicle = None
-        for row in db.list_vehicles():
+        for row in db.list_vehicles(region=self._view_region()):
             if row[1] == plate:
                 vehicle = row
                 break
@@ -2590,9 +2765,9 @@ class PuantajApp(tk.Tk):
         if not vehicle:
             messagebox.showwarning("Uyari", "Arac bulunamadi.")
             return
-        inspections = db.list_vehicle_inspections(vehicle_id=vehicle_id)
-        faults = db.list_vehicle_faults(vehicle_id=vehicle_id)
-        services = db.list_vehicle_service_visits(vehicle_id=vehicle_id)
+        inspections = db.list_vehicle_inspections(vehicle_id=vehicle_id, region=self._view_region())
+        faults = db.list_vehicle_faults(vehicle_id=vehicle_id, region=self._view_region())
+        services = db.list_vehicle_service_visits(vehicle_id=vehicle_id, region=self._view_region())
         output_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel", "*.xlsx")],
@@ -2639,7 +2814,12 @@ class PuantajApp(tk.Tk):
             messagebox.showwarning("Uyari", str(exc))
             return
 
-        records = db.list_timesheets(employee_id=employee_id, start_date=start_date, end_date=end_date)
+        records = db.list_timesheets(
+            employee_id=employee_id,
+            start_date=start_date,
+            end_date=end_date,
+            region=self._view_region(),
+        )
         detail = tk.Toplevel(self)
         detail.title(f"Mesai Detay - {employee_name}")
         detail.geometry("980x600")
@@ -3463,7 +3643,7 @@ class PuantajApp(tk.Tk):
             side=tk.LEFT, padx=6
         )
 
-        inspections = db.list_vehicle_inspections(vehicle_id=vehicle_id)
+        inspections = db.list_vehicle_inspections(vehicle_id=vehicle_id, region=self._view_region())
         if inspections:
             last_driver = inspections[0][4] or "-"
             last_date = inspections[0][5] or "-"
@@ -3471,8 +3651,8 @@ class PuantajApp(tk.Tk):
             info_row5.pack(fill=tk.X, pady=4)
             ttk.Label(info_row5, text=f"Son Surucu: {last_driver}").pack(side=tk.LEFT, padx=6)
             ttk.Label(info_row5, text=f"Son Kontrol: {last_date}").pack(side=tk.LEFT, padx=12)
-        faults = db.list_vehicle_faults(vehicle_id=vehicle_id)
-        services = db.list_vehicle_service_visits(vehicle_id=vehicle_id)
+        faults = db.list_vehicle_faults(vehicle_id=vehicle_id, region=self._view_region())
+        services = db.list_vehicle_service_visits(vehicle_id=vehicle_id, region=self._view_region())
 
         inspect_frame = ttk.LabelFrame(detail_win, text="Kontroller", style="Section.TLabelframe")
         inspect_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
