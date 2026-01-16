@@ -350,6 +350,7 @@ class PuantajApp(tk.Tk):
         self.status_var = tk.StringVar()
         self.ts_original = None
         self.ts_editing_id = None
+        self._tab_loaded = {}
 
         if not self._login_prompt():
             self.destroy()
@@ -357,15 +358,7 @@ class PuantajApp(tk.Tk):
 
         self._configure_style()
         self._build_ui()
-        self.refresh_employees()
-        self.refresh_shift_templates()
-        self.refresh_timesheets()
-        self.refresh_report_archive()
-        self.refresh_vehicles()
-        self.refresh_drivers()
-        self.refresh_faults()
-        self.refresh_service_visits()
-        self.refresh_vehicle_dashboard()
+        self._load_tab_data(self.tab_employees)
         self._start_keepalive()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -450,22 +443,27 @@ class PuantajApp(tk.Tk):
             style.theme_use("clam")
         except tk.TclError:
             pass
-        accent = "#8bb7e0"
+        accent = "#2f6fed"
         soft = "#EAF2FB"
         gray = "#5f6a72"
+        card = "#f5f7fb"
         style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"), foreground="#2C3E50", background=soft)
         style.configure("SubHeader.TLabel", font=("Segoe UI", 10), foreground="#4A90E2", background=soft)
-        style.configure("Section.TLabelframe", padding=(12, 8))
+        style.configure("Section.TLabelframe", padding=(12, 10))
         style.configure("Section.TLabelframe.Label", font=("Segoe UI", 10, "bold"), foreground=gray)
-        style.configure("Accent.TButton", padding=(10, 4), background=accent, foreground="#0f2438")
-        style.configure("Treeview", rowheight=24)
+        style.configure("Accent.TButton", padding=(10, 6), background=accent, foreground="white")
+        style.configure("TButton", padding=(8, 4))
+        style.configure("Treeview", rowheight=26, fieldbackground=card, background="white")
+        style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"), background="#dfe7f3")
         style.configure("TFrame", background=soft)
         style.configure("TLabel", background=soft)
-        style.configure("TNotebook", background=soft)
-        style.configure("TNotebook.Tab", padding=(10, 6))
+        style.configure("TNotebook", background=soft, tabmargins=(6, 6, 6, 0))
+        style.configure("TNotebook.Tab", padding=(12, 6))
+        style.configure("TEntry", padding=(6, 4))
+        style.configure("TCombobox", padding=(6, 4))
         style.map(
             "Accent.TButton",
-            background=[("active", "#2f6fed")],
+            background=[("active", "#1e58d6")],
             foreground=[("active", "white")],
         )
 
@@ -483,8 +481,8 @@ class PuantajApp(tk.Tk):
         divider = tk.Frame(self, bg="#d9dfe7", height=1)
         divider.pack(fill=tk.X)
 
-        notebook = ttk.Notebook(self)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         self.tab_employees = ttk.Frame(notebook)
         self.tab_timesheets = ttk.Frame(notebook)
@@ -495,14 +493,14 @@ class PuantajApp(tk.Tk):
         self.tab_dashboard = ttk.Frame(notebook)
         self.tab_service = ttk.Frame(notebook)
 
-        notebook.add(self.tab_employees, text="Calisanlar")
-        notebook.add(self.tab_timesheets, text="Puantaj")
-        notebook.add(self.tab_reports, text="Rapor")
-        notebook.add(self.tab_settings, text="Ayarlar")
-        notebook.add(self.tab_admin, text="Yonetici")
-        notebook.add(self.tab_vehicles, text="Araclar")
-        notebook.add(self.tab_dashboard, text="Dashboard")
-        notebook.add(self.tab_service, text="Servis/Ariza")
+        self.notebook.add(self.tab_employees, text="Calisanlar")
+        self.notebook.add(self.tab_timesheets, text="Puantaj")
+        self.notebook.add(self.tab_reports, text="Rapor")
+        self.notebook.add(self.tab_settings, text="Ayarlar")
+        self.notebook.add(self.tab_admin, text="Yonetici")
+        self.notebook.add(self.tab_vehicles, text="Araclar")
+        self.notebook.add(self.tab_dashboard, text="Dashboard")
+        self.notebook.add(self.tab_service, text="Servis/Ariza")
 
         self.tab_employees_body = self._make_tab_scrollable(self.tab_employees)
         self.tab_timesheets_body = self._make_tab_scrollable(self.tab_timesheets)
@@ -522,8 +520,40 @@ class PuantajApp(tk.Tk):
         self._build_dashboard_tab()
         self._build_service_tab()
 
+        self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+
         status_bar = ttk.Label(self, textvariable=self.status_var, anchor=tk.W, foreground="#2b6cb0")
         status_bar.pack(fill=tk.X, padx=10, pady=(0, 8))
+        self.status_var.set("Hazir")
+
+    def _on_tab_changed(self, _event):
+        current = self.notebook.nametowidget(self.notebook.select())
+        self._load_tab_data(current)
+
+    def _load_tab_data(self, tab):
+        if self._tab_loaded.get(tab):
+            return
+        if tab is self.tab_employees:
+            self.refresh_employees()
+        elif tab is self.tab_timesheets:
+            self.refresh_employees()
+            self.refresh_timesheets()
+        elif tab is self.tab_reports:
+            self.refresh_report_archive()
+        elif tab is self.tab_settings:
+            self.refresh_shift_templates()
+        elif tab is self.tab_admin:
+            self.refresh_admin_summary()
+        elif tab is self.tab_vehicles:
+            self.refresh_vehicles()
+            self.refresh_drivers()
+            self.refresh_faults()
+            self.refresh_service_visits()
+        elif tab is self.tab_dashboard:
+            self.refresh_vehicle_dashboard()
+        elif tab is self.tab_service:
+            self.refresh_service_visits()
+        self._tab_loaded[tab] = True
 
     def _make_tab_scrollable(self, tab):
         canvas = tk.Canvas(tab, highlightthickness=0)
