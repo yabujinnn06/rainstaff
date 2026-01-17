@@ -1,0 +1,33 @@
+# Rainstaff v2 - Enterprise ERP System
+# Python 3.10+
+
+# UI Framework
+flet>=0.21.0
+
+# Database & ORM
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+
+# Data Validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Date/Time
+python-dateutil>=2.8.2
+
+# Excel Export
+openpyxl>=3.1.0
+
+# API (for cloud sync - Render)
+flask>=3.0.0
+flask-cors>=4.0.0
+gunicorn>=21.2.0
+
+# Security
+pyjwt>=2.8.0
+bcrypt>=4.1.0
+cryptography>=41.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+loguru>=0.7.0

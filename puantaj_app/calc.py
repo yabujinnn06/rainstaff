@@ -5,6 +5,9 @@ def parse_time(value):
     return datetime.strptime(value, "%H:%M").time()
 
 def parse_date(value):
+    if value is None or value == "":
+        raise ValueError("Tarih bos olamaz.")
+    value = str(value).strip()
     for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
         try:
             return datetime.strptime(value, fmt).date()
@@ -64,6 +67,12 @@ def calc_day_hours(work_date, start_time, end_time, break_minutes, settings, is_
     st = parse_time(start_time)
     et = parse_time(end_time)
     gross_hours = hours_between(st, et)
+    
+    # Break minutes validation
+    break_minutes = max(0, int(break_minutes))
+    if break_minutes > gross_hours * 60:
+        break_minutes = int(gross_hours * 60)  # Max break = gross hours
+    
     worked_hours = gross_hours - (break_minutes / 60.0)
     if worked_hours < 0:
         worked_hours = 0.0

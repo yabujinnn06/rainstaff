@@ -1,10 +1,13 @@
 import os
+import logging
 from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image
 
 from calc import calc_day_hours
+
+logger = logging.getLogger("rainstaff")
 
 
 HEADER_FILL = PatternFill("solid", fgColor="DCE6F1")
@@ -23,7 +26,7 @@ def export_report(output_path, records, settings, date_range_text):
     logo_path = settings.get("logo_path", "")
 
     row = 1
-    header_cols = 15
+    header_cols = 16
     ws.row_dimensions[1].height = 36
     ws.row_dimensions[2].height = 22
     ws.row_dimensions[3].height = 18
@@ -38,8 +41,8 @@ def export_report(output_path, records, settings, date_range_text):
             img.width = 110
             img.height = 60
             ws.add_image(img, "A1")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Logo yukleme basarısız (%s): %s", logo_path, str(e))
 
     ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=header_cols)
     title_cell = ws.cell(row=row, column=2, value=company_name)
@@ -59,6 +62,7 @@ def export_report(output_path, records, settings, date_range_text):
 
     headers = [
         "Calisan",
+        "Bolge",
         "Tarih",
         "Giris",
         "Cikis",
@@ -85,7 +89,7 @@ def export_report(output_path, records, settings, date_range_text):
     totals = {}
     special_records = []
     overnight_records = []
-    for _, emp_id, name, work_date, start_time, end_time, break_minutes, is_special, notes in records:
+    for _, emp_id, name, work_date, start_time, end_time, break_minutes, is_special, notes, region in records:
         (
             worked,
             scheduled,
@@ -104,20 +108,21 @@ def export_report(output_path, records, settings, date_range_text):
             is_special,
         )
         ws.cell(row=row, column=1, value=name).border = BORDER
-        ws.cell(row=row, column=2, value=work_date).border = BORDER
-        ws.cell(row=row, column=3, value=start_time).border = BORDER
-        ws.cell(row=row, column=4, value=end_time).border = BORDER
-        ws.cell(row=row, column=5, value=break_minutes).border = BORDER
-        ws.cell(row=row, column=6, value=worked).border = BORDER
-        ws.cell(row=row, column=7, value=scheduled).border = BORDER
-        ws.cell(row=row, column=8, value=overtime).border = BORDER
-        ws.cell(row=row, column=9, value=night_hours).border = BORDER
-        ws.cell(row=row, column=10, value=overnight_hours).border = BORDER
-        ws.cell(row=row, column=11, value="Evet" if is_special else "Hayir").border = BORDER
-        ws.cell(row=row, column=12, value=special_normal).border = BORDER
-        ws.cell(row=row, column=13, value=special_overtime).border = BORDER
-        ws.cell(row=row, column=14, value=special_night).border = BORDER
-        ws.cell(row=row, column=15, value=notes or "").border = BORDER
+        ws.cell(row=row, column=2, value=region or "").border = BORDER
+        ws.cell(row=row, column=3, value=work_date).border = BORDER
+        ws.cell(row=row, column=4, value=start_time).border = BORDER
+        ws.cell(row=row, column=5, value=end_time).border = BORDER
+        ws.cell(row=row, column=6, value=break_minutes).border = BORDER
+        ws.cell(row=row, column=7, value=worked).border = BORDER
+        ws.cell(row=row, column=8, value=scheduled).border = BORDER
+        ws.cell(row=row, column=9, value=overtime).border = BORDER
+        ws.cell(row=row, column=10, value=night_hours).border = BORDER
+        ws.cell(row=row, column=11, value=overnight_hours).border = BORDER
+        ws.cell(row=row, column=12, value="Evet" if is_special else "Hayir").border = BORDER
+        ws.cell(row=row, column=13, value=special_normal).border = BORDER
+        ws.cell(row=row, column=14, value=special_overtime).border = BORDER
+        ws.cell(row=row, column=15, value=special_night).border = BORDER
+        ws.cell(row=row, column=16, value=notes or "").border = BORDER
 
         if emp_id not in totals:
             totals[emp_id] = {
@@ -223,7 +228,7 @@ def export_report(output_path, records, settings, date_range_text):
         ws.cell(row=row, column=1, value="Kayit yok").border = BORDER
         row += 1
 
-    for col in range(1, 16):
+    for col in range(1, 17):
         ws.column_dimensions[chr(64 + col)].width = 16
 
     ws.freeze_panes = "A6"
@@ -271,6 +276,7 @@ def export_vehicle_weekly_report(
             oil_change_km,
             oil_interval_km,
             _notes,
+            _region,
         ) = vehicle_row
         today = datetime.now().date()
         if inspection_date:
@@ -326,7 +332,7 @@ def export_vehicle_weekly_report(
     row += 1
     if service_visits:
         for visit in service_visits:
-            _sid, _vid, _plate, _fid, _title, start_date, end_date, reason, cost, notes = visit
+            _sid, _vid, _plate, _fid, _title, start_date, end_date, reason, cost, notes, _region = visit
             ws.cell(row=row, column=1, value=start_date or "-").border = BORDER
             ws.cell(row=row, column=2, value=end_date or "Sanayide").border = BORDER
             ws.cell(row=row, column=3, value=reason or "-").border = BORDER
@@ -408,6 +414,7 @@ def export_vehicle_card_report(output_path, plate, vehicle_row, inspections, fau
             oil_change_km,
             oil_interval_km,
             notes,
+            _region,
         ) = vehicle_row
         ws.cell(row=3, column=1, value=f"Marka/Model: {brand} {model}")
         ws.cell(row=4, column=1, value=f"Yil: {year}")
@@ -436,7 +443,7 @@ def export_vehicle_card_report(output_path, plate, vehicle_row, inspections, fau
     row += 1
     if faults:
         for fault in faults:
-            _fid, _vid, _plate, title, desc, opened_date, closed_date, status = fault
+            _fid, _vid, _plate, title, desc, opened_date, closed_date, status, _region = fault
             ws.cell(row=row, column=1, value=title or "-").border = BORDER
             ws.cell(row=row, column=2, value=status or "-").border = BORDER
             ws.cell(row=row, column=3, value=opened_date or "-").border = BORDER
@@ -460,7 +467,7 @@ def export_vehicle_card_report(output_path, plate, vehicle_row, inspections, fau
     row += 1
     if services:
         for visit in services:
-            _sid, _vid, _plate, _fid, title, start_date, end_date, reason, cost, notes = visit
+            _sid, _vid, _plate, _fid, title, start_date, end_date, reason, cost, notes, _region = visit
             ws.cell(row=row, column=1, value=title or "-").border = BORDER
             ws.cell(row=row, column=2, value=start_date or "-").border = BORDER
             ws.cell(row=row, column=3, value=end_date or "Sanayide").border = BORDER

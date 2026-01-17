@@ -122,11 +122,17 @@ def import_data_zip(src_path):
 
 @contextmanager
 def get_conn():
+    """SQLite baglantrsi, otomatik commit ve rollback ile."""
     ensure_db_dir()
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     try:
         conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA busy_timeout = 30000;")  # 30 saniye
         yield conn
+        conn.commit()  # Basarili islemler commit edilir
+    except Exception:
+        conn.rollback()  # Hata durumunda geri al
+        raise
     finally:
         conn.close()
 

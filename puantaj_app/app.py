@@ -66,6 +66,115 @@ TS_HEADER_ALIASES = {
 }
 
 
+def normalize_header(value):
+    """Lowercase and strip spaces/underscores for loose header matching."""
+    return str(value or "").strip().lower().replace(" ", "").replace("_", "")
+
+
+def build_header_aliases(alias_config):
+    """Expand alias lists into normalized lookup sets per target column."""
+    result = {}
+    for target, aliases in alias_config.items():
+        normalized = {normalize_header(target)}
+        for alias in aliases:
+            normalized.add(normalize_header(alias))
+        result[target] = normalized
+    return result
+
+
+def days_until(date_str):
+    """Return days from today to the given ISO date (positive = future, negative = past)."""
+    if not date_str:
+        return None
+    try:
+        target = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    return (target - datetime.now().date()).days
+
+
+def normalize_date_value(value):
+    """Import icin flexible tarih normalizasyonu; Excel float veya string kabul eder."""
+    if value is None or value == "":
+        raise ValueError("Tarih bos olamaz.")
+    if isinstance(value, str):
+        return normalize_date(value)
+    if isinstance(value, (int, float)):
+        try:
+            dt = datetime.fromordinal(int(value) + 693594)
+            return dt.strftime("%Y-%m-%d")
+        except (ValueError, OverflowError):
+            raise ValueError(f"Tarih formati gecersiz: {value}")
+    raise ValueError(f"Tarih formati gecersiz: {value}")
+
+
+def normalize_time_value(value):
+    """Import icin flexible saat normalizasyonu."""
+    if value is None or value == "":
+        raise ValueError("Saat bos olamaz.")
+    if isinstance(value, str):
+        return normalize_time(value)
+    if isinstance(value, (int, float)):
+        try:
+            total_minutes = int(round(value * 24 * 60))
+            hours = (total_minutes // 60) % 24
+            minutes = total_minutes % 60
+            return f"{hours:02d}:{minutes:02d}"
+        except (ValueError, OverflowError):
+            raise ValueError(f"Saat formati gecersiz: {value}")
+    raise ValueError(f"Saat formati gecersiz: {value}")
+
+
+def parse_bool(value):
+    """String veya int boolean'a cevir."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    if isinstance(value, str):
+        return value.lower().strip() in {"1", "true", "yes", "evet", "e"}
+    return bool(value)
+
+
+def split_display_name(display, regions):
+    """`Adi (Region)` formatindan baz adi ve bolgeyi ayir."""
+    text = str(display or "").strip()
+    if not text:
+        return "", None
+    if text.endswith(")") and "(" in text:
+        base, suffix = text.rsplit("(", 1)
+        base = base.strip()
+        region = suffix[:-1].strip()  # sondaki ) kaldir
+        if region in regions:
+            return base, region
+        if region == "-":  # belirsiz/boş
+            return base, None
+    return text, None
+
+
+def week_start_from_date(value):
+    """Verilen tarihi ait haftanin pazartesi baslangicina cek."""
+    iso = normalize_date(str(value))
+    d = datetime.strptime(iso, "%Y-%m-%d").date()
+    start = d - timedelta(days=d.weekday())  # Pazartesi
+    return start.strftime("%Y-%m-%d")
+
+
+def week_end_from_start(week_start):
+    """Hafta baslangicindan pazar gununu uret."""
+    d = datetime.strptime(week_start, "%Y-%m-%d").date()
+    return (d + timedelta(days=6)).strftime("%Y-%m-%d")
+
+
+def normalize_time_in_var(var):
+    """StringVar icindeki saati normalize eder; hatada eski degeri korur."""
+    try:
+        normalized = normalize_time(var.get())
+        var.set(normalized)
+    except Exception:
+        pass
+
+
 def ensure_app_dirs():
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     if not os.path.isdir(data_dir):
@@ -122,7 +231,11 @@ def parse_float(value, default=0.0):
 
 
 def normalize_date(value):
-    value = value.strip()
+    if value is None or value == "":
+        raise ValueError("Tarih bos olamaz.")
+    value = str(value).strip()
+    if not value:
+        raise ValueError("Tarih bos olamaz.")
     for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
         try:
             return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
@@ -158,96 +271,16 @@ def normalize_time(value):
     raise ValueError("Saat formati gecersiz. Ornek: 09:30")
 
 
-def normalize_time_in_var(textvariable):
-    raw = textvariable.get().strip()
-    if not raw:
-        return
-    try:
-        textvariable.set(normalize_time(raw))
-    except ValueError:
-        pass
-
-
-def parse_bool(value):
-    text = str(value or "").strip().lower()
-    return text in {"1", "true", "evet", "yes", "y", "t"}
-
-
-def parse_month(value):
-    text = (value or "").strip()
-    if len(text) != 7 or text[4] != "-":
-        raise ValueError("Ay formati gecersiz. Ornek: 2026-01")
-    year = int(text[:4])
-    month = int(text[5:7])
-    if month < 1 or month > 12:
-        raise ValueError("Ay formati gecersiz. Ornek: 2026-01")
-    return year, month
-
-
-def days_until(date_text):
-    if not date_text:
-        return None
-    try:
-        dt = datetime.strptime(date_text, "%Y-%m-%d").date()
-    except ValueError:
-        return None
-    return (dt - datetime.now().date()).days
-
-
-def week_start_from_date(date_text):
-    dt = datetime.strptime(date_text, "%Y-%m-%d").date()
-    start = dt - timedelta(days=dt.weekday())
-    return start.strftime("%Y-%m-%d")
-
-
-def week_end_from_start(week_start):
-    dt = datetime.strptime(week_start, "%Y-%m-%d").date()
-    end = dt + timedelta(days=6)
-    return end.strftime("%Y-%m-%d")
-
-
-def normalize_vehicle_status(value):
-    text = str(value or "").strip()
-    mapping = {
-        "OK": "Olumlu",
-        "Issue": "Olumsuz",
-        "NA": "Bilinmiyor",
-        "Olumlu": "Olumlu",
-        "Olumsuz": "Olumsuz",
-        "Bilinmiyor": "Bilinmiyor",
-    }
-    return mapping.get(text, text or "-")
-
-
-def normalize_date_value(value):
-    if isinstance(value, (datetime, date)):
-        return value.strftime("%Y-%m-%d")
-    if value is None:
-        raise ValueError("Tarih bos olamaz.")
-    return normalize_date(str(value))
-
-
-def normalize_time_value(value):
-    return normalize_time(value)
-
-
-def normalize_header(value):
-    text = str(value or "").strip().lower()
-    return "".join(ch for ch in text if ch.isalnum())
-
-
-def split_display_name(value, regions):
-    text = str(value or "").strip()
-    if text.endswith(")") and " (" in text:
-        base, region = text.rsplit(" (", 1)
-        region = region[:-1]
-        if region in regions or region == "-":
-            return base, ("" if region == "-" else region)
-    return text, None
-
-
-def build_header_aliases(raw_map):
-    return {key: {normalize_header(a) for a in aliases} for key, aliases in raw_map.items()}
+def normalize_vehicle_status(status):
+    """Araç muayene durumunu normalize et (Olumsuz/Olumlu/Belirsiz)"""
+    if status is None:
+        return "Belirsiz"
+    text = str(status).strip().lower()
+    if "olumsuz" in text or "bad" in text or "0" in text or "no" in text:
+        return "Olumsuz"
+    if "olumlu" in text or "good" in text or "ok" in text or "1" in text or "yes" in text:
+        return "Olumlu"
+    return "Belirsiz"
 
 
 EMP_HEADER_MAP = build_header_aliases(EMP_HEADER_ALIASES)
@@ -359,83 +392,7 @@ def ensure_logo_asset(path):
     img.save(path)
 
 
-def ensure_guide_assets():
-    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
-    os.makedirs(assets_dir, exist_ok=True)
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-    except Exception:
-        return
-
-    def build_card(path, step_no, title, lines, accent):
-        if os.path.isfile(path):
-            return
-        width, height = 980, 320
-        img = Image.new("RGB", (width, height), "#eef2f7")
-        draw = ImageDraw.Draw(img)
-        draw.rounded_rectangle([16, 16, width - 16, height - 16], radius=24, fill="#ffffff", outline="#d6dee9")
-        draw.rounded_rectangle([28, 28, 220, height - 28], radius=20, fill=accent)
-        draw.ellipse([64, 64, 184, 184], fill="#ffffff", outline="#e2e8f0")
-        try:
-            font_big = ImageFont.truetype("Consola.ttf", 44)
-            font_title = ImageFont.truetype("Consola.ttf", 24)
-            font_text = ImageFont.truetype("Consola.ttf", 18)
-        except Exception:
-            font_big = ImageFont.load_default()
-            font_title = ImageFont.load_default()
-            font_text = ImageFont.load_default()
-        draw.text((104, 102), str(step_no), fill=accent, font=font_big, anchor="mm")
-        draw.text((250, 60), title, fill="#1f2937", font=font_title)
-        y = 110
-        for line in lines:
-            draw.text((250, y), line, fill="#4b5563", font=font_text)
-            y += 28
-        img.save(path)
-
-    build_card(
-        os.path.join(assets_dir, "guide_01_login.png"),
-        1,
-        "Giris ve Bolge",
-        [
-            "Kullanici adi ve sifre ile giris yapin.",
-            "Admin ise goruntuleme bolgesini secin.",
-            "Tum Bolgeler ile hepsini gorursunuz.",
-        ],
-        "#2f6fed",
-    )
-    build_card(
-        os.path.join(assets_dir, "guide_02_employees.png"),
-        2,
-        "Calisan Kaydi",
-        [
-            "Calisanlar sekmesinde yeni kayit ekleyin.",
-            "Admin ise Kayit Bolge ile bolgeyi belirleyin.",
-            "Excel/CSV iceriden aktarma da desteklenir.",
-        ],
-        "#0ea5a4",
-    )
-    build_card(
-        os.path.join(assets_dir, "guide_03_timesheets.png"),
-        3,
-        "Puantaj Girisi",
-        [
-            "Puantaj sekmesinde tarih ve saatleri girin.",
-            "Ozel gun ve not alanlarini kullanin.",
-            "Filtrelerle calisan ve tarih araligi secin.",
-        ],
-        "#f97316",
-    )
-    build_card(
-        os.path.join(assets_dir, "guide_04_reports.png"),
-        4,
-        "Rapor ve Araclar",
-        [
-            "Rapor sekmesinden Excel cikti alin.",
-            "Araclar ve Servis/Ariza bolumlerini takip edin.",
-            "Dashboard ile kritik hatirlaticilari gorun.",
-        ],
-        "#8b5cf6",
-    )
+# Rehber kaldırıldı - Modern ERP tasarımıyla değiştirildi
 
 
 def load_logo_image(path, target_height=48):
@@ -463,9 +420,9 @@ def load_logo_image(path, target_height=48):
 class PuantajApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Rainstaff")
-        self.geometry("1100x720")
-        self.minsize(980, 640)
+        self.title("Rainstaff ERP")
+        self.geometry("1280x800")
+        self.minsize(1024, 720)
 
         self.logger = setup_logging()
         self.report_callback_exception = self._handle_tk_exception
@@ -526,7 +483,6 @@ class PuantajApp(tk.Tk):
             self.logger.info("Uygulama basladi")
 
     def _startup_step_prepare(self):
-        ensure_guide_assets()
         self.after(10, self._startup_step_style)
 
     def _startup_step_style(self):
@@ -545,42 +501,46 @@ class PuantajApp(tk.Tk):
 
     def _show_loading(self, text):
         overlay = tk.Toplevel(self)
-        overlay.title("Yukleniyor")
-        overlay.geometry("460x220")
+        overlay.title("Yükleniyor")
+        overlay.geometry("360x200")
         overlay.resizable(False, False)
-        overlay.configure(bg="#EAF2FB")
+        overlay.configure(bg="#1E1E1E")  # Koyu arka plan
         overlay.transient(self)
         overlay.grab_set()
         overlay.protocol("WM_DELETE_WINDOW", lambda: None)
 
-        container = tk.Frame(overlay, bg="#EAF2FB")
-        container.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
+        # Koyu card
+        card = tk.Frame(overlay, bg="#2A2A2A", highlightbackground="#3A3A3A", highlightthickness=1)
+        card.place(x=16, y=16, relwidth=1, relheight=1, width=-32, height=-32)
 
-        card = tk.Frame(container, bg="#ffffff", highlightbackground="#d6dee9", highlightthickness=1)
-        card.pack(fill=tk.BOTH, expand=True)
-
+        # Logo
         logo_path = os.path.join(os.path.dirname(__file__), "assets", "rainstaff_logo_1.png")
-        logo_img = load_logo_image(logo_path, target_height=60)
+        logo_img = load_logo_image(logo_path, target_height=40)
         if logo_img:
             self._loading_logo = logo_img
-            tk.Label(card, image=logo_img, bg="#ffffff").pack(pady=(18, 6))
+            tk.Label(card, image=logo_img, bg="#2A2A2A").pack(pady=(32, 16))
         else:
-            tk.Label(card, text="RAINSTAFF", bg="#ffffff", fg="#2C3E50", font=("Segoe UI", 16, "bold")).pack(
-                pady=(18, 6)
-            )
+            # Silik altın logo
+            tk.Label(card, text="RAINSTAFF", bg="#2A2A2A", fg="#C9A961", 
+                    font=("Segoe UI", 14, "bold")).pack(pady=(32, 16))
 
-        tk.Label(card, text=text, bg="#ffffff", fg="#425466", font=("Segoe UI", 12)).pack(pady=(0, 6))
+        # Yükleniyor metni - silik gri
+        tk.Label(card, text=text, bg="#2A2A2A", fg="#B0B0B0", 
+                font=("Segoe UI", 10)).pack(pady=(0, 20))
 
-        spinner = tk.Canvas(card, width=64, height=64, bg="#ffffff", highlightthickness=0)
-        spinner.pack(pady=(4, 12))
+        # Spinner - silik mavi
+        spinner = tk.Canvas(card, width=40, height=40, bg="#2A2A2A", highlightthickness=0)
+        spinner.pack(pady=(0, 24))
 
-        arc = spinner.create_arc(8, 8, 56, 56, start=0, extent=300, style="arc", width=6, outline="#2f6fed")
+        # Silik mavi ring
+        arc = spinner.create_arc(2, 2, 38, 38, start=0, extent=280, style="arc", 
+                                width=3, outline="#5B9BD5")
 
         def step(angle=0):
             if getattr(self, "_loading_overlay", None) is None:
                 return
             spinner.itemconfigure(arc, start=angle)
-            overlay.after(25, step, (angle + 10) % 360)
+            overlay.after(20, step, (angle + 12) % 360)
 
         step()
         self._loading_overlay = overlay
@@ -627,42 +587,108 @@ class PuantajApp(tk.Tk):
     def _login_prompt(self):
         dialog = tk.Toplevel(self)
         dialog.title("Giris")
-        dialog.geometry("320x180")
         dialog.resizable(False, False)
+        dialog.configure(bg="#1E1E1E")  # Koyu arka plan
         dialog.transient(self)
         dialog.grab_set()
+
+        # Card görünümü için sabit boyut ve merkezleme
+        dialog.geometry("420x460")
+        dialog.update_idletasks()
+        if self.winfo_ismapped():
+            px = self.winfo_rootx()
+            py = self.winfo_rooty()
+            pw = self.winfo_width()
+            ph = self.winfo_height()
+            dx = px + (pw - 420) // 2
+            dy = py + (ph - 460) // 2
+            dialog.geometry(f"420x460+{dx}+{dy}")
+
+        card = tk.Frame(dialog, bg="#2A2A2A", highlightbackground="#3A3A3A", highlightthickness=1)
+        card.place(x=16, y=16, relwidth=1, relheight=1, width=-32, height=-32)
+
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "rainstaff_logo_1.png")
+        logo_img = load_logo_image(logo_path, target_height=48)
+        if logo_img:
+            self._login_logo = logo_img
+            tk.Label(card, image=logo_img, bg="#2A2A2A").pack(pady=(48, 12))
+        else:
+            tk.Label(card, text="RAINSTAFF", bg="#2A2A2A", fg="#C9A961",
+                     font=("Segoe UI", 16, "bold")).pack(pady=(48, 12))
+
+        tk.Label(card, text="Giris Yapin", bg="#2A2A2A", fg="#E0E0E0",
+                 font=("Segoe UI", 16, "bold")).pack(pady=(0, 24))
+
+        form_frame = tk.Frame(card, bg="#2A2A2A")
+        form_frame.pack(padx=56, fill=tk.X)
 
         username_var = tk.StringVar()
         password_var = tk.StringVar()
 
-        tk.Label(dialog, text="Kullanici Adi").pack(pady=(16, 4))
-        tk.Entry(dialog, textvariable=username_var).pack()
-        tk.Label(dialog, text="Sifre").pack(pady=(8, 4))
-        tk.Entry(dialog, textvariable=password_var, show="*").pack()
+        tk.Label(form_frame, text="Kullanici Adi", bg="#2A2A2A", fg="#5B9BD5",
+                 font=("Segoe UI", 10, "bold"), anchor="w").pack(fill=tk.X, pady=(0, 6))
+        username_entry = tk.Entry(form_frame, textvariable=username_var,
+                                  font=("Segoe UI", 11), relief="solid", bd=1,
+                                  bg="#363636", fg="#E0E0E0",
+                                  insertbackground="#5B9BD5",
+                                  highlightthickness=1, highlightbackground="#454545")
+        username_entry.pack(fill=tk.X, ipady=10)
+
+        tk.Label(form_frame, text="Sifre", bg="#2A2A2A", fg="#5B9BD5",
+                 font=("Segoe UI", 10, "bold"), anchor="w").pack(fill=tk.X, pady=(24, 6))
+        password_entry = tk.Entry(form_frame, textvariable=password_var, show="●",
+                                  font=("Segoe UI", 11), relief="solid", bd=1,
+                                  bg="#363636", fg="#E0E0E0",
+                                  insertbackground="#5B9BD5",
+                                  highlightthickness=1, highlightbackground="#454545")
+        password_entry.pack(fill=tk.X, ipady=10)
 
         status_var = tk.StringVar()
-        tk.Label(dialog, textvariable=status_var, fg="#b94a48").pack(pady=(6, 0))
+        error_label = tk.Label(card, textvariable=status_var, bg="#2A2A2A", fg="#E57373",
+                               font=("Segoe UI", 9))
+        error_label.pack(pady=(20, 0))
 
         success = {"ok": False}
 
         def attempt_login():
             user = db.verify_user(username_var.get().strip(), password_var.get().strip())
             if not user:
-                status_var.set("Giris hatali.")
+                status_var.set("❌ Kullanici adi veya sifre hatali")
                 if self.logger:
                     self.logger.warning("Giris basarisiz: %s", username_var.get().strip())
                 return
             self.current_user = user["username"]
             self.is_admin = user["role"] == "admin"
-            self.current_region = user["region"] if not self.is_admin else "ALL"
-            if self.logger:
-                self.logger.info("Giris basarili: %s", self.current_user)
+            region = user.get("region") or "Ankara"
+            self.current_region = region
+            if self.is_admin:
+                self.admin_entry_region_var.set(region)
+                self.admin_view_region_var.set("Tum Bolgeler")
+            else:
+                self.admin_entry_region_var.set(region)
+                self.admin_view_region_var.set(region)
             success["ok"] = True
             dialog.destroy()
 
-        btn = tk.Button(dialog, text="Giris", command=attempt_login)
-        btn.pack(pady=12)
+        btn_frame = tk.Frame(card, bg="#2A2A2A")
+        btn_frame.pack(pady=(28, 40), padx=56, fill=tk.X)
+
+        login_btn = tk.Button(btn_frame, text="Giris Yap", command=attempt_login,
+                              bg="#5B9BD5", fg="#1E1E1E", font=("Segoe UI", 11, "bold"),
+                              relief="flat", cursor="hand2", bd=0)
+        login_btn.pack(fill=tk.X, ipady=12)
+
+        def on_enter(_event):
+            login_btn.config(bg="#7BB3E0")
+
+        def on_leave(_event):
+            login_btn.config(bg="#5B9BD5")
+
+        login_btn.bind("<Enter>", on_enter)
+        login_btn.bind("<Leave>", on_leave)
+
         dialog.bind("<Return>", lambda _e: attempt_login())
+        username_entry.focus_set()
 
         self.wait_window(dialog)
         return success["ok"]
@@ -697,46 +723,198 @@ class PuantajApp(tk.Tk):
             style.theme_use("clam")
         except tk.TclError:
             pass
-        accent = "#2f6fed"
-        soft = "#EAF2FB"
-        gray = "#5f6a72"
-        card = "#f5f7fb"
-        style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"), foreground="#2C3E50", background=soft)
-        style.configure("SubHeader.TLabel", font=("Segoe UI", 10), foreground="#4A90E2", background=soft)
-        style.configure("Section.TLabelframe", padding=(12, 10))
-        style.configure("Section.TLabelframe.Label", font=("Segoe UI", 10, "bold"), foreground=gray)
-        style.configure("Accent.TButton", padding=(10, 6), background=accent, foreground="white")
-        style.configure("TButton", padding=(8, 4))
-        style.configure("Treeview", rowheight=26, fieldbackground=card, background="white")
-        style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"), background="#dfe7f3")
-        style.configure("TFrame", background=soft)
-        style.configure("TLabel", background=soft)
-        style.configure("TNotebook", background=soft, tabmargins=(6, 6, 6, 0))
-        style.configure("TNotebook.Tab", padding=(12, 6))
-        style.configure("TEntry", padding=(6, 4))
-        style.configure("TCombobox", padding=(6, 4))
-        style.map(
-            "Accent.TButton",
-            background=[("active", "#1e58d6")],
-            foreground=[("active", "white")],
-        )
+
+        # GECE TEMASI - Silik mavi, gri ve altın tonları
+        primary = "#5B9BD5"
+        primary_hover = "#7BB3E0"
+        accent_gold = "#C9A961"
+
+        bg_app = "#1E1E1E"
+        bg_content = "#2A2A2A"
+        bg_elevated = "#323232"
+        bg_input = "#363636"
+        bg_hover = "#3A3A3A"
+
+        text_primary = "#E0E0E0"
+        text_secondary = "#B0B0B0"
+        text_disabled = "#707070"
+
+        self.configure(bg=bg_app)
+
+        style.configure("Header.TLabel",
+            font=("Segoe UI", 18, "bold"),
+            foreground=accent_gold,
+            background=bg_app,
+            padding=(0, 8, 0, 12))
+        style.configure("SubHeader.TLabel",
+            font=("Segoe UI", 12),
+            foreground=text_secondary,
+            background=bg_app,
+            padding=(0, 4, 0, 8))
+
+        style.configure("Section.TLabelframe",
+            padding=(24, 20),
+            relief="flat",
+            borderwidth=1,
+            background=bg_content)
+        style.configure("Section.TLabelframe.Label",
+            font=("Segoe UI", 11, "bold"),
+            foreground=primary,
+            background=bg_content,
+            padding=(0, 0, 0, 8))
+
+        style.configure("Accent.TButton",
+            padding=(20, 10),
+            background=primary,
+            foreground=bg_app,
+            borderwidth=0,
+            relief="flat",
+            font=("Segoe UI", 10, "bold"))
+        style.map("Accent.TButton",
+            background=[("active", primary_hover), ("pressed", primary_hover)],
+            foreground=[("active", bg_app), ("pressed", bg_app)])
+
+        style.configure("TButton",
+            padding=(16, 8),
+            background=bg_elevated,
+            foreground=text_primary,
+            borderwidth=1,
+            relief="solid",
+            font=("Segoe UI", 10))
+        style.map("TButton",
+            background=[("active", bg_hover), ("pressed", bg_hover)],
+            foreground=[("active", primary), ("pressed", primary)])
+
+        style.configure("Treeview",
+            rowheight=36,
+            fieldbackground=bg_content,
+            background=bg_content,
+            foreground=text_primary,
+            borderwidth=1,
+            font=("Segoe UI", 10))
+        style.configure("Treeview.Heading",
+            font=("Segoe UI", 10, "bold"),
+            background=bg_elevated,
+            foreground=primary,
+            borderwidth=1,
+            relief="flat",
+            padding=(8, 8))
+        style.map("Treeview.Heading",
+            background=[("active", bg_hover)],
+            foreground=[("active", accent_gold)])
+        style.map("Treeview",
+            background=[("selected", "#3A4A5A")],
+            foreground=[("selected", text_primary)])
+
+        style.configure("TFrame", background=bg_app)
+        style.configure("Card.TFrame", background=bg_content, relief="flat")
+        style.configure("TLabel",
+            background=bg_app,
+            font=("Segoe UI", 10),
+            foreground=text_primary)
+        style.configure("CardLabel.TLabel",
+            background=bg_content,
+            font=("Segoe UI", 10),
+            foreground=text_primary)
+
+        style.configure("TNotebook",
+            background=bg_app,
+            borderwidth=0,
+            tabmargins=(0, 0, 0, 0))
+        style.configure("TNotebook.Tab",
+            padding=(24, 12),
+            borderwidth=0,
+            font=("Segoe UI", 10))
+        style.map("TNotebook.Tab",
+            background=[("selected", bg_content), ("!selected", bg_app)],
+            foreground=[("selected", primary), ("!selected", text_secondary)],
+            expand=[("selected", [1, 1, 1, 0])])
+
+        style.configure("TEntry",
+            padding=(12, 10),
+            borderwidth=1,
+            relief="solid",
+            fieldbackground=bg_input,
+            foreground=text_primary,
+            selectbackground=bg_hover,
+            selectforeground=text_primary,
+            insertwidth=2,
+            insertcolor=primary,
+            font=("Segoe UI", 10))
+        style.map("TEntry",
+            fieldbackground=[("focus", bg_elevated)],
+            bordercolor=[("focus", primary)])
+
+        style.configure("TCombobox",
+            padding=(12, 10),
+            borderwidth=1,
+            fieldbackground=bg_input,
+            readonlybackground=bg_input,
+            foreground=text_primary,
+            selectbackground=bg_hover,
+            selectforeground=text_primary,
+            arrowsize=14,
+            font=("Segoe UI", 10))
+        style.map("TCombobox",
+            fieldbackground=[("readonly", bg_input), ("!active", bg_input)],
+            foreground=[("readonly", text_primary)],
+            selectbackground=[("readonly", bg_hover)],
+            selectforeground=[("readonly", text_primary)])
+
+        # Dropdown list ve genel selection renkleri
+        self.option_add("*TCombobox*Listbox.background", bg_content)
+        self.option_add("*TCombobox*Listbox.foreground", text_primary)
+        self.option_add("*TCombobox*Listbox.selectBackground", bg_hover)
+        self.option_add("*TCombobox*Listbox.selectForeground", text_primary)
+        self.option_add("*Entry.selectBackground", bg_hover)
+        self.option_add("*Entry.selectForeground", text_primary)
+
+        style.configure("TScrollbar",
+            troughcolor=bg_content,
+            background=bg_hover,
+            bordercolor=bg_hover,
+            arrowcolor=text_secondary)
+
+        style.configure("TLabelframe", background=bg_content, borderwidth=0)
+        style.configure("TLabelframe.Label", background=bg_content, foreground=text_secondary)
+        style.configure("TMenubutton", background=bg_content, foreground=text_primary, borderwidth=0)
+        style.configure("Toolbutton", background=bg_content, foreground=text_primary)
+        style.configure("TCheckbutton", background=bg_app, foreground=text_primary, indicatorcolor=bg_input)
 
     def _build_ui(self):
-        header = tk.Frame(self, bg="#EAF2FB", height=120)
+        self.title("Rainstaff Puantaj")
+        self.geometry("1280x800")
+        self.configure(bg="#1E1E1E")
+
+        header = tk.Frame(self, bg="#2A2A2A", height=64)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
-        logo_path = os.path.join(os.path.dirname(__file__), "assets", "rainstaff_logo_1.png")
-        self._logo_image = load_logo_image(logo_path, target_height=104)
-        if self._logo_image:
-            logo_label = tk.Label(header, image=self._logo_image, bg="#EAF2FB")
-            logo_label.place(x=20, y=8)
+        logo_container = tk.Frame(header, bg="#2A2A2A")
+        logo_container.place(x=32, y=16)
 
-        divider = tk.Frame(self, bg="#d9dfe7", height=1)
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "rainstaff_logo_1.png")
+        self._logo_image = load_logo_image(logo_path, target_height=32)
+        if self._logo_image:
+            tk.Label(logo_container, image=self._logo_image, bg="#2A2A2A").pack(side=tk.LEFT)
+        else:
+            tk.Label(logo_container, text="RAINSTAFF", bg="#2A2A2A",
+                fg="#C9A961", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT)
+
+        user_info = tk.Frame(header, bg="#2A2A2A")
+        user_info.place(relx=1.0, x=-32, y=20, anchor="ne")
+
+        user_text = f"{self.current_user}"
+        if self.is_admin:
+            user_text += " (Admin)"
+        tk.Label(user_info, text=user_text, bg="#2A2A2A",
+            fg="#B0B0B0", font=("Segoe UI", 10)).pack(side=tk.RIGHT)
+
+        divider = tk.Frame(self, bg="#3A3A3A", height=1)
         divider.pack(fill=tk.X)
 
         self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
         self.tab_employees = ttk.Frame(self.notebook)
         self.tab_timesheets = ttk.Frame(self.notebook)
@@ -746,18 +924,16 @@ class PuantajApp(tk.Tk):
         self.tab_vehicles = ttk.Frame(self.notebook)
         self.tab_dashboard = ttk.Frame(self.notebook)
         self.tab_service = ttk.Frame(self.notebook)
-        self.tab_guide = ttk.Frame(self.notebook)
         self.tab_logs = ttk.Frame(self.notebook)
 
-        self.notebook.add(self.tab_employees, text="Calisanlar")
-        self.notebook.add(self.tab_timesheets, text="Puantaj")
-        self.notebook.add(self.tab_reports, text="Rapor")
-        self.notebook.add(self.tab_settings, text="Ayarlar")
-        self.notebook.add(self.tab_admin, text="Yonetici")
-        self.notebook.add(self.tab_vehicles, text="Araclar")
         self.notebook.add(self.tab_dashboard, text="Dashboard")
-        self.notebook.add(self.tab_service, text="Servis/Ariza")
-        self.notebook.add(self.tab_guide, text="Kullanim Rehberi")
+        self.notebook.add(self.tab_timesheets, text="Puantaj")
+        self.notebook.add(self.tab_employees, text="Çalışanlar")
+        self.notebook.add(self.tab_vehicles, text="Araçlar")
+        self.notebook.add(self.tab_service, text="Servis")
+        self.notebook.add(self.tab_reports, text="Raporlar")
+        self.notebook.add(self.tab_admin, text="Yönetim")
+        self.notebook.add(self.tab_settings, text="Ayarlar")
         self.notebook.add(self.tab_logs, text="Loglar")
 
         self.tab_employees_body = self._make_tab_scrollable(self.tab_employees)
@@ -768,7 +944,6 @@ class PuantajApp(tk.Tk):
         self.tab_vehicles_body = self._make_tab_scrollable(self.tab_vehicles)
         self.tab_dashboard_body = self._make_tab_scrollable(self.tab_dashboard)
         self.tab_service_body = self._make_tab_scrollable(self.tab_service)
-        self.tab_guide_body = self._make_tab_scrollable(self.tab_guide)
         self.tab_logs_body = self._make_tab_scrollable(self.tab_logs)
 
         self._build_employees_tab()
@@ -779,12 +954,11 @@ class PuantajApp(tk.Tk):
         self._build_vehicles_tab()
         self._build_dashboard_tab()
         self._build_service_tab()
-        self._build_guide_tab()
         self._build_logs_tab()
 
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
-        status_bar = ttk.Label(self, textvariable=self.status_var, anchor=tk.W, foreground="#2b6cb0")
+        status_bar = ttk.Label(self, textvariable=self.status_var, anchor=tk.W, foreground="#5B9BD5")
         status_bar.pack(fill=tk.X, padx=10, pady=(0, 8))
         self.status_var.set("Hazir")
 
@@ -917,18 +1091,52 @@ class PuantajApp(tk.Tk):
         thread.start()
 
     def _sync_worker(self, sync_url, token, reason):
+        """Senkronizasyon worker; basarisiz olursa pending flag kaydeder."""
         try:
             with open(db.DB_PATH, "rb") as handle:
                 files = {"db": ("puantaj.db", handle, "application/octet-stream")}
                 headers = {"X-API-KEY": token, "X-REASON": reason}
                 url = sync_url.rstrip("/") + "/sync"
                 resp = requests.post(url, headers=headers, files=files, timeout=10)
-            if resp.status_code != 200:
-                msg = f"Senkron hatasi: {resp.status_code}"
+
+            # Basarili sync doğrulama (sunucu {"ok": true} dönüyor)
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                    if data.get("success") or data.get("ok"):
+                        msg = "Senkron basarili"
+                        if self.logger:
+                            self.logger.info("Cloud sync completed: %s", reason)
+                    else:
+                        msg = f"Senkron hatasi: Sunucu {data.get('error', 'bilinmeyen hata')}"
+                        if self.logger:
+                            self.logger.warning("Cloud sync failed: %s | resp=%s", msg, data)
+                except ValueError:
+                    # JSON degilse kisa metni logla
+                    text = resp.text.strip()
+                    if text.lower() in {"ok", "success"}:
+                        msg = "Senkron basarili"
+                    else:
+                        msg = "Senkron hatasi: Yanit JSON degil"
+                    if self.logger:
+                        self.logger.warning("Cloud sync non-JSON response: %s", text[:200])
             else:
-                msg = "Senkron basarili"
-        except Exception:
-            msg = "Senkron hatasi"
+                msg = f"Senkron hatasi: HTTP {resp.status_code}"
+                if self.logger:
+                    self.logger.warning("Cloud sync HTTP error: %s | body=%s", msg, resp.text[:200])
+        except requests.Timeout:
+            msg = "Senkron hatasi: Baglanti timeout"
+            if self.logger:
+                self.logger.warning("Cloud sync timeout")
+        except requests.RequestException as e:
+            msg = f"Senkron hatasi: {str(e)[:80]}"
+            if self.logger:
+                self.logger.warning("Cloud sync request error: %s", str(e))
+        except Exception as e:
+            msg = f"Senkron hatasi: {str(e)[:80]}"
+            if self.logger:
+                self.logger.error("Cloud sync unexpected error: %s", str(e))
+
         self.after(0, lambda: self._notify_sync_result(msg, reason))
 
     def manual_sync(self):
@@ -986,7 +1194,9 @@ class PuantajApp(tk.Tk):
         self.employee_tree.column("department", width=160)
         self.employee_tree.column("title", width=160)
         self.employee_tree.column("region", width=110)
-        self.employee_tree.tag_configure("odd", background="#f5f7fb")
+        # Koyu tema zebra satırları
+        self.employee_tree.tag_configure("odd", background="#252525", foreground="#E0E0E0")
+        self.employee_tree.tag_configure("even", background="#1F1F1F", foreground="#E0E0E0")
         emp_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.employee_tree.xview)
         emp_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.employee_tree.yview)
         self.employee_tree.configure(xscrollcommand=emp_xscroll.set, yscrollcommand=emp_yscroll.set)
@@ -1240,7 +1450,9 @@ class PuantajApp(tk.Tk):
         self.timesheet_tree.column("special_night", width=110)
         self.timesheet_tree.column("notes", width=180)
         self.timesheet_tree.column("region", width=100)
-        self.timesheet_tree.tag_configure("odd", background="#f5f7fb")
+        # Koyu tema zebra satırları
+        self.timesheet_tree.tag_configure("odd", background="#252525", foreground="#E0E0E0")
+        self.timesheet_tree.tag_configure("even", background="#1F1F1F", foreground="#E0E0E0")
         ts_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.timesheet_tree.xview)
         ts_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.timesheet_tree.yview)
         self.timesheet_tree.configure(xscrollcommand=ts_xscroll.set, yscrollcommand=ts_yscroll.set)
@@ -1416,8 +1628,17 @@ class PuantajApp(tk.Tk):
             messagebox.showwarning("Uyari", str(exc))
             return
         break_minutes = parse_int(self.ts_break_var.get(), 0)
+        # Mola dakikasi validasyonu (0-480 dakika = 0-8 saat)
+        if not (0 <= break_minutes <= 480):
+            messagebox.showwarning("Uyari", "Mola dakikasi 0-480 arasinda olmalidir.")
+            return
         notes = self.ts_notes_var.get().strip()
         is_special = 1 if self.ts_special_var.get() else 0
+        # Bolge NULL kontrolu
+        entry_region = self._entry_region()
+        if not entry_region:
+            messagebox.showwarning("Uyari", "Bolge tanimlanimis. Ayarlardan kontrol edin.")
+            return
 
         ts_id = self.ts_editing_id
         if ts_id:
@@ -2531,6 +2752,9 @@ class PuantajApp(tk.Tk):
         driver_by_id = {row[0]: row for row in drivers}
         driver_latest = {}
 
+        # Populate vehicle_map for alert clicks
+        self.vehicle_map = {}
+
         oil_due = 0
         insp_due = 0
         ins_due = 0
@@ -2554,6 +2778,8 @@ class PuantajApp(tk.Tk):
                 _notes,
                 region,
             ) = vehicle
+            # Map plate to vehicle ID for alert clicks
+            self.vehicle_map[plate] = _vid
             oil_status = "-"
             oil_flag = None
             interval_km = oil_interval_km or DEFAULT_OIL_INTERVAL_KM
@@ -3529,7 +3755,8 @@ class PuantajApp(tk.Tk):
         self.template_tree.column("start", width=80)
         self.template_tree.column("end", width=80)
         self.template_tree.column("break", width=80)
-        self.template_tree.tag_configure("odd", background="#f5f7fb")
+        self.template_tree.tag_configure("odd", background="#252525", foreground="#E0E0E0")
+        self.template_tree.tag_configure("even", background="#1F1F1F", foreground="#E0E0E0")
         tpl_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.template_tree.xview)
         tpl_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.template_tree.yview)
         self.template_tree.configure(xscrollcommand=tpl_xscroll.set, yscrollcommand=tpl_yscroll.set)
@@ -3540,36 +3767,7 @@ class PuantajApp(tk.Tk):
         tpl_xscroll.grid(row=1, column=0, sticky="ew")
         self.template_tree.bind("<<TreeviewSelect>>", self.on_template_select)
 
-    def _build_guide_tab(self):
-        frame = ttk.LabelFrame(self.tab_guide_body, text="Kullanim Rehberi", style="Section.TLabelframe")
-        frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
-
-        intro = (
-            "Bu rehber uygulamanin temel akisini gosterir. "
-            "Admin iseniz goruntuleme bolgesi ile filtreleyebilir, "
-            "Kayit Bolge ile yeni kayitlarin bolgesini belirleyebilirsiniz."
-        )
-        ttk.Label(frame, text=intro, wraplength=900, justify=tk.LEFT).pack(anchor="w", padx=8, pady=(4, 12))
-
-        assets_dir = os.path.join(os.path.dirname(__file__), "assets")
-        sections = [
-            ("1) Giris ve Bolge", "guide_01_login.png"),
-            ("2) Calisan Kaydi", "guide_02_employees.png"),
-            ("3) Puantaj Girisi", "guide_03_timesheets.png"),
-            ("4) Rapor ve Araclar", "guide_04_reports.png"),
-        ]
-        self._guide_images = []
-        for title, filename in sections:
-            card = ttk.Frame(frame)
-            card.pack(fill=tk.X, padx=8, pady=8)
-            ttk.Label(card, text=title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 6))
-            image_path = os.path.join(assets_dir, filename)
-            img = load_logo_image(image_path, target_height=220)
-            if img:
-                self._guide_images.append(img)
-                tk.Label(card, image=img, bg="#EAF2FB").pack(anchor="w")
-            else:
-                ttk.Label(card, text=f"Resim yuklenemedi: {filename}").pack(anchor="w")
+    # Kullanım rehberi kaldırıldı - Modern ERP tasarımına geçildi
 
     def _build_logs_tab(self):
         frame = ttk.LabelFrame(self.tab_logs_body, text="Canli Log", style="Section.TLabelframe")
@@ -3973,6 +4171,7 @@ class PuantajApp(tk.Tk):
         self.vehicle_alert_tree.column("plate", width=120)
         self.vehicle_alert_tree.column("issue", width=200)
         self.vehicle_alert_tree.column("detail", width=240)
+        self.vehicle_alert_tree.bind("<Double-1>", lambda _e: self._open_vehicle_card_from_alert())
         va_xscroll = ttk.Scrollbar(vehicle_alerts, orient=tk.HORIZONTAL, command=self.vehicle_alert_tree.xview)
         va_yscroll = ttk.Scrollbar(vehicle_alerts, orient=tk.VERTICAL, command=self.vehicle_alert_tree.yview)
         self.vehicle_alert_tree.configure(xscrollcommand=va_xscroll.set, yscrollcommand=va_yscroll.set)
@@ -4181,6 +4380,17 @@ class PuantajApp(tk.Tk):
             self.vehicle_status_menu.tk_popup(event.x_root, event.y_root)
         finally:
             self.vehicle_status_menu.grab_release()
+
+    def _open_vehicle_card_from_alert(self):
+        """Open vehicle card from alert tree row double-click"""
+        selected = self.vehicle_alert_tree.selection()
+        if not selected:
+            return
+        values = self.vehicle_alert_tree.item(selected[0], "values")
+        if not values or len(values) < 1:
+            return
+        plate = values[0]  # First column is plate
+        self._open_vehicle_card(plate)
 
     def show_vehicle_detail(self):
         selected = self.vehicle_status_tree.selection()
