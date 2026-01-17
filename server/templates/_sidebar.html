@@ -109,3 +109,13 @@
     <span class="label">Kontroller</span>
   </a>
 </aside>
+<script>
+  (() => {
+    const sidebarToggle = document.getElementById("sidebarToggle");
+    if (!sidebarToggle) return;
+    sidebarToggle.addEventListener("click", () => {
+      document.body.classList.toggle("sidebar-mobile-expanded");
+      document.body.classList.remove("sidebar-open");
+    });
+  })();
+</script>

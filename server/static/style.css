@@ -877,7 +877,7 @@ tbody tr:hover {
   }
 
   .sidebar-toggle {
-    display: none;
+    display: inline-flex;
   }
 
   .sidebar a .label,
@@ -897,6 +897,20 @@ tbody tr:hover {
 
   body.sidebar-collapsed .content {
     margin-left: 84px;
+  }
+
+  body.sidebar-mobile-expanded .sidebar {
+    width: 220px;
+    padding: 16px 14px;
+  }
+
+  body.sidebar-mobile-expanded .content {
+    margin-left: 240px;
+  }
+
+  body.sidebar-mobile-expanded .sidebar a .label,
+  body.sidebar-mobile-expanded .menu-title {
+    display: inline;
   }
 }
 
