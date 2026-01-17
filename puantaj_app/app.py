@@ -4,6 +4,7 @@ import zipfile
 import logging
 import traceback
 import sys
+import queue
 from datetime import datetime, date, time, timedelta
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -90,6 +91,20 @@ def setup_logging():
 
     sys.excepthook = handle_uncaught
     return logger
+
+
+class LogQueueHandler(logging.Handler):
+    def __init__(self, log_queue):
+        super().__init__()
+        self.log_queue = log_queue
+        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            self.log_queue.put(msg)
+        except Exception:
+            pass
 
 
 def parse_int(value, default=0):
@@ -454,6 +469,10 @@ class PuantajApp(tk.Tk):
 
         self.logger = setup_logging()
         self.report_callback_exception = self._handle_tk_exception
+        self.log_queue = queue.Queue()
+        self.log_handler = LogQueueHandler(self.log_queue)
+        if self.logger:
+            self.logger.addHandler(self.log_handler)
 
         self.current_user = None
         self.current_region = None
@@ -495,6 +514,8 @@ class PuantajApp(tk.Tk):
 
     def _finish_startup(self):
         self.after(10, self._startup_step_prepare)
+        if self.logger:
+            self.logger.info("Uygulama basladi")
 
     def _startup_step_prepare(self):
         ensure_guide_assets()
@@ -620,10 +641,14 @@ class PuantajApp(tk.Tk):
             user = db.verify_user(username_var.get().strip(), password_var.get().strip())
             if not user:
                 status_var.set("Giris hatali.")
+                if self.logger:
+                    self.logger.warning("Giris basarisiz: %s", username_var.get().strip())
                 return
             self.current_user = user["username"]
             self.is_admin = user["role"] == "admin"
             self.current_region = user["region"] if not self.is_admin else "ALL"
+            if self.logger:
+                self.logger.info("Giris basarili: %s", self.current_user)
             success["ok"] = True
             dialog.destroy()
 
@@ -714,6 +739,7 @@ class PuantajApp(tk.Tk):
         self.tab_dashboard = ttk.Frame(self.notebook)
         self.tab_service = ttk.Frame(self.notebook)
         self.tab_guide = ttk.Frame(self.notebook)
+        self.tab_logs = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_employees, text="Calisanlar")
         self.notebook.add(self.tab_timesheets, text="Puantaj")
@@ -724,6 +750,7 @@ class PuantajApp(tk.Tk):
         self.notebook.add(self.tab_dashboard, text="Dashboard")
         self.notebook.add(self.tab_service, text="Servis/Ariza")
         self.notebook.add(self.tab_guide, text="Kullanim Rehberi")
+        self.notebook.add(self.tab_logs, text="Loglar")
 
         self.tab_employees_body = self._make_tab_scrollable(self.tab_employees)
         self.tab_timesheets_body = self._make_tab_scrollable(self.tab_timesheets)
@@ -734,6 +761,7 @@ class PuantajApp(tk.Tk):
         self.tab_dashboard_body = self._make_tab_scrollable(self.tab_dashboard)
         self.tab_service_body = self._make_tab_scrollable(self.tab_service)
         self.tab_guide_body = self._make_tab_scrollable(self.tab_guide)
+        self.tab_logs_body = self._make_tab_scrollable(self.tab_logs)
 
         self._build_employees_tab()
         self._build_timesheets_tab()
@@ -744,6 +772,7 @@ class PuantajApp(tk.Tk):
         self._build_dashboard_tab()
         self._build_service_tab()
         self._build_guide_tab()
+        self._build_logs_tab()
 
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
@@ -826,6 +855,35 @@ class PuantajApp(tk.Tk):
 
     def _unbind_canvas_mousewheel(self, canvas):
         canvas.unbind_all("<MouseWheel>")
+
+    def _drain_log_queue(self):
+        if not hasattr(self, "log_text"):
+            return
+        drained = False
+        while True:
+            try:
+                msg = self.log_queue.get_nowait()
+            except queue.Empty:
+                break
+            drained = True
+            self.log_text.configure(state=tk.NORMAL)
+            self.log_text.insert(tk.END, msg + "\n")
+            self.log_text.configure(state=tk.DISABLED)
+        if drained:
+            total_lines = int(self.log_text.index("end-1c").split(".")[0])
+            if total_lines > 2000:
+                self.log_text.configure(state=tk.NORMAL)
+                self.log_text.delete("1.0", f"{total_lines - 2000}.0")
+                self.log_text.configure(state=tk.DISABLED)
+            self.log_text.see(tk.END)
+        self.after(500, self._drain_log_queue)
+
+    def clear_log_view(self):
+        if hasattr(self, "log_text"):
+            self.log_text.configure(state=tk.NORMAL)
+            self.log_text.delete("1.0", tk.END)
+            self.log_text.insert(tk.END, "Log temizlendi.\n")
+            self.log_text.configure(state=tk.DISABLED)
 
     def trigger_sync(self, reason="manual", force=False):
         if force and hasattr(self, "sync_enabled_var"):
@@ -3470,6 +3528,39 @@ class PuantajApp(tk.Tk):
             else:
                 ttk.Label(card, text=f"Resim yuklenemedi: {filename}").pack(anchor="w")
 
+    def _build_logs_tab(self):
+        frame = ttk.LabelFrame(self.tab_logs_body, text="Canli Log", style="Section.TLabelframe")
+        frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        tools = ttk.Frame(frame)
+        tools.pack(fill=tk.X, pady=(0, 6))
+        ttk.Button(tools, text="Temizle", command=self.clear_log_view).pack(side=tk.LEFT, padx=6)
+        ttk.Button(tools, text="Log Dosyasi", command=self.open_log_file).pack(side=tk.LEFT, padx=6)
+        ttk.Label(tools, text=LOG_PATH, foreground="#5f6a72").pack(side=tk.LEFT, padx=8)
+
+        text_frame = ttk.Frame(frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+        self.log_text = tk.Text(
+            text_frame,
+            height=18,
+            wrap="none",
+            bg="#0f172a",
+            fg="#e2e8f0",
+            insertbackground="#e2e8f0",
+            font=("Consolas", 9),
+        )
+        yscroll = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=self.log_text.yview)
+        xscroll = ttk.Scrollbar(text_frame, orient=tk.HORIZONTAL, command=self.log_text.xview)
+        self.log_text.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
+        self.log_text.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
+        self.log_text.insert(tk.END, "Log ekranina hosgeldiniz.\n")
+        self.log_text.configure(state=tk.DISABLED)
+        self.after(300, self._drain_log_queue)
+
     def _build_vehicles_tab(self):
         vehicle_frame = ttk.LabelFrame(self.tab_vehicles_body, text="Arac Bilgisi", style="Section.TLabelframe")
         vehicle_frame.pack(fill=tk.X, padx=6, pady=6)
@@ -4688,6 +4779,15 @@ class PuantajApp(tk.Tk):
             os.startfile(LOG_DIR)
         except Exception:
             messagebox.showerror("Hata", "Log klasoru acilamadi.")
+
+    def open_log_file(self):
+        try:
+            if not os.path.isfile(LOG_PATH):
+                with open(LOG_PATH, "a", encoding="utf-8"):
+                    pass
+            os.startfile(LOG_PATH)
+        except Exception:
+            messagebox.showerror("Hata", "Log dosyasi acilamadi.")
 
     def open_data_folder(self):
         try:
