@@ -1,6 +1,9 @@
 import os
 import csv
 import zipfile
+import logging
+import traceback
+import sys
 from datetime import datetime, date, time, timedelta
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -29,6 +32,8 @@ REGIONS = ["Ankara", "Izmir", "Bursa", "Istanbul"]
 VIEW_REGIONS = ["Tum Bolgeler"] + REGIONS
 DEFAULT_OIL_INTERVAL_KM = 14000
 DEFAULT_OIL_SOON_KM = 2000
+LOG_DIR = os.path.join(os.path.dirname(db.DB_DIR), "logs")
+LOG_PATH = os.path.join(LOG_DIR, "rainstaff.log")
 
 VEHICLE_CHECKLIST = [
     ("body_dent", "Govde ezik/cizik"),
@@ -64,6 +69,27 @@ def ensure_app_dirs():
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir, exist_ok=True)
+
+
+def setup_logging():
+    os.makedirs(LOG_DIR, exist_ok=True)
+    logger = logging.getLogger("rainstaff")
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(LOG_PATH, encoding="utf-8")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    def handle_uncaught(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            return
+        logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_uncaught
+    return logger
 
 
 def parse_int(value, default=0):
@@ -426,6 +452,9 @@ class PuantajApp(tk.Tk):
         self.geometry("1100x720")
         self.minsize(980, 640)
 
+        self.logger = setup_logging()
+        self.report_callback_exception = self._handle_tk_exception
+
         self.current_user = None
         self.current_region = None
         self.is_admin = False
@@ -458,6 +487,11 @@ class PuantajApp(tk.Tk):
 
         self._show_loading("Yukleniyor...")
         self.after(10, self._finish_startup)
+
+    def _handle_tk_exception(self, exc, val, tb):
+        if self.logger:
+            self.logger.error("Tkinter callback error", exc_info=(exc, val, tb))
+        messagebox.showerror("Hata", "Beklenmeyen bir hata olustu. Log kaydi alindi.")
 
     def _finish_startup(self):
         self.after(10, self._startup_step_prepare)
@@ -3329,6 +3363,25 @@ class PuantajApp(tk.Tk):
             foreground="#5f6a72",
         ).pack(anchor="w", padx=8, pady=(2, 6))
 
+        data_frame = ttk.LabelFrame(self.tab_settings_body, text="Veri Yonetimi", style="Section.TLabelframe")
+        data_frame.pack(fill=tk.X, padx=6, pady=6)
+        drow1 = ttk.Frame(data_frame)
+        drow1.pack(fill=tk.X, pady=4)
+        ttk.Button(drow1, text="Log Klasoru", command=self.open_log_folder).pack(side=tk.LEFT, padx=6)
+        ttk.Button(drow1, text="Veri Klasoru", command=self.open_data_folder).pack(side=tk.LEFT, padx=6)
+        ttk.Button(drow1, text="Yedek Al", command=self.backup_database).pack(side=tk.LEFT, padx=6)
+        ttk.Button(drow1, text="Yedek Geri Yukle", command=self.restore_database).pack(side=tk.LEFT, padx=6)
+
+        drow2 = ttk.Frame(data_frame)
+        drow2.pack(fill=tk.X, pady=4)
+        ttk.Button(drow2, text="Veri Disari Aktar (ZIP)", command=self.export_data_zip).pack(side=tk.LEFT, padx=6)
+        ttk.Button(drow2, text="Veri Iceri Aktar (ZIP)", command=self.import_data_zip).pack(side=tk.LEFT, padx=6)
+        ttk.Label(
+            data_frame,
+            text="Yedek ve tasima islemleri veritabani dosyasini kopyalar. Islemden sonra uygulamayi yeniden baslatin.",
+            foreground="#5f6a72",
+        ).pack(anchor="w", padx=8, pady=(2, 6))
+
         template_frame = ttk.LabelFrame(self.tab_settings_body, text="Vardiya Sablonlari", style="Section.TLabelframe")
         template_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
@@ -4628,6 +4681,100 @@ class PuantajApp(tk.Tk):
             self._refresh_region_views()
         messagebox.showinfo("Basarili", "Ayarlar kaydedildi.")
         self.trigger_sync("settings")
+
+    def open_log_folder(self):
+        try:
+            os.makedirs(LOG_DIR, exist_ok=True)
+            os.startfile(LOG_DIR)
+        except Exception:
+            messagebox.showerror("Hata", "Log klasoru acilamadi.")
+
+    def open_data_folder(self):
+        try:
+            os.makedirs(db.DB_DIR, exist_ok=True)
+            os.startfile(db.DB_DIR)
+        except Exception:
+            messagebox.showerror("Hata", "Veri klasoru acilamadi.")
+
+    def backup_database(self):
+        try:
+            default_name = f"puantaj_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+            path = filedialog.asksaveasfilename(
+                defaultextension=".db",
+                initialfile=default_name,
+                filetypes=[("SQLite DB", "*.db"), ("All Files", "*.*")],
+            )
+            if not path:
+                return
+            backup_path = db.create_backup(path)
+            if self.logger:
+                self.logger.info("Manual backup created: %s", backup_path)
+            messagebox.showinfo("Basarili", f"Yedek olusturuldu: {backup_path}")
+        except Exception as exc:
+            if self.logger:
+                self.logger.exception("Backup failed")
+            messagebox.showerror("Hata", f"Yedek alinamadi: {exc}")
+
+    def restore_database(self):
+        if not messagebox.askyesno(
+            "Onay",
+            "Bu islem mevcut veritabaniyi degistirecek. Devam etmek istiyor musun?",
+        ):
+            return
+        try:
+            path = filedialog.askopenfilename(
+                filetypes=[("SQLite DB", "*.db"), ("All Files", "*.*")]
+            )
+            if not path:
+                return
+            db.restore_backup(path)
+            if self.logger:
+                self.logger.info("Database restored from: %s", path)
+            messagebox.showinfo("Basarili", "Yedek geri yüklendi. Uygulamayi yeniden baslatin.")
+        except Exception as exc:
+            if self.logger:
+                self.logger.exception("Restore failed")
+            messagebox.showerror("Hata", f"Geri yukleme basarisiz: {exc}")
+
+    def export_data_zip(self):
+        try:
+            default_name = f"rainstaff_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+            path = filedialog.asksaveasfilename(
+                defaultextension=".zip",
+                initialfile=default_name,
+                filetypes=[("ZIP", "*.zip"), ("All Files", "*.*")],
+            )
+            if not path:
+                return
+            export_path = db.export_data_zip(path)
+            if self.logger:
+                self.logger.info("Data exported: %s", export_path)
+            messagebox.showinfo("Basarili", f"Disari aktarildi: {export_path}")
+        except Exception as exc:
+            if self.logger:
+                self.logger.exception("Export failed")
+            messagebox.showerror("Hata", f"Disari aktarma basarisiz: {exc}")
+
+    def import_data_zip(self):
+        if not messagebox.askyesno(
+            "Onay",
+            "Bu islem mevcut veritabaniyi degistirecek. Devam etmek istiyor musun?",
+        ):
+            return
+        try:
+            path = filedialog.askopenfilename(
+                filetypes=[("ZIP", "*.zip"), ("All Files", "*.*")]
+            )
+            if not path:
+                return
+            db.import_data_zip(path)
+            if self.logger:
+                self.logger.info("Data imported from: %s", path)
+            messagebox.showinfo("Basarili", "Iceri aktarma tamamlandi. Uygulamayi yeniden baslatin.")
+        except Exception as exc:
+            if self.logger:
+                self.logger.exception("Import failed")
+            messagebox.showerror("Hata", f"Iceri aktarma basarisiz: {exc}")
 
 
 if __name__ == "__main__":

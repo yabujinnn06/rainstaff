@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import shutil
+import zipfile
 import hashlib
 from datetime import datetime, timedelta
 from contextlib import contextmanager
@@ -12,6 +13,7 @@ DB_DIR = APPDATA_DIR
 DB_PATH = os.path.join(DB_DIR, "puantaj.db")
 BACKUP_DIR = os.path.join(os.path.dirname(DB_DIR), "backups")
 BACKUP_MARKER = os.path.join(BACKUP_DIR, "last_backup.txt")
+EXPORT_DIR = os.path.join(os.path.dirname(DB_DIR), "exports")
 
 DEFAULT_SETTINGS = {
     "company_name": "",
@@ -62,10 +64,60 @@ def _backup_db_if_needed():
     if last_time and now - last_time < timedelta(days=1):
         return
     stamp = now.strftime("%Y%m%d_%H%M%S")
-    backup_path = os.path.join(BACKUP_DIR, f"puantaj_{stamp}.db")
-    shutil.copy2(DB_PATH, backup_path)
+    create_backup(os.path.join(BACKUP_DIR, f"puantaj_{stamp}.db"))
     with open(BACKUP_MARKER, "w", encoding="ascii") as handle:
         handle.write(now.isoformat())
+
+
+def create_backup(dest_path=None):
+    if not os.path.isfile(DB_PATH):
+        raise FileNotFoundError("Database not found")
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    if not dest_path:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest_path = os.path.join(BACKUP_DIR, f"puantaj_{stamp}.db")
+    shutil.copy2(DB_PATH, dest_path)
+    return dest_path
+
+
+def restore_backup(src_path):
+    if not os.path.isfile(src_path):
+        raise FileNotFoundError("Backup not found")
+    ensure_db_dir()
+    if os.path.isfile(DB_PATH):
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        recovery_path = os.path.join(BACKUP_DIR, f"pre_restore_{stamp}.db")
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        shutil.copy2(DB_PATH, recovery_path)
+    shutil.copy2(src_path, DB_PATH)
+
+
+def export_data_zip(dest_path=None):
+    if not os.path.isfile(DB_PATH):
+        raise FileNotFoundError("Database not found")
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+    if not dest_path:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest_path = os.path.join(EXPORT_DIR, f"rainstaff_export_{stamp}.zip")
+    with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.write(DB_PATH, arcname="puantaj.db")
+    return dest_path
+
+
+def import_data_zip(src_path):
+    if not os.path.isfile(src_path):
+        raise FileNotFoundError("Export file not found")
+    ensure_db_dir()
+    with zipfile.ZipFile(src_path, "r") as zf:
+        names = zf.namelist()
+        if "puantaj.db" not in names:
+            raise ValueError("Export zip missing puantaj.db")
+        temp_path = os.path.join(DB_DIR, "_import_tmp.db")
+        with zf.open("puantaj.db") as src, open(temp_path, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+    restore_backup(temp_path)
+    if os.path.isfile(temp_path):
+        os.remove(temp_path)
 
 
 @contextmanager
@@ -395,7 +447,7 @@ def delete_employee(employee_id):
 
 def list_employees(region=None):
     with get_conn() as conn:
-        query = "SELECT id, full_name, identity_no, department, title FROM employees"
+        query = "SELECT id, full_name, identity_no, department, title, region FROM employees"
         params = []
         if region and region != "ALL":
             query += " WHERE region = ?"
@@ -442,7 +494,7 @@ def delete_timesheet(ts_id):
 def list_timesheets(employee_id=None, start_date=None, end_date=None, region=None):
     query = (
         "SELECT t.id, t.employee_id, e.full_name, t.work_date, t.start_time, t.end_time, "
-        "t.break_minutes, t.is_special, t.notes "
+        "t.break_minutes, t.is_special, t.notes, t.region "
         "FROM timesheets t JOIN employees e ON e.id = t.employee_id"
     )
     conditions = []
@@ -608,7 +660,7 @@ def list_vehicles(region=None):
     with get_conn() as conn:
         query = (
             "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date, "
-            "oil_change_date, oil_change_km, oil_interval_km, notes "
+            "oil_change_date, oil_change_km, oil_interval_km, notes, region "
             "FROM vehicles"
         )
         params = []
@@ -624,7 +676,7 @@ def get_vehicle(vehicle_id):
     with get_conn() as conn:
         cur = conn.execute(
             "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date, "
-            "oil_change_date, oil_change_km, oil_interval_km, notes FROM vehicles WHERE id = ?;",
+            "oil_change_date, oil_change_km, oil_interval_km, notes, region FROM vehicles WHERE id = ?;",
             (vehicle_id,),
         )
         return cur.fetchone()
@@ -666,7 +718,7 @@ def delete_driver(driver_id):
 
 def list_drivers(region=None):
     with get_conn() as conn:
-        query = "SELECT id, full_name, license_class, license_expiry, phone, notes FROM drivers"
+        query = "SELECT id, full_name, license_class, license_expiry, phone, notes, region FROM drivers"
         params = []
         if region and region != "ALL":
             query += " WHERE region = ?"
@@ -829,7 +881,7 @@ def get_vehicle_fault(fault_id):
 def list_vehicle_faults(vehicle_id=None, status=None, region=None):
     query = (
         "SELECT f.id, f.vehicle_id, v.plate, f.title, f.description, f.opened_date, "
-        "f.closed_date, f.status "
+        "f.closed_date, f.status, f.region "
         "FROM vehicle_faults f "
         "JOIN vehicles v ON v.id = f.vehicle_id"
     )
@@ -902,7 +954,7 @@ def get_vehicle_service_visit(visit_id):
 
 def list_vehicle_service_visits(vehicle_id=None, fault_id=None, start_date=None, end_date=None, region=None):
     query = (
-        "SELECT s.id, s.vehicle_id, v.plate, s.fault_id, f.title, s.start_date, s.end_date, s.reason, s.cost, s.notes "
+        "SELECT s.id, s.vehicle_id, v.plate, s.fault_id, f.title, s.start_date, s.end_date, s.reason, s.cost, s.notes, s.region "
         "FROM vehicle_service_visits s "
         "JOIN vehicles v ON v.id = s.vehicle_id "
         "LEFT JOIN vehicle_faults f ON f.id = s.fault_id"
