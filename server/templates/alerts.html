@@ -21,7 +21,9 @@
       </div>
     </header>
 
-    <main class="content single">
+    <div class="layout">
+      {% include "_sidebar.html" %}
+      <main class="content single">
       <section class="section panel">
         <div class="panel-head">
           <h2>Haftalik Kontrol Uyarilari</h2>
@@ -181,7 +183,8 @@
           <div class="table-footer" data-target="service-history-table"></div>
         </div>
       </section>
-    </main>
+      </main>
+    </div>
 
     <script>
       const PAGE_SIZE = 200;

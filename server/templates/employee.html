@@ -18,7 +18,9 @@
       </div>
     </header>
 
-    <main class="content single">
+    <div class="layout">
+      {% include "_sidebar.html" %}
+      <main class="content single">
       <section class="section">
         <div class="panel">
           <div class="panel-head">
@@ -115,7 +117,8 @@
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </div>
     <script>
       const allToggle = document.querySelector('input[name="all"]');
       const startInput = document.querySelector('input[name="start"]');
