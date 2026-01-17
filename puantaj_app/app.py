@@ -512,6 +512,14 @@ class PuantajApp(tk.Tk):
             self.logger.error("Tkinter callback error", exc_info=(exc, val, tb))
         messagebox.showerror("Hata", "Beklenmeyen bir hata olustu. Log kaydi alindi.")
 
+    def _log_action(self, action, detail=""):
+        if not self.logger:
+            return
+        user = self.current_user or "unknown"
+        region = self.current_region or "ALL"
+        suffix = f" | {detail}" if detail else ""
+        self.logger.info("ACTION: %s | user=%s | region=%s%s", action, user, region, suffix)
+
     def _finish_startup(self):
         self.after(10, self._startup_step_prepare)
         if self.logger:
@@ -1071,8 +1079,10 @@ class PuantajApp(tk.Tk):
                 title,
                 self._entry_region(),
             )
+            self._log_action("employee_update", f"id={emp_id} name={name}")
         else:
             db.add_employee(name, identity_no, department, title, self._entry_region())
+            self._log_action("employee_add", f"name={name}")
         self.refresh_employees()
         self.clear_employee_form()
         self.trigger_sync("employee")
@@ -1084,6 +1094,7 @@ class PuantajApp(tk.Tk):
             return
         if messagebox.askyesno("Onay", "Calisani silmek istiyor musunuz?"):
             db.delete_employee(parse_int(emp_id))
+            self._log_action("employee_delete", f"id={emp_id}")
             self.refresh_employees()
             self.clear_employee_form()
             self.trigger_sync("employee_delete")
@@ -1421,6 +1432,7 @@ class PuantajApp(tk.Tk):
                 notes,
                 self._entry_region(),
             )
+            self._log_action("timesheet_update", f"id={ts_id} date={work_date}")
         else:
             db.add_timesheet(
                 employee_id,
@@ -1432,6 +1444,7 @@ class PuantajApp(tk.Tk):
                 notes,
                 self._entry_region(),
             )
+            self._log_action("timesheet_add", f"employee_id={employee_id} date={work_date}")
         self.refresh_timesheets()
         self.clear_timesheet_form()
         self.trigger_sync("timesheet")
@@ -1449,6 +1462,7 @@ class PuantajApp(tk.Tk):
             return
         if messagebox.askyesno("Onay", "Puantaj kaydini silmek istiyor musunuz?"):
             db.delete_timesheet(parse_int(ts_id))
+            self._log_action("timesheet_delete", f"id={ts_id}")
             self.refresh_timesheets()
             self.clear_timesheet_form()
             self.notify("Puantaj silindi.")
@@ -1492,6 +1506,7 @@ class PuantajApp(tk.Tk):
             return
         break_minutes = parse_int(self.st_break_var.get(), 0)
         db.upsert_shift_template(name, start_time, end_time, break_minutes)
+        self._log_action("shift_template_save", f"name={name}")
         self.refresh_shift_templates()
         self.clear_shift_template_form()
 
@@ -1502,6 +1517,7 @@ class PuantajApp(tk.Tk):
             return
         if messagebox.askyesno("Onay", "Sablonu silmek istiyor musunuz?"):
             db.delete_shift_template(parse_int(tpl_id))
+            self._log_action("shift_template_delete", f"id={tpl_id}")
             self.refresh_shift_templates()
             self.clear_shift_template_form()
 
@@ -1567,6 +1583,7 @@ class PuantajApp(tk.Tk):
             imported += 1
 
         self.refresh_employees()
+        self._log_action("employee_import", f"file={os.path.basename(path)} added={imported} skipped={skipped}")
         messagebox.showinfo("Bilgi", f"Iceri aktarma tamamlandi. Eklenen: {imported}, Atlanan: {skipped}")
 
     def import_timesheets(self):
@@ -1651,6 +1668,10 @@ class PuantajApp(tk.Tk):
             imported += 1
 
         self.refresh_timesheets()
+        self._log_action(
+            "timesheet_import",
+            f"file={os.path.basename(path)} added={imported} skipped={skipped} missing={missing_employee}",
+        )
         messagebox.showinfo(
             "Bilgi",
             f"Iceri aktarma tamamlandi. Eklenen: {imported}, Atlanan: {skipped}, Calisan bulunamadi: {missing_employee}",
@@ -1799,6 +1820,10 @@ class PuantajApp(tk.Tk):
         created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         db.add_report_log(output_path, created_at, employee_name, start_date, end_date)
         self.refresh_report_archive()
+        self._log_action(
+            "report_export",
+            f"file={os.path.basename(output_path)} employee={employee_name or 'Tum'} range={start_date or '-'}-{end_date or '-'}",
+        )
         messagebox.showinfo("Basarili", f"Rapor kaydedildi: {output_path}")
 
     def refresh_report_archive(self):
@@ -2272,6 +2297,7 @@ class PuantajApp(tk.Tk):
                 status,
                 self._entry_region(),
             )
+            self._log_action("fault_update", f"id={fault_id} plate={plate} status={status}")
         else:
             db.add_vehicle_fault(
                 vehicle_id,
@@ -2282,6 +2308,7 @@ class PuantajApp(tk.Tk):
                 status,
                 self._entry_region(),
             )
+            self._log_action("fault_add", f"plate={plate} title={title} status={status}")
         self.refresh_faults()
         self.refresh_vehicle_dashboard()
         self.clear_fault_form()
@@ -2301,6 +2328,7 @@ class PuantajApp(tk.Tk):
         if not messagebox.askyesno("Onay", "Ariza kaydi silinsin mi?"):
             return
         db.delete_vehicle_fault(fault_id)
+        self._log_action("fault_delete", f"id={fault_id}")
         self.refresh_faults()
         self.refresh_vehicle_dashboard()
         self.clear_fault_form()
@@ -2400,6 +2428,7 @@ class PuantajApp(tk.Tk):
                 notes,
                 self._entry_region(),
             )
+            self._log_action("service_visit_update", f"id={visit_id} plate={plate}")
         else:
             db.add_vehicle_service_visit(
                 vehicle_id,
@@ -2411,6 +2440,7 @@ class PuantajApp(tk.Tk):
                 notes,
                 self._entry_region(),
             )
+            self._log_action("service_visit_add", f"plate={plate} start={start_date}")
         self.refresh_service_visits()
         self.refresh_vehicle_dashboard()
         self.clear_service_visit_form()
@@ -2430,6 +2460,7 @@ class PuantajApp(tk.Tk):
         if not messagebox.askyesno("Onay", "Sanayi kaydi silinsin mi?"):
             return
         db.delete_vehicle_service_visit(visit_id)
+        self._log_action("service_visit_delete", f"id={visit_id}")
         self.refresh_service_visits()
         self.refresh_vehicle_dashboard()
         self.clear_service_visit_form()
@@ -2795,6 +2826,7 @@ class PuantajApp(tk.Tk):
                     notes,
                     self._entry_region(),
                 )
+                self._log_action("vehicle_update", f"id={vehicle_id} plate={plate}")
             else:
                 db.add_vehicle(
                     plate,
@@ -2811,6 +2843,7 @@ class PuantajApp(tk.Tk):
                     notes,
                     self._entry_region(),
                 )
+                self._log_action("vehicle_add", f"plate={plate}")
         except Exception:
             messagebox.showwarning("Uyari", "Arac kaydi eklenemedi. Plaka zaten var olabilir.")
             return
@@ -2825,6 +2858,7 @@ class PuantajApp(tk.Tk):
             return
         if messagebox.askyesno("Onay", "Araci silmek istiyor musunuz?"):
             db.delete_vehicle(parse_int(vehicle_id))
+            self._log_action("vehicle_delete", f"id={vehicle_id}")
             self.refresh_vehicles()
             self.clear_vehicle_form()
             self.trigger_sync("vehicle_delete")
@@ -2874,8 +2908,10 @@ class PuantajApp(tk.Tk):
                 notes,
                 self._entry_region(),
             )
+            self._log_action("driver_update", f"id={driver_id} name={name}")
         else:
             db.add_driver(name, license_class, license_expiry, phone, notes, self._entry_region())
+            self._log_action("driver_add", f"name={name}")
         self.refresh_drivers()
         self.clear_driver_form()
         self.trigger_sync("driver")
@@ -2887,6 +2923,7 @@ class PuantajApp(tk.Tk):
             return
         if messagebox.askyesno("Onay", "Surucuyu silmek istiyor musunuz?"):
             db.delete_driver(parse_int(driver_id))
+            self._log_action("driver_delete", f"id={driver_id}")
             self.refresh_drivers()
             self.clear_driver_form()
             self.trigger_sync("driver_delete")
@@ -2937,6 +2974,10 @@ class PuantajApp(tk.Tk):
             fault_id=fault_id,
             fault_status=fault_status,
             service_visit=service_visit,
+        )
+        self._log_action(
+            "vehicle_inspection_add",
+            f"plate={plate} date={inspect_date} km={inspect_km}",
         )
         for item_key, _label in VEHICLE_CHECKLIST:
             status = self.inspect_item_vars[item_key].get()
@@ -3200,6 +3241,7 @@ class PuantajApp(tk.Tk):
             },
             service_visits,
         )
+        self._log_action("vehicle_weekly_report", f"plate={plate} week={week_start} file={os.path.basename(output_path)}")
 
     def export_vehicle_card(self, plate):
         vehicle_id = self.vehicle_map.get(plate)
@@ -3228,6 +3270,7 @@ class PuantajApp(tk.Tk):
             faults,
             services,
         )
+        self._log_action("vehicle_card_report", f"plate={plate} file={os.path.basename(output_path)}")
         messagebox.showinfo("Basarili", "Arac karti Excel olusturuldu.")
         messagebox.showinfo("Basarili", f"Rapor kaydedildi: {output_path}")
 
@@ -4770,6 +4813,7 @@ class PuantajApp(tk.Tk):
         self.settings = db.get_all_settings()
         if self.is_admin and prev_view_region != (self.admin_view_region_var.get().strip() or "Tum Bolgeler"):
             self._refresh_region_views()
+        self._log_action("settings_save")
         messagebox.showinfo("Basarili", "Ayarlar kaydedildi.")
         self.trigger_sync("settings")
 
@@ -4809,6 +4853,7 @@ class PuantajApp(tk.Tk):
             backup_path = db.create_backup(path)
             if self.logger:
                 self.logger.info("Manual backup created: %s", backup_path)
+            self._log_action("backup_create", f"file={os.path.basename(backup_path)}")
             messagebox.showinfo("Basarili", f"Yedek olusturuldu: {backup_path}")
         except Exception as exc:
             if self.logger:
@@ -4830,7 +4875,8 @@ class PuantajApp(tk.Tk):
             db.restore_backup(path)
             if self.logger:
                 self.logger.info("Database restored from: %s", path)
-            messagebox.showinfo("Basarili", "Yedek geri yüklendi. Uygulamayi yeniden baslatin.")
+            self._log_action("backup_restore", f"file={os.path.basename(path)}")
+            messagebox.showinfo("Basarili", "Yedek geri yuklendi. Uygulamayi yeniden baslatin.")
         except Exception as exc:
             if self.logger:
                 self.logger.exception("Restore failed")
@@ -4849,6 +4895,7 @@ class PuantajApp(tk.Tk):
             export_path = db.export_data_zip(path)
             if self.logger:
                 self.logger.info("Data exported: %s", export_path)
+            self._log_action("data_export", f"file={os.path.basename(export_path)}")
             messagebox.showinfo("Basarili", f"Disari aktarildi: {export_path}")
         except Exception as exc:
             if self.logger:
@@ -4870,6 +4917,7 @@ class PuantajApp(tk.Tk):
             db.import_data_zip(path)
             if self.logger:
                 self.logger.info("Data imported from: %s", path)
+            self._log_action("data_import", f"file={os.path.basename(path)}")
             messagebox.showinfo("Basarili", "Iceri aktarma tamamlandi. Uygulamayi yeniden baslatin.")
         except Exception as exc:
             if self.logger:
