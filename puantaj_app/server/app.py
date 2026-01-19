@@ -63,44 +63,83 @@ def auto_sync():
         }), 500
 
 
-# Protect remaining routes - redirect to login if not authenticated
-@app.before_request
-def check_auth():
-    """Check authentication for all routes except public ones"""
-    view_function = app.view_functions.get(request.endpoint)
-    if view_function and getattr(view_function, 'is_public', False):
-        return  # Public endpoint, no auth check
-    
-    if request.endpoint and request.endpoint not in ['login', 'static']:
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
+# ============================================================================
+# SYNC ENDPOINTS (Public - No Authentication Required)
+# ============================================================================
 
-
-# Import protected routes AFTER public endpoints and auth check
-from puantaj_app.add_sync_endpoints import register_sync_routes
-register_sync_routes(app)
-
-
-# Override with explicit public auto-sync endpoint (after register_sync_routes to take precedence)
-@app.route('/auto-sync', methods=['GET', 'HEAD', 'POST'])
+@app.route('/sync', methods=['POST'])
 @public_endpoint
-def auto_sync_override():
+def sync_upload():
     """
-    Automatic sync trigger (for cron jobs / UptimeRobot)
-    PUBLIC ENDPOINT - No authentication required
-    EXPLICITLY DEFINED AFTER register_sync_routes to override any protected versions
+    Upload database file from desktop app
+    Receives: multipart/form-data with 'file' key containing SQLite DB
     """
     try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save uploaded DB to server's master DB location
+        db_path = db.DB_PATH
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        file.save(db_path)
+        
         return jsonify({
             'success': True,
-            'action': 'auto-sync',
+            'action': 'sync_upload',
             'timestamp': datetime.now().isoformat()
         }), 200
+    
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/sync/download', methods=['GET'])
+@public_endpoint
+def sync_download():
+    """
+    Download current database from server
+    Returns: SQLite DB file (binary)
+    """
+    try:
+        db_path = db.DB_PATH
+        if not os.path.exists(db_path):
+            return jsonify({'error': 'Database not found'}), 404
+        
+        with open(db_path, 'rb') as f:
+            db_content = f.read()
+        
+        return db_content, 200, {
+            'Content-Type': 'application/octet-stream',
+            'Content-Disposition': 'attachment; filename=puantaj.db'
+        }
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# AUTHENTICATION CHECK (Protect Dashboard/Admin Routes)
+# ============================================================================
+
+@app.before_request
+def check_auth():
+    """Check authentication - FIRST check if endpoint is public, THEN check session"""
+    # Skip auth for static files and explicit public endpoints
+    if request.endpoint in ['static']:
+        return
+    
+    # Check if the route is marked as public
+    view_function = app.view_functions.get(request.endpoint)
+    if view_function and getattr(view_function, 'is_public', False):
+        return  # Public endpoint - no auth required
+    
+    # All other routes require authentication
+    if request.endpoint and 'user_id' not in session:
+        return redirect(url_for('login'))
 
 
 @app.route('/')
@@ -111,6 +150,7 @@ def index():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@public_endpoint
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
