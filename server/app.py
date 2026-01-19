@@ -645,9 +645,9 @@ def compute_day_metrics(work_date, start_time, end_time, break_minutes, is_speci
     if end_min <= start_min:
         end_min += 1440
     break_min = break_minutes or 0
-      gross_minutes = max(0, end_min - start_min)
-      gross_hours = round(gross_minutes / 60.0, 2)
-      worked_minutes = max(0, gross_minutes - break_min)
+    gross_minutes = max(0, end_min - start_min)
+    gross_hours = round(gross_minutes / 60.0, 2)
+    worked_minutes = max(0, gross_minutes - break_min)
     worked_hours = round(worked_minutes / 60.0, 2)
 
     night_minutes = 0
