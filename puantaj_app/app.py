@@ -1096,7 +1096,9 @@ class PuantajApp(tk.Tk):
         msg = None
         try:
             # Step 1: Upload local DB to server
-            current_region = self.region or "ALL"
+            # Get region from settings or use default
+            user_region = db.get_setting("user_region", "Ankara")
+            current_region = user_region or "ALL"
             
             with open(db.DB_PATH, "rb") as handle:
                 files = {"db": ("puantaj.db", handle, "application/octet-stream")}
