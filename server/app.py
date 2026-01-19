@@ -116,22 +116,6 @@ def health():
     return {"ok": True, "db": db_exists()}
 
 
-@app.route("/sync", methods=["POST"])
-def sync():
-    if API_KEY:
-        token = request.headers.get("X-API-KEY", "")
-        if token != API_KEY:
-            abort(401)
-    if "db" not in request.files:
-        abort(400)
-    ensure_data_dir()
-    file = request.files["db"]
-    file.save(DB_PATH)
-    with get_conn() as conn:
-        ensure_schema(conn)
-    return {"ok": True}
-
-
 def is_authenticated():
     return bool(session.get("user"))
 
