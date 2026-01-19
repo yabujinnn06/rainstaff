@@ -1,1 +1,78 @@
-﻿
+﻿<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Haftalik Raporlar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-title">Haftalik Raporlar</div>
+        <div class="brand-sub">Arac Kontrol</div>
+      </div>
+      <div class="sync">
+        <a class="logout" href="/dashboard">Dashboard</a>
+        <a class="logout" href="/logout">Cikis</a>
+      </div>
+    </header>
+
+    <div class="layout">
+      {% include "_sidebar.html" %}
+      <main class="content single">
+      <section class="section panel">
+        <div class="panel-head">
+          <h2>Rapor Listesi</h2>
+          <input class="table-search" data-target="report-table" placeholder="Plaka/Hafta ara..." />
+        </div>
+        <div class="table-wrap tall">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Plaka</th>
+                <th>Hafta</th>
+                <th>Son Tarih</th>
+                <th>Kayit</th>
+                <th>Goruntule</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if reports %}
+                {% for row in reports %}
+                  <tr>
+                    <td>{{ row['plate'] }}</td>
+                    <td>{{ row['week_start'] }}</td>
+                    <td>{{ row['last_date'] }}</td>
+                    <td>{{ row['cnt'] }}</td>
+                    <td>
+                      <a class="link" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">Ac</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="5">Kayit yok</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </main>
+    </div>
+
+    <script>
+      document.querySelectorAll(".table-search").forEach((input) => {
+        input.addEventListener("input", () => {
+          const targetId = input.getAttribute("data-target");
+          const table = document.getElementById(targetId);
+          if (!table) return;
+          const needle = input.value.toLowerCase();
+          table.querySelectorAll("tbody tr").forEach((row) => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(needle) ? "" : "none";
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
