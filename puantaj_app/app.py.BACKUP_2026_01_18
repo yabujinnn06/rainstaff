@@ -5,7 +5,6 @@ import logging
 import traceback
 import sys
 import queue
-import shutil
 from datetime import datetime, date, time, timedelta
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -421,7 +420,7 @@ def load_logo_image(path, target_height=48):
 class PuantajApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Rainstaff ERP - Puantaj Yönetimi")
+        self.title("Rainstaff ERP")
         self.geometry("1280x800")
         self.minsize(1024, 720)
 
@@ -1092,57 +1091,39 @@ class PuantajApp(tk.Tk):
         thread.start()
 
     def _sync_worker(self, sync_url, token, reason):
-        """Senkronizasyon worker; upload + download + merge logic (19 Ocak)."""
-        msg = None
+        """Senkronizasyon worker; basarisiz olursa pending flag kaydeder."""
         try:
-            # Step 1: Upload local DB to server
-            current_region = self.region or "ALL"
-            
             with open(db.DB_PATH, "rb") as handle:
                 files = {"db": ("puantaj.db", handle, "application/octet-stream")}
-                headers = {
-                    "X-API-KEY": token,
-                    "X-Region": current_region,
-                    "X-Reason": reason
-                }
+                headers = {"X-API-KEY": token, "X-REASON": reason}
                 url = sync_url.rstrip("/") + "/sync"
                 resp = requests.post(url, headers=headers, files=files, timeout=10)
 
-            # Basarili upload doğrulama
-            if resp.status_code != 200:
-                msg = f"Senkron hatasi: Upload HTTP {resp.status_code}"
+            # Basarili sync doğrulama (sunucu {"ok": true} dönüyor)
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                    if data.get("success") or data.get("ok"):
+                        msg = "Senkron basarili"
+                        if self.logger:
+                            self.logger.info("Cloud sync completed: %s", reason)
+                    else:
+                        msg = f"Senkron hatasi: Sunucu {data.get('error', 'bilinmeyen hata')}"
+                        if self.logger:
+                            self.logger.warning("Cloud sync failed: %s | resp=%s", msg, data)
+                except ValueError:
+                    # JSON degilse kisa metni logla
+                    text = resp.text.strip()
+                    if text.lower() in {"ok", "success"}:
+                        msg = "Senkron basarili"
+                    else:
+                        msg = "Senkron hatasi: Yanit JSON degil"
+                    if self.logger:
+                        self.logger.warning("Cloud sync non-JSON response: %s", text[:200])
+            else:
+                msg = f"Senkron hatasi: HTTP {resp.status_code}"
                 if self.logger:
-                    self.logger.warning("Cloud sync upload error: %s", msg)
-                self.after(0, lambda: self._notify_sync_result(msg, reason))
-                return
-
-            # Step 2: Download merged DB from server
-            headers = {"X-API-KEY": token}
-            download_url = sync_url.rstrip("/") + "/sync/download"
-            
-            resp = requests.get(download_url, headers=headers, timeout=10)
-            
-            if resp.status_code != 200:
-                msg = f"Senkron hatasi: Download HTTP {resp.status_code}"
-                if self.logger:
-                    self.logger.warning("Cloud sync download error: %s", msg)
-                self.after(0, lambda: self._notify_sync_result(msg, reason))
-                return
-
-            # Step 3: Backup current local database
-            import shutil
-            backup_path = db.DB_PATH + ".sync_backup"
-            if os.path.isfile(db.DB_PATH):
-                shutil.copy2(db.DB_PATH, backup_path)
-
-            # Step 4: Write downloaded database as new local DB
-            with open(db.DB_PATH, "wb") as f:
-                f.write(resp.content)
-
-            msg = "Senkron basarili"
-            if self.logger:
-                self.logger.info("Cloud sync completed (upload+download+merge): %s", reason)
-            
+                    self.logger.warning("Cloud sync HTTP error: %s | body=%s", msg, resp.text[:200])
         except requests.Timeout:
             msg = "Senkron hatasi: Baglanti timeout"
             if self.logger:
@@ -1156,8 +1137,7 @@ class PuantajApp(tk.Tk):
             if self.logger:
                 self.logger.error("Cloud sync unexpected error: %s", str(e))
 
-        if msg:
-            self.after(0, lambda: self._notify_sync_result(msg, reason))
+        self.after(0, lambda: self._notify_sync_result(msg, reason))
 
     def manual_sync(self):
         if not self.sync_enabled_var.get():
