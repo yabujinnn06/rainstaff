@@ -1097,7 +1097,8 @@ class PuantajApp(tk.Tk):
         try:
             # Step 1: Upload local DB to server
             # Get region from settings or use default
-            user_region = db.get_setting("user_region", "Ankara")
+            settings = db.get_all_settings()
+            user_region = settings.get("user_region", "Ankara")
             current_region = user_region or "ALL"
             
             with open(db.DB_PATH, "rb") as handle:
