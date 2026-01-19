@@ -645,7 +645,9 @@ def compute_day_metrics(work_date, start_time, end_time, break_minutes, is_speci
     if end_min <= start_min:
         end_min += 1440
     break_min = break_minutes or 0
-    worked_minutes = max(0, (end_min - start_min) - break_min)
+      gross_minutes = max(0, end_min - start_min)
+      gross_hours = round(gross_minutes / 60.0, 2)
+      worked_minutes = max(0, gross_minutes - break_min)
     worked_hours = round(worked_minutes / 60.0, 2)
 
     night_minutes = 0
@@ -678,7 +680,7 @@ def compute_day_metrics(work_date, start_time, end_time, break_minutes, is_speci
             scheduled_hours = 0.0
 
     special_hours = worked_hours if is_special else 0.0
-    overtime_hours = 0.0 if is_special else max(0.0, worked_hours - scheduled_hours)
+    overtime_hours = 0.0 if is_special else max(0.0, gross_hours - scheduled_hours)
 
     return {
         "worked": worked_hours,
@@ -1255,8 +1257,13 @@ def dashboard():
 @app.route("/sync", methods=["POST"])
 def sync_desktop_db():
     """
-    Receive database file from desktop - Simple overwrite
+    Receive database file from desktop, merge with master DB
+    Supports multiple regions - merges data instead of overwriting
     """
+    # Get metadata from headers
+    region = request.headers.get("X-Region", "Unknown")
+    reason = request.headers.get("X-Reason", "manual")
+    
     # Check file
     if "db" not in request.files:
         return {"success": False, "error": "No database file in request"}, 400
@@ -1265,21 +1272,109 @@ def sync_desktop_db():
 
     try:
         ensure_data_dir()
-        file.save(DB_PATH)
         
-        # Ensure schema is valid
+        # Read uploaded DB bytes
+        db_bytes = file.read()
+        
+        # Save backup
+        timestamp = datetime.now(LOCAL_TZ).strftime("%Y%m%d_%H%M%S")
+        backup_path = os.path.join(DATA_DIR, f"backup_{region}_{timestamp}.db")
+        with open(backup_path, "wb") as f:
+            f.write(db_bytes)
+        
+        # If no master DB exists, use uploaded as master
+        if not db_exists():
+            with open(DB_PATH, "wb") as f:
+                f.write(db_bytes)
+            return {
+                "success": True,
+                "message": "Database created (first sync)",
+                "timestamp": datetime.now(LOCAL_TZ).isoformat(),
+                "region": region
+            }, 200
+        
+        # Merge uploaded DB with master
+        temp_path = os.path.join(DATA_DIR, f"temp_{region}_{timestamp}.db")
+        with open(temp_path, "wb") as f:
+            f.write(db_bytes)
+        
+        # Connect to both databases
+        master_conn = sqlite3.connect(DB_PATH)
+        master_conn.row_factory = sqlite3.Row
+        temp_conn = sqlite3.connect(temp_path)
+        temp_conn.row_factory = sqlite3.Row
+        
+        tables_to_merge = ["employees", "timesheets", "vehicles", "drivers", 
+                          "vehicle_inspections", "vehicle_inspection_results",
+                          "vehicle_faults", "vehicle_service_visits"]
+        
+        merged_count = 0
+        
+        for table in tables_to_merge:
+            try:
+                # Get column names
+                cursor = temp_conn.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in cursor.fetchall()]
+                if not columns:
+                    continue
+                
+                # Get all records from uploaded DB
+                temp_records = temp_conn.execute(f"SELECT * FROM {table}").fetchall()
+                
+                for record in temp_records:
+                    record_id = record[0]  # First column is always id
+                    
+                    # Check if exists in master
+                    exists = master_conn.execute(
+                        f"SELECT id FROM {table} WHERE id = ?", (record_id,)
+                    ).fetchone()
+                    
+                    if exists:
+                        # Update existing record
+                        set_clause = ", ".join([f"{col} = ?" for col in columns[1:]])
+                        values = [record[i] for i in range(1, len(columns))]
+                        values.append(record_id)
+                        master_conn.execute(
+                            f"UPDATE {table} SET {set_clause} WHERE id = ?",
+                            values
+                        )
+                    else:
+                        # Insert new record
+                        placeholders = ", ".join(["?" for _ in columns])
+                        master_conn.execute(
+                            f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})",
+                            [record[i] for i in range(len(columns))]
+                        )
+                    merged_count += 1
+                    
+            except Exception as e:
+                app.logger.warning(f"Merge {table} warning: {e}")
+        
+        master_conn.commit()
+        master_conn.close()
+        temp_conn.close()
+        
+        # Cleanup temp file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        
+        # Ensure schema after merge
         with get_conn() as conn:
             ensure_schema(conn)
         
+        app.logger.info(f"[SYNC] {region} merged {merged_count} records | Reason: {reason}")
+        
         return {
             "success": True,
-            "message": "Database synced successfully",
-            "timestamp": datetime.now(LOCAL_TZ).isoformat()
+            "message": f"Database merged successfully ({merged_count} records)",
+            "timestamp": datetime.now(LOCAL_TZ).isoformat(),
+            "region": region,
+            "merged": merged_count
         }, 200
 
     except Exception as e:
+        app.logger.error(f"[SYNC ERROR] {region}: {str(e)}")
         return {"success": False, "error": str(e)}, 500
-
 @app.route("/sync/download", methods=["GET"])
 def download_latest_db():
     """
