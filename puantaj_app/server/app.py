@@ -54,7 +54,17 @@ def auto_sync():
         }), 500
 
 
-# Import protected routes AFTER public endpoints
+# Protect remaining routes - redirect to login if not authenticated
+@app.before_request
+def check_auth():
+    """Check authentication for all routes except public ones"""
+    public_routes = ['login', 'health', 'auto_sync']
+    if request.endpoint and request.endpoint not in public_routes:
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+
+
+# Import protected routes AFTER public endpoints and auth check
 from puantaj_app.add_sync_endpoints import register_sync_routes
 register_sync_routes(app)
 
