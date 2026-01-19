@@ -1255,111 +1255,30 @@ def dashboard():
 @app.route("/sync", methods=["POST"])
 def sync_desktop_db():
     """
-    Receive database file from desktop, merge with master
-    
-    Headers:
-        X-API-KEY: API key for authentication
-        X-Region: Region identifier (Ankara, Istanbul, etc)
-        X-Reason: Sync reason (manual, auto, etc)
-    
-    Body:
-        db: multipart database file
+    Receive database file from desktop - Simple overwrite
     """
-    
-    # Authentication
-    api_key = request.headers.get("X-API-KEY", "")
-    if api_key != API_KEY:
-        return {"success": False, "error": "Invalid API key"}, 401
-    
-    # Get metadata
-    region = request.headers.get("X-Region", "Unknown")
-    reason = request.headers.get("X-Reason", "unknown")
-    
     # Check file
     if "db" not in request.files:
         return {"success": False, "error": "No database file in request"}, 400
-    
+
     file = request.files["db"]
-    
+
     try:
-        # Read uploaded DB
-        db_bytes = file.read()
+        ensure_data_dir()
+        file.save(DB_PATH)
         
-        # Save as backup with timestamp
-        timestamp = datetime.now(LOCAL_TZ).strftime("%Y%m%d_%H%M%S")
-        backup_path = os.path.join(DATA_DIR, f"sync_backup_{region}_{timestamp}.db")
-        
-        with open(backup_path, "wb") as f:
-            f.write(db_bytes)
-        
-        # Merge logic: if master DB doesn't exist, use uploaded as master
-        if not db_exists():
-            with open(DB_PATH, "wb") as f:
-                f.write(db_bytes)
-        else:
-            # Merge: Copy new records from uploaded DB to master
-            import tempfile
-            temp_path = os.path.join(DATA_DIR, f"temp_sync_{region}.db")
-            with open(temp_path, "wb") as f:
-                f.write(db_bytes)
-            
-            # Connection to both databases
-            master_conn = get_conn()
-            temp_conn = sqlite3.connect(temp_path)
-            temp_conn.row_factory = sqlite3.Row
-            
-            # Copy tables that were modified (timesheets, employees, etc)
-            tables_to_merge = ["timesheets", "employees", "vehicles", "drivers"]
-            
-            for table in tables_to_merge:
-                try:
-                    # Get all records from uploaded DB
-                    temp_records = temp_conn.execute(f"SELECT * FROM {table}").fetchall()
-                    
-                    for record in temp_records:
-                        record_id = record[0]
-                        # Check if exists in master
-                        exists = master_conn.execute(
-                            f"SELECT id FROM {table} WHERE id = ?", (record_id,)
-                        ).fetchone()
-                        
-                        if not exists:
-                            # Insert new record
-                            cols = [desc[0] for desc in temp_conn.description]
-                            placeholders = ",".join(["?" for _ in cols])
-                            master_conn.execute(
-                                f"INSERT INTO {table} VALUES ({placeholders})",
-                                tuple(record)
-                            )
-                except Exception as e:
-                    app.logger.warning(f"Merge {table} error: {e}")
-            
-            master_conn.commit()
-            master_conn.close()
-            temp_conn.close()
-            
-            # Cleanup temp file
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-        
-        # Log activity
-        app.logger.info(f"[SYNC] {region} uploaded DB | Reason: {reason} | Size: {len(db_bytes)} bytes")
+        # Ensure schema is valid
+        with get_conn() as conn:
+            ensure_schema(conn)
         
         return {
             "success": True,
             "message": "Database synced successfully",
-            "timestamp": datetime.now(LOCAL_TZ).isoformat(),
-            "region": region,
-            "backup": backup_path
+            "timestamp": datetime.now(LOCAL_TZ).isoformat()
         }, 200
-    
-    except Exception as e:
-        app.logger.error(f"[SYNC ERROR] {region}: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e)
-        }, 500
 
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
 
 @app.route("/sync/download", methods=["GET"])
 def download_latest_db():
