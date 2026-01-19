@@ -367,12 +367,13 @@ def status():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/auto-sync", methods=["POST"])
+@app.route("/auto-sync", methods=["GET", "HEAD", "POST"])
 def auto_sync():
     """
     Automatic sync trigger (for cron jobs / UptimeRobot)
     No authentication required - can be called from monitoring service
     Performs internal housekeeping (no upload/download)
+    Accepts GET, HEAD, POST methods for flexibility with different monitoring tools
     """
     try:
         with SYNC_LOCK:
