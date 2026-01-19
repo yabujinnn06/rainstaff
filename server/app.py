@@ -138,7 +138,7 @@ def is_authenticated():
 
 @app.before_request
 def enforce_login():
-    if request.path in ("/login", "/health", "/sync", "/static/style.css"):
+    if request.path in ("/login", "/health", "/sync", "/sync/download", "/sync/status", "/static/style.css"):
         return
     if request.path.startswith("/static/"):
         return
