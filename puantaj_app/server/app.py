@@ -17,7 +17,44 @@ import puantaj_app.db as db
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-# Import routes from add_sync_endpoints
+
+# Define public endpoints BEFORE importing protected routes
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint (public, no auth)"""
+    try:
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'database': 'connected'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
+
+
+@app.route('/auto-sync', methods=['GET', 'HEAD', 'POST'])
+def auto_sync():
+    """
+    Automatic sync trigger (for cron jobs / UptimeRobot)
+    PUBLIC ENDPOINT - No authentication required
+    """
+    try:
+        return jsonify({
+            'success': True,
+            'action': 'auto-sync',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# Import protected routes AFTER public endpoints
 from puantaj_app.add_sync_endpoints import register_sync_routes
 register_sync_routes(app)
 
@@ -94,42 +131,6 @@ def reports():
         return render_template('reports.html')
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
-
-
-@app.route('/health', methods=['GET'])
-def health():
-    """Health check endpoint (public, no auth)"""
-    try:
-        return jsonify({
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'database': 'connected'
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'status': 'unhealthy',
-            'error': str(e)
-        }), 500
-
-
-@app.route('/auto-sync', methods=['GET', 'HEAD', 'POST'])
-def auto_sync():
-    """
-    Automatic sync trigger (for cron jobs / UptimeRobot)
-    PUBLIC ENDPOINT - No authentication required
-    """
-    try:
-        # Simple health check response
-        return jsonify({
-            'success': True,
-            'action': 'auto-sync',
-            'timestamp': datetime.now().isoformat()
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 
 @app.errorhandler(404)
