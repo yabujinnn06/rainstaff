@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta, timezone
@@ -1458,3 +1458,5 @@ def sync_status():
 if __name__ == "__main__":
     ensure_data_dir()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)
+
+
