@@ -81,6 +81,28 @@ from puantaj_app.add_sync_endpoints import register_sync_routes
 register_sync_routes(app)
 
 
+# Override with explicit public auto-sync endpoint (after register_sync_routes to take precedence)
+@app.route('/auto-sync', methods=['GET', 'HEAD', 'POST'])
+@public_endpoint
+def auto_sync_override():
+    """
+    Automatic sync trigger (for cron jobs / UptimeRobot)
+    PUBLIC ENDPOINT - No authentication required
+    EXPLICITLY DEFINED AFTER register_sync_routes to override any protected versions
+    """
+    try:
+        return jsonify({
+            'success': True,
+            'action': 'auto-sync',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/')
 def index():
     if 'user_id' in session:
