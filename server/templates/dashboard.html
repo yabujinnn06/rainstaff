@@ -41,7 +41,7 @@
               <div class="kpi-value">{{ summary.employees }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">[CAL[ICON]SAN]</span>
+                <span class="kpi-icon">👥</span>
               </div>
               <div class="kpi-bar"><span style="width: 70%"></span></div>
             </div>
@@ -50,7 +50,7 @@
               <div class="kpi-value">{{ summary.timesheets }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">[PUANTAJ]</span>
+                <span class="kpi-icon">🧾</span>
               </div>
               <div class="kpi-bar"><span style="width: 64%"></span></div>
             </div>
@@ -59,8 +59,8 @@
               <div class="kpi-value">{{ top_overtime['overtime']|round(2) if top_overtime else 0 }}</div>
               <div class="card-sub">{{ top_overtime['name'] if top_overtime else 'Kayit yok' }}</div>
               <div class="kpi-meta">
-                <span class="kpi-chip">L[ICON]DER</span>
-                <span class="kpi-icon">[ICON][ICON]</span>
+                <span class="kpi-chip">LIDER</span>
+                <span class="kpi-icon">🏆</span>
               </div>
               <div class="kpi-bar"><span style="width: 58%"></span></div>
             </div>
@@ -69,7 +69,7 @@
               <div class="kpi-value">{{ summary.overtime_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">[SAAT][ICON]</span>
+                <span class="kpi-icon">⏱️</span>
               </div>
               <div class="kpi-bar"><span style="width: 75%"></span></div>
             </div>
@@ -78,7 +78,7 @@
               <div class="kpi-value">{{ summary.worked_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">[ICON][ICON]</span>
+                <span class="kpi-icon">🕒</span>
               </div>
               <div class="kpi-bar"><span style="width: 82%"></span></div>
             </div>
@@ -87,7 +87,7 @@
               <div class="kpi-value">{{ summary.night_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">[ICON][ICON]</span>
+                <span class="kpi-icon">🌙</span>
               </div>
               <div class="kpi-bar"><span style="width: 44%"></span></div>
             </div>
@@ -96,7 +96,7 @@
               <div class="kpi-value">{{ summary.special_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">[ICON][ICON]</span>
+                <span class="kpi-icon">📅</span>
               </div>
               <div class="kpi-bar"><span style="width: 36%"></span></div>
             </div>
@@ -105,8 +105,8 @@
               <div class="kpi-value">{{ summary.open_faults }}</div>
               <div class="card-sub">Detaylari gor</div>
               <div class="kpi-meta">
-                <span class="kpi-chip">KR[ICON]T[ICON]K</span>
-                <span class="kpi-icon">[ICON][ICON]</span>
+                <span class="kpi-chip">KRITIK</span>
+                <span class="kpi-icon">🚨</span>
               </div>
               <div class="kpi-bar"><span style="width: 62%"></span></div>
             </button>
@@ -115,8 +115,8 @@
               <div class="kpi-value">{{ oil_counts.due }}</div>
               <div class="card-sub">Yaklasti: {{ oil_counts.soon }}</div>
               <div class="kpi-meta">
-                <span class="kpi-chip">ONEML[ICON]</span>
-                <span class="kpi-icon">[ICON][ICON][ICON]</span>
+                <span class="kpi-chip">ONEMLI</span>
+                <span class="kpi-icon">🛢️</span>
               </div>
               <div class="kpi-bar"><span style="width: 68%"></span></div>
             </div>
@@ -124,8 +124,8 @@
               <div class="kpi-label">Sanayide</div>
               <div class="kpi-value">{{ summary.service_open }}</div>
               <div class="kpi-meta">
-                <span class="kpi-chip">AC[ICON]L</span>
-                <span class="kpi-icon">[ICON][ICON]</span>
+                <span class="kpi-chip">ACIL</span>
+                <span class="kpi-icon">🧰</span>
               </div>
               <div class="kpi-bar"><span style="width: 52%"></span></div>
             </a>
@@ -133,8 +133,8 @@
               <div class="kpi-label">Arac</div>
               <div class="kpi-value">{{ summary.vehicles }}</div>
               <div class="kpi-meta">
-                <span class="kpi-chip">F[ICON]LO</span>
-                <span class="kpi-icon">[ARAC]</span>
+                <span class="kpi-chip">FILO</span>
+                <span class="kpi-icon">🚗</span>
               </div>
               <div class="kpi-bar"><span style="width: 60%"></span></div>
             </div>
@@ -142,8 +142,8 @@
               <div class="kpi-label">Surucu</div>
               <div class="kpi-value">{{ summary.drivers }}</div>
               <div class="kpi-meta">
-                <span class="kpi-chip">AKT[ICON]F</span>
-                <span class="kpi-icon">[ICON][ICON][ICON][U[ICON]US][ICON]</span>
+                <span class="kpi-chip">AKTIF</span>
+                <span class="kpi-icon">🧑‍✈️</span>
               </div>
               <div class="kpi-bar"><span style="width: 55%"></span></div>
             </div>
@@ -787,25 +787,25 @@
       const sectionLinks = document.querySelectorAll(".sidebar a[data-section]");
       const sections = Array.from(document.querySelectorAll("main .section")).filter((section) => section.id);
       const updateActiveLink = () => {
-        let current[ICON]d = "";
+        let currentId = "";
         const offset = 140;
         sections.forEach((section) => {
           const rect = section.getBoundingClientRect();
           if (rect.top - offset <= 0) {
-            current[ICON]d = section.id;
+            currentId = section.id;
           }
         });
         sectionLinks.forEach((link) => {
           const target = link.getAttribute("href").replace("#", "");
-          link.classList.toggle("active", target && target === current[ICON]d);
+          link.classList.toggle("active", target && target === currentId);
         });
       };
 
       window.addEventListener("scroll", updateActiveLink, { passive: true });
       updateActiveLink();
-      const sidebarToggle = document.getElementBy[ICON]d("sidebarToggle");
-      const sidebarBackdrop = document.getElementBy[ICON]d("sidebarBackdrop");
-      const sidebarCollapse = document.getElementBy[ICON]d("sidebarCollapse");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+      const sidebarCollapse = document.getElementById("sidebarCollapse");
       const toggleSidebar = () => {
         document.body.classList.remove("sidebar-hidden");
         document.body.classList.remove("sidebar-collapsed");
@@ -839,18 +839,18 @@
         });
       });
       const allToggle = document.querySelector('input[name="all"]');
-      const start[ICON]nput = document.querySelector('input[name="start"]');
-      const end[ICON]nput = document.querySelector('input[name="end"]');
-      if (allToggle && start[ICON]nput && end[ICON]nput) {
+      const startInput = document.querySelector('input[name="start"]');
+      const endInput = document.querySelector('input[name="end"]');
+      if (allToggle && startInput && endInput) {
         const toggleDates = () => {
           const disabled = allToggle.checked;
-          start[ICON]nput.disabled = disabled;
-          end[ICON]nput.disabled = disabled;
+          startInput.disabled = disabled;
+          endInput.disabled = disabled;
         };
         allToggle.addEventListener("change", toggleDates);
         toggleDates();
       }
-      const PAGE_S[ICON]ZE = 200;
+      const PAGE_SIZE = 200;
       const tableStates = new Map();
 
       const buildFooter = (footer, state) => {
@@ -897,11 +897,11 @@
       const renderTable = (state) => {
         const visibleRows = filterRows(state);
         state.total = visibleRows.length;
-        state.pages = Math.max(1, Math.ceil(state.total / PAGE_S[ICON]ZE));
+        state.pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
         if (state.page > state.pages) state.page = state.pages;
-        const start[ICON]ndex = (state.page - 1) * PAGE_S[ICON]ZE;
-        const end[ICON]ndex = start[ICON]ndex + PAGE_S[ICON]ZE;
-        const pageRows = visibleRows.slice(start[ICON]ndex, end[ICON]ndex);
+        const startIndex = (state.page - 1) * PAGE_SIZE;
+        const endIndex = startIndex + PAGE_SIZE;
+        const pageRows = visibleRows.slice(startIndex, endIndex);
         state.rows.forEach((row) => {
           row.style.display = pageRows.includes(row) ? "" : "none";
         });
@@ -935,8 +935,8 @@
           .forEach((row) => row.remove());
         const footer = document.querySelector(`.table-footer[data-target="${table.id}"]`);
         if (!footer) return;
-        const date[ICON]nput = document.querySelector(`.table-date[data-target="${table.id}"]`);
-        const dateCol = date[ICON]nput ? Number(date[ICON]nput.dataset.dateCol) : null;
+        const dateInput = document.querySelector(`.table-date[data-target="${table.id}"]`);
+        const dateCol = dateInput ? Number(dateInput.dataset.dateCol) : null;
         const state = {
           table,
           tbody,
@@ -953,16 +953,16 @@
           emptyRow: null,
         };
         tableStates.set(table.id, state);
-        const search[ICON]nputs = document.querySelectorAll(`.table-search[data-target="${table.id}"]`);
-        search[ICON]nputs.forEach((input) => {
+        const searchInputs = document.querySelectorAll(`.table-search[data-target="${table.id}"]`);
+        searchInputs.forEach((input) => {
           input.addEventListener("input", () => {
             state.search = input.value || "";
             state.page = 1;
             renderTable(state);
           });
         });
-        const date[ICON]nputs = document.querySelectorAll(`.table-date[data-target="${table.id}"]`);
-        date[ICON]nputs.forEach((input) => {
+        const dateInputs = document.querySelectorAll(`.table-date[data-target="${table.id}"]`);
+        dateInputs.forEach((input) => {
           input.addEventListener("change", () => {
             if (input.dataset.dateType === "start") {
               state.dateStart = input.value || "";
@@ -978,7 +978,7 @@
 
       document.querySelectorAll("table").forEach(setupTable);
 
-      const notifyBtn = document.getElementBy[ICON]d("notifyBtn");
+      const notifyBtn = document.getElementById("notifyBtn");
       const alertUrgent = Number(document.body.dataset.alertUrgent || 0);
       const alertBad = Number(document.body.dataset.alertBad || 0);
       const alertRepeat = Number(document.body.dataset.alertRepeat || 0);
@@ -1013,11 +1013,11 @@
 
       document.querySelectorAll("[data-toggle]").forEach((trigger) => {
         trigger.addEventListener("click", () => {
-          const target = document.getElementBy[ICON]d(trigger.dataset.toggle);
+          const target = document.getElementById(trigger.dataset.toggle);
           if (!target) return;
           target.classList.toggle("active");
           if (target.classList.contains("active")) {
-            target.scroll[ICON]ntoView({ behavior: "smooth", block: "nearest" });
+            target.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
         });
       });
