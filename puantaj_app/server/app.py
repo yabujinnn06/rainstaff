@@ -127,14 +127,11 @@ def sync_download():
 
 @app.before_request
 def check_auth():
-    """Check authentication - FIRST check if endpoint is public, THEN check session"""
-    # Skip auth for static files and explicit public endpoints
-    if request.endpoint in ['static']:
-        return
+    """Check authentication - explicitly whitelist public endpoints"""
+    # These endpoints are publicly accessible without authentication
+    public_endpoints = {'static', 'auto_sync', 'health', 'sync_upload', 'sync_download', 'login', 'index'}
     
-    # Check if the route is marked as public
-    view_function = app.view_functions.get(request.endpoint)
-    if view_function and getattr(view_function, 'is_public', False):
+    if request.endpoint in public_endpoints:
         return  # Public endpoint - no auth required
     
     # All other routes require authentication
