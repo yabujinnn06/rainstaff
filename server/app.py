@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta, timezone
@@ -138,7 +138,7 @@ def is_authenticated():
 
 @app.before_request
 def enforce_login():
-    if request.path in ("/login", "/health", "/sync", "/sync/download", "/sync/status", "/static/style.css"):
+    if request.path in ("/login", "/health", "/sync", "/sync/download", "/sync/status", "/auto-sync", "/static/style.css"):
         return
     if request.path.startswith("/static/"):
         return
@@ -1453,6 +1453,19 @@ def sync_status():
     except Exception as e:
         return {"success": False, "error": str(e)}, 500
 
+
+
+@app.route("/auto-sync", methods=["GET", "HEAD", "POST"])
+def auto_sync():
+    """
+    Auto-sync endpoint for UptimeRobot cron trigger
+    Returns 200 OK - no authentication required
+    """
+    return {
+        "success": True,
+        "action": "auto-sync",
+        "timestamp": datetime.now(LOCAL_TZ).isoformat()
+    }, 200
 
 
 if __name__ == "__main__":
