@@ -138,7 +138,6 @@ def get_conn():
 
 
 def init_db():
-    _migrate_local_db()
     with get_conn() as conn:
         conn.execute(
             """
