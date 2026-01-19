@@ -8,6 +8,7 @@ import sys
 import sqlite3
 from datetime import datetime
 from contextlib import contextmanager
+from functools import wraps
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 
 # Add parent to path for imports
@@ -18,8 +19,15 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 
+# Decorator to mark endpoints as public (exempt from auth)
+def public_endpoint(f):
+    f.is_public = True
+    return f
+
+
 # Define public endpoints BEFORE importing protected routes
 @app.route('/health', methods=['GET'])
+@public_endpoint
 def health():
     """Health check endpoint (public, no auth)"""
     try:
@@ -36,6 +44,7 @@ def health():
 
 
 @app.route('/auto-sync', methods=['GET', 'HEAD', 'POST'])
+@public_endpoint
 def auto_sync():
     """
     Automatic sync trigger (for cron jobs / UptimeRobot)
@@ -58,8 +67,11 @@ def auto_sync():
 @app.before_request
 def check_auth():
     """Check authentication for all routes except public ones"""
-    public_routes = ['login', 'health', 'auto_sync']
-    if request.endpoint and request.endpoint not in public_routes:
+    view_function = app.view_functions.get(request.endpoint)
+    if view_function and getattr(view_function, 'is_public', False):
+        return  # Public endpoint, no auth check
+    
+    if request.endpoint and request.endpoint not in ['login', 'static']:
         if 'user_id' not in session:
             return redirect(url_for('login'))
 
