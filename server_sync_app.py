@@ -367,6 +367,39 @@ def status():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/auto-sync", methods=["POST"])
+def auto_sync():
+    """
+    Automatic sync trigger (for cron jobs / UptimeRobot)
+    No authentication required - can be called from monitoring service
+    Performs internal housekeeping (no upload/download)
+    """
+    try:
+        with SYNC_LOCK:
+            with get_master_db() as conn:
+                # Verify DB integrity
+                cur = conn.cursor()
+                cur.execute("SELECT COUNT(*) FROM employees")
+                emp_count = cur.fetchone()[0]
+                
+                cur.execute("SELECT COUNT(*) FROM timesheets")
+                ts_count = cur.fetchone()[0]
+                
+                # Log the auto-sync event
+                log_sync_activity("AUTO-SYNC", "ALL", "periodic_check", f"OK ({emp_count} emp, {ts_count} ts)")
+                
+                return jsonify({
+                    "success": True,
+                    "action": "auto-sync",
+                    "employees": emp_count,
+                    "timesheets": ts_count,
+                    "timestamp": datetime.now().isoformat()
+                }), 200
+    except Exception as e:
+        log_sync_activity("AUTO-SYNC", "ALL", "periodic_check", f"ERROR: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 def log_sync_activity(action, region, reason, status):
     """Log sync activities (can be extended to database logging)"""
     timestamp = datetime.now().isoformat()
