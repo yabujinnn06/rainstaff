@@ -1454,16 +1454,6 @@ def sync_status():
         return {"success": False, "error": str(e)}, 500
 
 
-@app.route("/health", methods=["GET"])
-def health():
-    """Health check endpoint"""
-    return {
-        "status": "ok",
-        "service": "rainstaff",
-        "timestamp": datetime.now(LOCAL_TZ).isoformat()
-    }, 200
-
-
 
 if __name__ == "__main__":
     ensure_data_dir()
