@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rainstaff Stok Envanteri</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <style>
+      .stock-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      
+      .stock-table thead {
+        background-color: #1a1a1a;
+        color: #fff;
+      }
+      
+      .stock-table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #FFD700;
+      }
+      
+      .stock-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #333;
+      }
+      
+      .stock-parent-row {
+        background-color: #252525;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 500;
+      }
+      
+      .stock-parent-row:hover {
+        background-color: #2a2a2a;
+      }
+      
+      .stock-parent-row td:first-child::before {
+        content: "▶ ";
+        display: inline-block;
+        margin-right: 8px;
+        color: #FFD700;
+        transition: transform 0.2s;
+      }
+      
+      .stock-parent-row.expanded td:first-child::before {
+        content: "▼ ";
+      }
+      
+      .stock-child-row {
+        background-color: #1f1f1f;
+        display: none;
+      }
+      
+      .stock-child-row.visible {
+        display: table-row;
+      }
+      
+      .stock-child-row td {
+        padding: 8px 12px 8px 40px;
+        border-bottom: 1px solid #2a2a2a;
+        font-size: 13px;
+      }
+      
+      .seri-status {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      
+      .seri-status.ok {
+        background-color: #2a4a2a;
+        color: #6db66d;
+      }
+      
+      .seri-status.yok {
+        background-color: #4a2a2a;
+        color: #ff6b6b;
+      }
+      
+      .seri-status.fazla {
+        background-color: #4a4a2a;
+        color: #ffeb99;
+      }
+      
+      .table-tools {
+        margin-bottom: 16px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      
+      .table-search {
+        flex: 1;
+        min-width: 200px;
+        padding: 8px 12px;
+        background-color: #2a2a2a;
+        border: 1px solid #444;
+        color: #e0e0e0;
+        border-radius: 4px;
+      }
+      
+      .table-search::placeholder {
+        color: #888;
+      }
+    </style>
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <div>
+          <div class="brand-title">Stok Envanteri</div>
+          <div class="brand-sub">Ürün ve seri numaraları</div>
+        </div>
+      </div>
+      <div class="sync">
+        <button class="notify-btn" id="refreshBtn" type="button">Yenile</button>
+        <a class="logout" href="/dashboard">Dashboard</a>
+      </div>
+    </header>
+
+    <div class="layout">
+      {% include "_sidebar.html" %}
+      <main class="content single">
+        <section class="section panel">
+          <div class="panel-head">
+            <h2>Stok Listesi</h2>
+          </div>
+          
+          <div class="table-wrap tall">
+            <div class="table-tools">
+              <input 
+                class="table-search" 
+                id="stockSearch" 
+                placeholder="Stok No, Ürün Adı veya Seri No ile ara..." 
+              />
+            </div>
+            
+            <table class="stock-table" id="stockTable">
+              <thead>
+                <tr>
+                  <th>Stok Kodu</th>
+                  <th>Ürün Adı</th>
+                  <th>Seri Sayısı</th>
+                </tr>
+              </thead>
+              <tbody id="stockTableBody">
+                <tr>
+                  <td colspan="3" style="text-align: center; padding: 20px; color: #888;">Yükleniyor...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      let stockData = [];
+      let expandedItems = new Set();
+
+      async function loadStockData() {
+        try {
+          const response = await fetch('/api/stock-data');
+          if (!response.ok) throw new Error('Veri alınamadı');
+          
+          stockData = await response.json();
+          renderStockTable();
+        } catch (error) {
+          console.error('Hata:', error);
+          document.getElementById('stockTableBody').innerHTML = 
+            '<tr><td colspan="3" style="text-align: center; color: #ff6b6b;">Hata: ' + error.message + '</td></tr>';
+        }
+      }
+
+      function renderStockTable() {
+        const tbody = document.getElementById('stockTableBody');
+        const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
+        
+        tbody.innerHTML = '';
+        
+        let rowIndex = 0;
+        stockData.forEach((item, idx) => {
+          const parentId = `parent-${idx}`;
+          const isExpanded = expandedItems.has(parentId);
+          
+          // Filter check on parent and children
+          const matchParent = searchTerm === '' || 
+            item.stok_kod.toLowerCase().includes(searchTerm) || 
+            (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm));
+          
+          const hasMatchingChild = item.seri_list.some(seri => 
+            (seri.seri_no && seri.seri_no.toLowerCase().includes(searchTerm))
+          );
+          
+          if (!matchParent && !hasMatchingChild) return;
+          
+          // Parent row
+          const parentRow = document.createElement('tr');
+          parentRow.className = `stock-parent-row ${isExpanded ? 'expanded' : ''}`;
+          parentRow.id = parentId;
+          parentRow.innerHTML = `
+            <td>${item.stok_kod || '-'}</td>
+            <td>${item.stok_adi || '-'}</td>
+            <td><strong>${item.seri_count}</strong> adet</td>
+          `;
+          
+          parentRow.addEventListener('click', () => toggleRow(parentId));
+          tbody.appendChild(parentRow);
+          rowIndex++;
+          
+          // Child rows
+          item.seri_list.forEach((seri, childIdx) => {
+            const childId = `child-${idx}-${childIdx}`;
+            const childRow = document.createElement('tr');
+            childRow.className = `stock-child-row ${isExpanded ? 'visible' : ''}`;
+            childRow.id = childId;
+            
+            const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
+            const statusText = seri.durum || 'OK';
+            
+            childRow.innerHTML = `
+              <td>
+                <strong>${seri.seri_no || '-'}</strong>
+              </td>
+              <td>
+                <span class="seri-status ${statusClass}">${statusText}</span>
+              </td>
+              <td style="font-size: 12px; color: #888;">
+                ${seri.tarih ? seri.tarih : '-'} | ${seri.girdi_yapan ? seri.girdi_yapan : '-'}
+              </td>
+            `;
+            
+            tbody.appendChild(childRow);
+            rowIndex++;
+          });
+        });
+        
+        if (tbody.children.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">Kayıt bulunamadı</td></tr>';
+        }
+      }
+
+      function toggleRow(parentId) {
+        const parentRow = document.getElementById(parentId);
+        const childRows = document.querySelectorAll(`tr[id^="child-${parentId.split('-')[1]}-"]`);
+        
+        if (expandedItems.has(parentId)) {
+          expandedItems.delete(parentId);
+          parentRow.classList.remove('expanded');
+          childRows.forEach(row => row.classList.remove('visible'));
+        } else {
+          expandedItems.add(parentId);
+          parentRow.classList.add('expanded');
+          childRows.forEach(row => row.classList.add('visible'));
+        }
+      }
+
+      document.getElementById('stockSearch').addEventListener('input', renderStockTable);
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        expandedItems.clear();
+        loadStockData();
+      });
+
+      // Load data on page load
+      loadStockData();
+    </script>
+  </body>
+</html>

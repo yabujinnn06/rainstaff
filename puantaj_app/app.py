@@ -5224,42 +5224,38 @@ class PuantajApp(tk.Tk):
         search_entry.bind("<Return>", lambda _: self.refresh_stock_list())
         ttk.Button(filter_row, text="Filtrele", command=self.refresh_stock_list).pack(side=tk.LEFT, padx=6)
 
-        # Treeview
-        columns = ("stok_kod", "stok_adi", "seri_no", "durum", "tarih", "girdi_yapan", "adet", "bolge")
-        self.stock_tree = ttk.Treeview(list_frame, columns=columns, show="headings")
+        # Treeview container
+        tree_container = ttk.Frame(list_frame)
+        tree_container.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ("stok_kod", "stok_adi")
+        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree headings")
 
+        self.stock_tree.heading("#0", text="Stok Bilgisi")
         self.stock_tree.heading("stok_kod", text="Stok Kod")
         self.stock_tree.heading("stok_adi", text="Stok Adi")
-        self.stock_tree.heading("seri_no", text="Seri No")
-        self.stock_tree.heading("durum", text="Durum")
-        self.stock_tree.heading("tarih", text="Tarih")
-        self.stock_tree.heading("girdi_yapan", text="Girdi Yapan")
-        self.stock_tree.heading("adet", text="Adet")
-        self.stock_tree.heading("bolge", text="Bolge")
 
-        self.stock_tree.column("stok_kod", width=100)
-        self.stock_tree.column("stok_adi", width=200)
-        self.stock_tree.column("seri_no", width=150)
-        self.stock_tree.column("durum", width=100)
-        self.stock_tree.column("tarih", width=100)
-        self.stock_tree.column("girdi_yapan", width=100)
-        self.stock_tree.column("adet", width=80)
-        self.stock_tree.column("bolge", width=100)
+        self.stock_tree.column("#0", width=200)
+        self.stock_tree.column("stok_kod", width=120)
+        self.stock_tree.column("stok_adi", width=250)
 
-        self.stock_tree.tag_configure("odd", background="#252525", foreground="#E0E0E0")
-        self.stock_tree.tag_configure("even", background="#1F1F1F", foreground="#E0E0E0")
-        self.stock_tree.tag_configure("yok", background="#ffcccc", foreground="#E0E0E0")
-        self.stock_tree.tag_configure("fazla", background="#ffffcc", foreground="#333333")
+        self.stock_tree.tag_configure("parent", background="#1F1F1F", foreground="#FFD700")
+        self.stock_tree.tag_configure("child_ok", background="#252525", foreground="#E0E0E0")
+        self.stock_tree.tag_configure("child_yok", background="#ffcccc", foreground="#333333")
+        self.stock_tree.tag_configure("child_fazla", background="#ffffcc", foreground="#333333")
 
-        stock_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
-        stock_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.stock_tree.yview)
+        stock_xscroll = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
+        stock_yscroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.stock_tree.yview)
         self.stock_tree.configure(xscrollcommand=stock_xscroll.set, yscrollcommand=stock_yscroll.set)
 
-        list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+        tree_container.columnconfigure(0, weight=1)
+        tree_container.rowconfigure(0, weight=1)
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
         stock_yscroll.grid(row=0, column=1, sticky="ns")
         stock_xscroll.grid(row=1, column=0, sticky="ew")
+        
+        # Click handler for expanding/collapsing
+        self.stock_tree.bind("<Button-1>", self._on_stock_tree_click)
 
     def select_stock_file(self):
         """Select Excel file for stock upload"""
@@ -5312,46 +5308,43 @@ class PuantajApp(tk.Tk):
             adet_idx = next((i for i, h in enumerate(headers) if 'adet' in h), None)
 
             # Insert into local DB
-            conn = db.get_conn().__enter__()
-            cursor = conn.cursor()
-            
-            # Delete existing records for this region
-            cursor.execute("DELETE FROM stock_inventory WHERE bolge = ?", (bolge,))
-            
             imported = 0
-            for row in rows[1:]:
-                try:
-                    stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
-                    stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) else ''
-                    seri_no = str(row[seri_no_idx]).strip() if seri_no_idx < len(row) else ''
-
-                    if not seri_no:
-                        continue
-
-                    durum = str(row[durum_idx]).strip() if durum_idx and durum_idx < len(row) and row[durum_idx] else None
-                    tarih = str(row[tarih_idx]).strip() if tarih_idx and tarih_idx < len(row) and row[tarih_idx] else None
-                    girdi_yapan = str(row[girdi_yapan_idx]).strip() if girdi_yapan_idx and girdi_yapan_idx < len(row) and row[girdi_yapan_idx] else None
-                    adet = None
+            with db.get_conn() as conn:
+                cursor = conn.cursor()
+                
+                # Delete existing records for this region
+                cursor.execute("DELETE FROM stock_inventory WHERE bolge = ?", (bolge,))
+                
+                for row in rows[1:]:
                     try:
-                        adet = int(row[adet_idx]) if adet_idx and adet_idx < len(row) and row[adet_idx] else None
-                    except (ValueError, TypeError):
-                        pass
+                        stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
+                        stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) else ''
+                        seri_no = str(row[seri_no_idx]).strip() if seri_no_idx < len(row) else ''
 
-                    cursor.execute(
-                        """INSERT INTO stock_inventory 
-                           (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, datetime.now().isoformat())
-                    )
-                    imported += 1
+                        if not seri_no:
+                            continue
 
-                except Exception as e:
-                    if self.logger:
-                        self.logger.debug(f"Stock row error: {e}")
-                    continue
+                        durum = str(row[durum_idx]).strip() if durum_idx and durum_idx < len(row) and row[durum_idx] else None
+                        tarih = str(row[tarih_idx]).strip() if tarih_idx and tarih_idx < len(row) and row[tarih_idx] else None
+                        girdi_yapan = str(row[girdi_yapan_idx]).strip() if girdi_yapan_idx and girdi_yapan_idx < len(row) and row[girdi_yapan_idx] else None
+                        adet = None
+                        try:
+                            adet = int(row[adet_idx]) if adet_idx and adet_idx < len(row) and row[adet_idx] else None
+                        except (ValueError, TypeError):
+                            pass
 
-            conn.commit()
-            conn.close()
+                        cursor.execute(
+                            """INSERT INTO stock_inventory 
+                               (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, datetime.now().isoformat())
+                        )
+                        imported += 1
+
+                    except Exception as e:
+                        if self.logger:
+                            self.logger.debug(f"Stock row error: {e}")
+                        continue
 
             self.stock_status_var.set(f"✓ {imported} kayit yuklendi ({bolge})")
             self._log_action("stock_upload", f"file={os.path.basename(file_path)} region={bolge} count={imported}")
@@ -5378,59 +5371,81 @@ class PuantajApp(tk.Tk):
             self.stock_tree.delete(item)
 
         try:
-            conn = db.get_conn().__enter__()
-            cursor = conn.cursor()
+            with db.get_conn() as conn:
+                cursor = conn.cursor()
 
-            query = "SELECT * FROM stock_inventory WHERE 1=1"
-            params = []
+                query = "SELECT * FROM stock_inventory WHERE 1=1"
+                params = []
 
-            bolge_filter = self.stock_filter_bolge.get()
-            if bolge_filter and bolge_filter != "ALL":
-                query += " AND bolge = ?"
-                params.append(bolge_filter)
+                bolge_filter = self.stock_filter_bolge.get()
+                if bolge_filter and bolge_filter != "ALL":
+                    query += " AND bolge = ?"
+                    params.append(bolge_filter)
 
-            durum_filter = self.stock_filter_durum.get()
-            if durum_filter and durum_filter != "ALL":
-                query += " AND durum = ?"
-                params.append(durum_filter)
+                durum_filter = self.stock_filter_durum.get()
+                if durum_filter and durum_filter != "ALL":
+                    query += " AND durum = ?"
+                    params.append(durum_filter)
 
-            search = self.stock_search_var.get().strip()
-            if search:
-                query += " AND (stok_kod LIKE ? OR stok_adi LIKE ? OR seri_no LIKE ?)"
-                search_term = f"%{search}%"
-                params.extend([search_term, search_term, search_term])
+                search = self.stock_search_var.get().strip()
+                if search:
+                    query += " AND (stok_kod LIKE ? OR stok_adi LIKE ? OR seri_no LIKE ?)"
+                    search_term = f"%{search}%"
+                    params.extend([search_term, search_term, search_term])
 
-            query += " ORDER BY stok_kod, seri_no"
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
+                query += " ORDER BY stok_kod, seri_no"
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
+            # Group by stok_kod
+            grouped = {}
             for row in rows:
                 stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, *_ = row
-                
-                # Tag based on durum
-                tag = ""
-                if durum == "YOK":
-                    tag = "yok"
-                elif durum == "FAZLA":
-                    tag = "fazla"
-                else:
-                    tag = "odd" if len(self.stock_tree.get_children()) % 2 else "even"
+                if stok_kod not in grouped:
+                    grouped[stok_kod] = {
+                        'stok_adi': stok_adi,
+                        'items': []
+                    }
+                grouped[stok_kod]['items'].append({
+                    'seri_no': seri_no,
+                    'durum': durum,
+                    'tarih': tarih,
+                    'girdi_yapan': girdi_yapan,
+                    'bolge': bolge,
+                    'adet': adet
+                })
 
-                self.stock_tree.insert("", tk.END, values=(
-                    stok_kod or "",
-                    stok_adi or "",
-                    seri_no or "",
-                    durum or "",
-                    tarih or "",
-                    girdi_yapan or "",
-                    adet or "",
-                    bolge or ""
-                ), tags=(tag,))
+            # Insert grouped data
+            for stok_kod, data in grouped.items():
+                parent_id = self.stock_tree.insert("", tk.END, text=f"Seri No: {len(data['items'])} adet", 
+                                                    values=(stok_kod, data['stok_adi']), 
+                                                    tags=("parent",), open=False)
+                
+                for item in data['items']:
+                    # Tag based on durum
+                    tag = "child_yok" if item['durum'] == "YOK" else "child_fazla" if item['durum'] == "FAZLA" else "child_ok"
+                    
+                    child_text = f"📌 {item['seri_no']} | {item['durum'] or 'OK'} | {item['tarih'] or ''}"
+                    self.stock_tree.insert(parent_id, tk.END, text=child_text, 
+                                          values=("", f"{item['girdi_yapan'] or ''} - Adet: {item['adet'] or 0}"),
+                                          tags=(tag,))
 
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Stock list refresh error: {e}")
+
+    def _on_stock_tree_click(self, event):
+        """Handle treeview click for expand/collapse"""
+        item = self.stock_tree.identify('item', event.x, event.y)
+        if not item:
+            return
+        
+        # Check if this is a parent item (has children)
+        children = self.stock_tree.get_children(item)
+        if children:
+            # Toggle open state
+            current_open = self.stock_tree.item(item, 'open')
+            self.stock_tree.item(item, open=not current_open)
 
 
 if __name__ == "__main__":

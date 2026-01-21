@@ -214,6 +214,68 @@ def reports():
         return render_template('error.html', error=str(e)), 500
 
 
+@app.route('/stock')
+def stock():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        return render_template('stock.html')
+    except Exception as e:
+        return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/api/stock-data')
+def api_stock_data():
+    """Get stock inventory data grouped by stok_kod"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        with db.get_conn() as conn:
+            cursor = conn.cursor()
+            
+            # Get all stock records
+            cursor.execute("""
+                SELECT stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet 
+                FROM stock_inventory 
+                ORDER BY stok_kod, seri_no
+            """)
+            rows = cursor.fetchall()
+        
+        # Group by stok_kod
+        grouped = {}
+        for row in rows:
+            stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet = row
+            if stok_kod not in grouped:
+                grouped[stok_kod] = {
+                    'stok_adi': stok_adi,
+                    'seri_list': []
+                }
+            grouped[stok_kod]['seri_list'].append({
+                'seri_no': seri_no,
+                'durum': durum,
+                'tarih': tarih,
+                'girdi_yapan': girdi_yapan,
+                'bolge': bolge,
+                'adet': adet
+            })
+        
+        # Convert to list format
+        data = []
+        for stok_kod, info in grouped.items():
+            data.append({
+                'stok_kod': stok_kod,
+                'stok_adi': info['stok_adi'],
+                'seri_count': len(info['seri_list']),
+                'seri_list': info['seri_list']
+            })
+        
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     return render_template('404.html'), 404

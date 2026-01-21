@@ -299,6 +299,23 @@ def init_db():
             );
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS stock_inventory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                stok_kod TEXT,
+                stok_adi TEXT,
+                seri_no TEXT NOT NULL UNIQUE,
+                durum TEXT,
+                tarih TEXT,
+                girdi_yapan TEXT,
+                bolge TEXT NOT NULL,
+                adet INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?);",
