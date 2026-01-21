@@ -182,6 +182,7 @@
           if (!response.ok) throw new Error('Veri alınamadı');
           
           stockData = await response.json();
+          console.log('Stock data loaded:', stockData);
           renderStockTable();
         } catch (error) {
           console.error('Hata:', error);
