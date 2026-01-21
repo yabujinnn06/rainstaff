@@ -5228,21 +5228,23 @@ class PuantajApp(tk.Tk):
         tree_container = ttk.Frame(list_frame)
         tree_container.pack(fill=tk.BOTH, expand=True)
         
-        columns = ("stok_kod", "stok_adi")
-        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree headings")
+        columns = ("stok_kod", "stok_adi", "seri_count")
+        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree headings", height=15)
 
-        self.stock_tree.heading("#0", text="Stok Bilgisi")
-        self.stock_tree.heading("stok_kod", text="Stok Kod")
-        self.stock_tree.heading("stok_adi", text="Stok Adi")
+        self.stock_tree.heading("#0", text="")
+        self.stock_tree.heading("stok_kod", text="Stok Kodu")
+        self.stock_tree.heading("stok_adi", text="Ürün Adı")
+        self.stock_tree.heading("seri_count", text="Seri Sayısı")
 
-        self.stock_tree.column("#0", width=200)
-        self.stock_tree.column("stok_kod", width=120)
-        self.stock_tree.column("stok_adi", width=250)
+        self.stock_tree.column("#0", width=0, stretch=False)
+        self.stock_tree.column("stok_kod", width=120, anchor="w")
+        self.stock_tree.column("stok_adi", width=250, anchor="w")
+        self.stock_tree.column("seri_count", width=100, anchor="center")
 
-        self.stock_tree.tag_configure("parent", background="#1F1F1F", foreground="#FFD700")
-        self.stock_tree.tag_configure("child_ok", background="#252525", foreground="#E0E0E0")
-        self.stock_tree.tag_configure("child_yok", background="#ffcccc", foreground="#333333")
-        self.stock_tree.tag_configure("child_fazla", background="#ffffcc", foreground="#333333")
+        self.stock_tree.tag_configure("parent", background="#252525", foreground="#FFD700")
+        self.stock_tree.tag_configure("child_ok", background="#1f1f1f", foreground="#6db66d")
+        self.stock_tree.tag_configure("child_yok", background="#1f1f1f", foreground="#ff6b6b")
+        self.stock_tree.tag_configure("child_fazla", background="#1f1f1f", foreground="#ffeb99")
 
         stock_xscroll = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
         stock_yscroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.stock_tree.yview)
@@ -5417,17 +5419,18 @@ class PuantajApp(tk.Tk):
 
             # Insert grouped data
             for stok_kod, data in grouped.items():
-                parent_id = self.stock_tree.insert("", tk.END, text=f"Seri No: {len(data['items'])} adet", 
-                                                    values=(stok_kod, data['stok_adi']), 
+                parent_id = self.stock_tree.insert("", tk.END, text="", 
+                                                    values=(stok_kod, data['stok_adi'], f"{len(data['items'])} adet"), 
                                                     tags=("parent",), open=False)
                 
                 for item in data['items']:
                     # Tag based on durum
                     tag = "child_yok" if item['durum'] == "YOK" else "child_fazla" if item['durum'] == "FAZLA" else "child_ok"
                     
-                    child_text = f"📌 {item['seri_no']} | {item['durum'] or 'OK'} | {item['tarih'] or ''}"
-                    self.stock_tree.insert(parent_id, tk.END, text=child_text, 
-                                          values=("", f"{item['girdi_yapan'] or ''} - Adet: {item['adet'] or 0}"),
+                    status_text = f"{item['durum'] or 'OK'}"
+                    self.stock_tree.insert(parent_id, tk.END, text="", 
+                                          values=(f"📌 {item['seri_no']}", f"{status_text} | {item['tarih'] or '-'}", 
+                                                 f"{item['girdi_yapan'] or '-'}"),
                                           tags=(tag,))
 
         except Exception as e:

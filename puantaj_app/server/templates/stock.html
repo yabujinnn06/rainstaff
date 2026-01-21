@@ -6,109 +6,169 @@
     <title>Rainstaff Stok Envanteri</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <style>
-      .stock-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
+      .stock-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
       }
-      
-      .stock-table thead {
-        background-color: #1a1a1a;
-        color: #fff;
+
+      .stock-item {
+        border: 1px solid #333;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        overflow: hidden;
       }
-      
-      .stock-table th {
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 2px solid #FFD700;
-      }
-      
-      .stock-table td {
-        padding: 10px 12px;
-        border-bottom: 1px solid #333;
-      }
-      
-      .stock-parent-row {
+
+      .stock-item-header {
         background-color: #252525;
+        padding: 12px;
         cursor: pointer;
         user-select: none;
-        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.2s;
       }
-      
-      .stock-parent-row:hover {
+
+      .stock-item-header:hover {
         background-color: #2a2a2a;
       }
-      
-      .stock-parent-row td:first-child::before {
-        content: "▶ ";
-        display: inline-block;
-        margin-right: 8px;
+
+      .stock-item-header.open {
+        background-color: #2a2a2a;
+      }
+
+      .stock-item-toggle {
         color: #FFD700;
-        transition: transform 0.2s;
+        font-weight: bold;
+        margin-right: 12px;
+        min-width: 20px;
       }
-      
-      .stock-parent-row.expanded td:first-child::before {
-        content: "▼ ";
+
+      .stock-item-header-content {
+        display: flex;
+        gap: 20px;
+        flex: 1;
+        align-items: center;
       }
-      
-      .stock-child-row {
-        background-color: #1f1f1f;
-        display: none;
+
+      .stock-item-header-left {
+        flex: 1;
       }
-      
-      .stock-child-row.visible {
-        display: table-row;
+
+      .stock-item-code {
+        color: #FFD700;
+        font-weight: 600;
+        font-size: 14px;
       }
-      
-      .stock-child-row td {
-        padding: 8px 12px 8px 40px;
-        border-bottom: 1px solid #2a2a2a;
+
+      .stock-item-name {
+        color: #e0e0e0;
         font-size: 13px;
+        margin-top: 2px;
       }
-      
+
+      .stock-item-count {
+        color: #888;
+        font-size: 12px;
+        min-width: 60px;
+        text-align: right;
+      }
+
+      .stock-item-body {
+        display: none;
+        background-color: #1f1f1f;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+      }
+
+      .stock-item-body.open {
+        display: block;
+        max-height: 2000px;
+      }
+
+      .seri-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .seri-item {
+        padding: 10px 12px;
+        border-bottom: 1px solid #2a2a2a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: #e0e0e0;
+      }
+
+      .seri-item:last-child {
+        border-bottom: none;
+      }
+
+      .seri-no {
+        color: #FFD700;
+        font-weight: 500;
+        min-width: 150px;
+      }
+
       .seri-status {
         display: inline-block;
         padding: 2px 8px;
         border-radius: 3px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 500;
+        min-width: 50px;
+        text-align: center;
       }
-      
+
       .seri-status.ok {
         background-color: #2a4a2a;
         color: #6db66d;
       }
-      
+
       .seri-status.yok {
         background-color: #4a2a2a;
         color: #ff6b6b;
       }
-      
+
       .seri-status.fazla {
         background-color: #4a4a2a;
         color: #ffeb99;
       }
-      
-      .table-tools {
-        margin-bottom: 16px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
+
+      .seri-meta {
+        color: #888;
+        font-size: 12px;
+        min-width: 150px;
+        text-align: right;
       }
-      
-      .table-search {
-        flex: 1;
-        min-width: 200px;
-        padding: 8px 12px;
+
+      .search-box {
+        margin-bottom: 20px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px 12px;
         background-color: #2a2a2a;
         border: 1px solid #444;
         color: #e0e0e0;
         border-radius: 4px;
+        font-size: 14px;
       }
-      
-      .table-search::placeholder {
+
+      .search-box input::placeholder {
         color: #888;
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 40px 20px;
+        color: #888;
+        font-size: 14px;
       }
     </style>
   </head>
@@ -133,38 +193,24 @@
           <div class="panel-head">
             <h2>Stok Listesi</h2>
           </div>
-          
-          <div class="table-wrap tall">
-            <div class="table-tools">
-              <input 
-                class="table-search" 
-                id="stockSearch" 
-                placeholder="Stok No, Ürün Adı veya Seri No ile ara..." 
-              />
-            </div>
-            
-            <table class="stock-table" id="stockTable">
-              <thead>
-                <tr>
-                  <th>Stok Kodu</th>
-                  <th>Ürün Adı</th>
-                  <th>Seri Sayısı</th>
-                </tr>
-              </thead>
-              <tbody id="stockTableBody">
-                <tr>
-                  <td colspan="3" style="text-align: center; padding: 20px; color: #888;">Yükleniyor...</td>
-                </tr>
-              </tbody>
-            </table>
+
+          <div class="search-box">
+            <input 
+              type="text" 
+              id="stockSearch" 
+              placeholder="Stok No, Ürün Adı veya Seri No ile ara..."
+            />
           </div>
+
+          <ul class="stock-list" id="stockList">
+            <li style="text-align: center; padding: 40px 20px; color: #888;">Yükleniyor...</li>
+          </ul>
         </section>
       </main>
     </div>
 
     <script>
       let stockData = [];
-      let expandedItems = new Set();
 
       async function loadStockData() {
         try {
@@ -172,104 +218,79 @@
           if (!response.ok) throw new Error('Veri alınamadı');
           
           stockData = await response.json();
-          renderStockTable();
+          renderStockList();
         } catch (error) {
           console.error('Hata:', error);
-          document.getElementById('stockTableBody').innerHTML = 
-            '<tr><td colspan="3" style="text-align: center; color: #ff6b6b;">Hata: ' + error.message + '</td></tr>';
+          document.getElementById('stockList').innerHTML = 
+            '<li style="text-align: center; padding: 40px 20px; color: #ff6b6b;">Hata: ' + error.message + '</li>';
         }
       }
 
-      function renderStockTable() {
-        const tbody = document.getElementById('stockTableBody');
+      function renderStockList() {
         const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
+        const stockList = document.getElementById('stockList');
         
-        tbody.innerHTML = '';
+        let filteredData = stockData;
         
-        let rowIndex = 0;
-        stockData.forEach((item, idx) => {
-          const parentId = `parent-${idx}`;
-          const isExpanded = expandedItems.has(parentId);
-          
-          // Filter check on parent and children
-          const matchParent = searchTerm === '' || 
-            item.stok_kod.toLowerCase().includes(searchTerm) || 
-            (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm));
-          
-          const hasMatchingChild = item.seri_list.some(seri => 
-            (seri.seri_no && seri.seri_no.toLowerCase().includes(searchTerm))
+        if (searchTerm) {
+          filteredData = stockData.filter(item => 
+            item.stok_kod.toLowerCase().includes(searchTerm) ||
+            (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm)) ||
+            item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(searchTerm))
           );
-          
-          if (!matchParent && !hasMatchingChild) return;
-          
-          // Parent row
-          const parentRow = document.createElement('tr');
-          parentRow.className = `stock-parent-row ${isExpanded ? 'expanded' : ''}`;
-          parentRow.id = parentId;
-          parentRow.innerHTML = `
-            <td>${item.stok_kod || '-'}</td>
-            <td>${item.stok_adi || '-'}</td>
-            <td><strong>${item.seri_count}</strong> adet</td>
-          `;
-          
-          parentRow.addEventListener('click', () => toggleRow(parentId));
-          tbody.appendChild(parentRow);
-          rowIndex++;
-          
-          // Child rows
-          item.seri_list.forEach((seri, childIdx) => {
-            const childId = `child-${idx}-${childIdx}`;
-            const childRow = document.createElement('tr');
-            childRow.className = `stock-child-row ${isExpanded ? 'visible' : ''}`;
-            childRow.id = childId;
-            
-            const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
-            const statusText = seri.durum || 'OK';
-            
-            childRow.innerHTML = `
-              <td>
-                <strong>${seri.seri_no || '-'}</strong>
-              </td>
-              <td>
-                <span class="seri-status ${statusClass}">${statusText}</span>
-              </td>
-              <td style="font-size: 12px; color: #888;">
-                ${seri.tarih ? seri.tarih : '-'} | ${seri.girdi_yapan ? seri.girdi_yapan : '-'}
-              </td>
-            `;
-            
-            tbody.appendChild(childRow);
-            rowIndex++;
-          });
-        });
-        
-        if (tbody.children.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">Kayıt bulunamadı</td></tr>';
         }
+
+        if (filteredData.length === 0) {
+          stockList.innerHTML = '<div class="no-results">Kayıt bulunamadı</div>';
+          return;
+        }
+
+        stockList.innerHTML = filteredData.map((item, idx) => `
+          <li class="stock-item" data-index="${idx}">
+            <div class="stock-item-header" onclick="toggleStock(${idx})">
+              <div class="stock-item-header-content">
+                <div class="stock-item-toggle">▶</div>
+                <div class="stock-item-header-left">
+                  <div class="stock-item-code">${item.stok_kod}</div>
+                  <div class="stock-item-name">${item.stok_adi || '-'}</div>
+                </div>
+              </div>
+              <div class="stock-item-count">${item.seri_count} adet</div>
+            </div>
+            <div class="stock-item-body" id="body-${idx}">
+              <ul class="seri-list">
+                ${item.seri_list.map(seri => {
+                  const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
+                  return `
+                    <li class="seri-item">
+                      <div class="seri-no">📌 ${seri.seri_no || '-'}</div>
+                      <div class="seri-status ${statusClass}">${seri.durum || 'OK'}</div>
+                      <div class="seri-meta">${seri.tarih || '-'} | ${seri.girdi_yapan || '-'}</div>
+                    </li>
+                  `;
+                }).join('')}
+              </ul>
+            </div>
+          </li>
+        `).join('');
       }
 
-      function toggleRow(parentId) {
-        const parentRow = document.getElementById(parentId);
-        const childRows = document.querySelectorAll(`tr[id^="child-${parentId.split('-')[1]}-"]`);
-        
-        if (expandedItems.has(parentId)) {
-          expandedItems.delete(parentId);
-          parentRow.classList.remove('expanded');
-          childRows.forEach(row => row.classList.remove('visible'));
-        } else {
-          expandedItems.add(parentId);
-          parentRow.classList.add('expanded');
-          childRows.forEach(row => row.classList.add('visible'));
-        }
+      function toggleStock(idx) {
+        const header = document.querySelector(`[data-index="${idx}"] .stock-item-header`);
+        const body = document.getElementById(`body-${idx}`);
+        const toggle = header.querySelector('.stock-item-toggle');
+
+        body.classList.toggle('open');
+        header.classList.toggle('open');
+        toggle.textContent = body.classList.contains('open') ? '▼' : '▶';
       }
 
-      document.getElementById('stockSearch').addEventListener('input', renderStockTable);
+      document.getElementById('stockSearch').addEventListener('input', renderStockList);
       document.getElementById('refreshBtn').addEventListener('click', () => {
-        expandedItems.clear();
+        document.getElementById('stockList').innerHTML = '<li style="text-align: center; padding: 40px 20px; color: #888;">Yükleniyor...</li>';
         loadStockData();
       });
 
-      // Load data on page load
       loadStockData();
     </script>
   </body>
