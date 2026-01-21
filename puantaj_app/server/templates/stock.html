@@ -158,17 +158,14 @@
           <table class="stock-table" id="stockTable">
             <thead>
               <tr>
-                <th style="width: 100px;">Stok Kodu</th>
-                <th style="width: 200px;">Ürün Adı</th>
-                <th style="width: 120px;">Seri Sayısı</th>
-                <th style="width: 150px;">Seri No</th>
-                <th style="width: 100px;">Durum</th>
-                <th style="width: 120px;">Tarih</th>
+                <th style="width: 120px;">Stok Kodu</th>
+                <th style="width: 280px;">Ürün Adı</th>
+                <th style="width: 100px;">Seri Sayısı</th>
               </tr>
             </thead>
             <tbody id="stockTableBody">
               <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: #888;">Yükleniyor...</td>
+                <td colspan="3" style="text-align: center; padding: 40px; color: #888;">Yükleniyor...</td>
               </tr>
             </tbody>
           </table>
@@ -189,7 +186,7 @@
         } catch (error) {
           console.error('Hata:', error);
           document.getElementById('stockTableBody').innerHTML = 
-            '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #ff6b6b;">Hata: ' + error.message + '</td></tr>';
+            '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #ff6b6b;">Hata: ' + error.message + '</td></tr>';
         }
       }
 
@@ -208,33 +205,28 @@
         }
 
         if (filteredData.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="no-results">Kayıt bulunamadı</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="3" class="no-results">Kayıt bulunamadı</td></tr>';
           return;
         }
 
         let html = '';
         filteredData.forEach((item, idx) => {
-          // Parent row
+          // Parent row - 3 columns only
           html += `
             <tr class="parent-row" data-idx="${idx}" onclick="toggleSerials(this)">
               <td><span class="stock-toggle">▶</span>${item.stok_kod}</td>
               <td>${item.stok_adi || '-'}</td>
               <td>${item.seri_count} seri</td>
-              <td colspan="3"></td>
             </tr>
           `;
           
-          // Child rows
+          // Child rows - ONLY seri_no in first column (indented), rest empty
           item.seri_list.forEach((seri, sIdx) => {
-            const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
             html += `
               <tr class="child-row" data-parent="${idx}">
+                <td><span style="margin-left: 20px;">${seri.seri_no || '-'}</span></td>
                 <td></td>
                 <td></td>
-                <td></td>
-                <td>${seri.seri_no || '-'}</td>
-                <td><span class="seri-status ${statusClass}">${seri.durum || 'OK'}</span></td>
-                <td>${seri.tarih || '-'}</td>
               </tr>
             `;
           });
@@ -260,7 +252,7 @@
 
       document.getElementById('stockSearch').addEventListener('input', renderStockTable);
       document.getElementById('refreshBtn').addEventListener('click', () => {
-        document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #888;">Yükleniyor...</td></tr>';
+        document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #888;">Yükleniyor...</td></tr>';
         loadStockData();
       });
 

@@ -5233,25 +5233,25 @@ class PuantajApp(tk.Tk):
         header_frame.grid(row=0, column=0, sticky="ew", columnspan=2)
         header_frame.grid_propagate(False)
         
-        headers = ["Stok Kodu", "Ürün Adı", "Seri Sayısı", "Seri No", "Durum", "Tarih"]
-        widths = [120, 200, 100, 140, 80, 100]
+        headers = ["Stok Kodu", "Ürün Adı", "Seri Sayısı"]
+        widths = [120, 280, 100]
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             lbl = tk.Label(header_frame, text=header, bg="#252525", fg="#FFD700", 
                           font=("Segoe UI", 10, "bold"), anchor="w", padx=5)
             lbl.pack(side=tk.LEFT, padx=5, pady=5)
         
-        # Treeview columns - match header layout
-        columns = ("stok_kod", "stok_adi", "seri_sayisi", "seri_no", "durum", "tarih")
-        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree", height=20)
+        # Treeview columns - 3 column layout
+        columns = ("stok_adi", "seri_sayisi")
+        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree headings", height=20)
 
-        self.stock_tree.column("#0", width=0)
-        self.stock_tree.column("stok_kod", width=120, anchor="w")
-        self.stock_tree.column("stok_adi", width=200, anchor="w")
+        self.stock_tree.heading("#0", text="Stok Kodu")
+        self.stock_tree.heading("stok_adi", text="Ürün Adı")
+        self.stock_tree.heading("seri_sayisi", text="Seri Sayısı")
+        
+        self.stock_tree.column("#0", width=120, anchor="w")
+        self.stock_tree.column("stok_adi", width=280, anchor="w")
         self.stock_tree.column("seri_sayisi", width=100, anchor="center")
-        self.stock_tree.column("seri_no", width=140, anchor="w")
-        self.stock_tree.column("durum", width=80, anchor="center")
-        self.stock_tree.column("tarih", width=100, anchor="center")
 
         self.stock_tree.tag_configure("parent", background="#252525", foreground="#FFD700", font=("Segoe UI", 10, "bold"))
         self.stock_tree.tag_configure("child", background="#1f1f1f", foreground="#e0e0e0", font=("Segoe UI", 9))
@@ -5447,33 +5447,20 @@ class PuantajApp(tk.Tk):
             # Insert hierarchical list - parent headers with children
             for stok_kod, data in grouped.items():
                 # Parent row: stok_kod | stok_adi | seri_sayisi
-                parent_id = self.stock_tree.insert("", tk.END, text="",
+                parent_id = self.stock_tree.insert("", tk.END, text=stok_kod,
                     values=(
-                        stok_kod,
                         data['stok_adi'] or "",
-                        f"{len(data['items'])} seri",
-                        "",
-                        "",
-                        ""
+                        f"{len(data['items'])} seri"
                     ),
                     tags=("parent",),
                     open=False
                 )
                 
-                # Child rows: seri numaraları
+                # Child rows: ONLY seri_no (shown in #0 column via text)
                 for item in data['items']:
-                    tag = "child"
-                    
-                    self.stock_tree.insert(parent_id, tk.END, text="",
-                        values=(
-                            "",
-                            "",
-                            "",
-                            item['seri_no'] or "",
-                            item['durum'] or "OK",
-                            item['tarih'] or "-"
-                        ),
-                        tags=(tag,)
+                    self.stock_tree.insert(parent_id, tk.END, text=item['seri_no'] or "",
+                        values=("", ""),
+                        tags=("child",)
                     )
 
         except Exception as e:
