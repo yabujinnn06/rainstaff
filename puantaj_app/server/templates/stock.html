@@ -6,121 +6,80 @@
     <title>Rainstaff Stok Envanteri</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <style>
-      .stock-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
+      .stock-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #1f1f1f;
+        margin-top: 20px;
       }
 
-      .stock-item {
-        border: 1px solid #333;
-        margin-bottom: 8px;
-        border-radius: 4px;
-        overflow: hidden;
-      }
-
-      .stock-item-header {
+      .stock-table thead {
         background-color: #252525;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .stock-table th {
         padding: 12px;
+        text-align: left;
+        color: #FFD700;
+        font-weight: bold;
+        font-size: 13px;
+        border-bottom: 2px solid #444;
+      }
+
+      .stock-table tbody tr.parent-row {
+        background-color: #252525;
         cursor: pointer;
-        user-select: none;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         transition: background-color 0.2s;
       }
 
-      .stock-item-header:hover {
+      .stock-table tbody tr.parent-row:hover {
         background-color: #2a2a2a;
       }
 
-      .stock-item-header.open {
-        background-color: #2a2a2a;
-      }
-
-      .stock-item-toggle {
+      .stock-table tbody tr.parent-row td {
+        padding: 12px;
         color: #FFD700;
         font-weight: bold;
-        margin-right: 12px;
-        min-width: 20px;
+        border-bottom: 1px solid #333;
       }
 
-      .stock-item-header-content {
-        display: flex;
-        gap: 20px;
-        flex: 1;
-        align-items: center;
-      }
-
-      .stock-item-header-left {
-        flex: 1;
-      }
-
-      .stock-item-code {
-        color: #FFD700;
-        font-weight: 600;
-        font-size: 14px;
-      }
-
-      .stock-item-name {
-        color: #e0e0e0;
-        font-size: 13px;
-        margin-top: 2px;
-      }
-
-      .stock-item-count {
-        color: #888;
-        font-size: 12px;
-        min-width: 60px;
-        text-align: right;
-      }
-
-      .stock-item-body {
-        display: none;
+      .stock-table tbody tr.child-row {
         background-color: #1f1f1f;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out;
+        display: none;
       }
 
-      .stock-item-body.open {
-        display: block;
-        max-height: 2000px;
+      .stock-table tbody tr.child-row.open {
+        display: table-row;
       }
 
-      .seri-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .seri-item {
+      .stock-table tbody tr.child-row td {
         padding: 10px 12px;
-        border-bottom: 1px solid #2a2a2a;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 13px;
         color: #e0e0e0;
+        border-bottom: 1px solid #2a2a2a;
+        font-size: 13px;
       }
 
-      .seri-item:last-child {
-        border-bottom: none;
+      .stock-table tbody tr.child-row td:first-child {
+        padding-left: 30px;
       }
 
-      .seri-no {
+      .stock-toggle {
+        display: inline-block;
+        margin-right: 8px;
         color: #FFD700;
-        font-weight: 500;
-        min-width: 150px;
+        font-weight: bold;
+        min-width: 20px;
       }
 
       .seri-status {
         display: inline-block;
-        padding: 2px 8px;
+        padding: 3px 8px;
         border-radius: 3px;
         font-size: 11px;
         font-weight: 500;
-        min-width: 50px;
         text-align: center;
       }
 
@@ -139,19 +98,13 @@
         color: #ffeb99;
       }
 
-      .seri-meta {
-        color: #888;
-        font-size: 12px;
-        min-width: 150px;
-        text-align: right;
-      }
-
       .search-box {
         margin-bottom: 20px;
       }
 
       .search-box input {
         width: 100%;
+        max-width: 400px;
         padding: 10px 12px;
         background-color: #2a2a2a;
         border: 1px solid #444;
@@ -202,9 +155,23 @@
             />
           </div>
 
-          <ul class="stock-list" id="stockList">
-            <li style="text-align: center; padding: 40px 20px; color: #888;">Yükleniyor...</li>
-          </ul>
+          <table class="stock-table" id="stockTable">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Stok Kodu</th>
+                <th style="width: 200px;">Ürün Adı</th>
+                <th style="width: 120px;">Seri Sayısı</th>
+                <th style="width: 150px;">Seri No</th>
+                <th style="width: 100px;">Durum</th>
+                <th style="width: 120px;">Tarih</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #888;">Yükleniyor...</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
       </main>
     </div>
@@ -218,17 +185,17 @@
           if (!response.ok) throw new Error('Veri alınamadı');
           
           stockData = await response.json();
-          renderStockList();
+          renderStockTable();
         } catch (error) {
           console.error('Hata:', error);
-          document.getElementById('stockList').innerHTML = 
-            '<li style="text-align: center; padding: 40px 20px; color: #ff6b6b;">Hata: ' + error.message + '</li>';
+          document.getElementById('stockTableBody').innerHTML = 
+            '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #ff6b6b;">Hata: ' + error.message + '</td></tr>';
         }
       }
 
-      function renderStockList() {
+      function renderStockTable() {
         const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
-        const stockList = document.getElementById('stockList');
+        const tbody = document.getElementById('stockTableBody');
         
         let filteredData = stockData;
         
@@ -241,53 +208,53 @@
         }
 
         if (filteredData.length === 0) {
-          stockList.innerHTML = '<div class="no-results">Kayıt bulunamadı</div>';
+          tbody.innerHTML = '<tr><td colspan="6" class="no-results">Kayıt bulunamadı</td></tr>';
           return;
         }
 
-        stockList.innerHTML = filteredData.map((item, idx) => `
-          <li class="stock-item" data-index="${idx}">
-            <div class="stock-item-header" onclick="toggleStock(${idx})">
-              <div class="stock-item-header-content">
-                <div class="stock-item-toggle">▶</div>
-                <div class="stock-item-header-left">
-                  <div class="stock-item-code">${item.stok_kod}</div>
-                  <div class="stock-item-name">${item.stok_adi || '-'}</div>
-                </div>
-              </div>
-              <div class="stock-item-count">${item.seri_count} adet</div>
-            </div>
-            <div class="stock-item-body" id="body-${idx}">
-              <ul class="seri-list">
-                ${item.seri_list.map(seri => {
-                  const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
-                  return `
-                    <li class="seri-item">
-                      <div class="seri-no">📌 ${seri.seri_no || '-'}</div>
-                      <div class="seri-status ${statusClass}">${seri.durum || 'OK'}</div>
-                      <div class="seri-meta">${seri.tarih || '-'} | ${seri.girdi_yapan || '-'}</div>
-                    </li>
-                  `;
-                }).join('')}
-              </ul>
-            </div>
-          </li>
-        `).join('');
+        let html = '';
+        filteredData.forEach((item, idx) => {
+          // Parent row
+          html += `
+            <tr class="parent-row" onclick="toggleSerials(${idx})">
+              <td><span class="stock-toggle">▶</span>${item.stok_kod}</td>
+              <td>${item.stok_adi || '-'}</td>
+              <td>${item.seri_count} seri</td>
+              <td colspan="3"></td>
+            </tr>
+          `;
+          
+          // Child rows
+          item.seri_list.forEach(seri => {
+            const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
+            html += `
+              <tr class="child-row" data-parent="${idx}">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>${seri.seri_no || '-'}</td>
+                <td><span class="seri-status ${statusClass}">${seri.durum || 'OK'}</span></td>
+                <td>${seri.tarih || '-'}</td>
+              </tr>
+            `;
+          });
+        });
+
+        tbody.innerHTML = html;
       }
 
-      function toggleStock(idx) {
-        const header = document.querySelector(`[data-index="${idx}"] .stock-item-header`);
-        const body = document.getElementById(`body-${idx}`);
-        const toggle = header.querySelector('.stock-item-toggle');
+      function toggleSerials(parentIdx) {
+        const parentRow = document.querySelector(`tr.parent-row[onclick="toggleSerials(${parentIdx})"]`);
+        const toggle = parentRow.querySelector('.stock-toggle');
+        const childRows = document.querySelectorAll(`tr.child-row[data-parent="${parentIdx}"]`);
 
-        body.classList.toggle('open');
-        header.classList.toggle('open');
-        toggle.textContent = body.classList.contains('open') ? '▼' : '▶';
+        childRows.forEach(row => row.classList.toggle('open'));
+        toggle.textContent = childRows[0].classList.contains('open') ? '▼' : '▶';
       }
 
-      document.getElementById('stockSearch').addEventListener('input', renderStockList);
+      document.getElementById('stockSearch').addEventListener('input', renderStockTable);
       document.getElementById('refreshBtn').addEventListener('click', () => {
-        document.getElementById('stockList').innerHTML = '<li style="text-align: center; padding: 40px 20px; color: #888;">Yükleniyor...</li>';
+        document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #888;">Yükleniyor...</td></tr>';
         loadStockData();
       });
 

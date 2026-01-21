@@ -5228,16 +5228,22 @@ class PuantajApp(tk.Tk):
         tree_container = ttk.Frame(list_frame)
         tree_container.pack(fill=tk.BOTH, expand=True)
         
+        # Create header frame for column titles
+        header_frame = tk.Frame(tree_container, bg="#252525", height=25)
+        header_frame.grid(row=0, column=0, sticky="ew", columnspan=2)
+        header_frame.grid_propagate(False)
+        
+        headers = ["Stok Kodu", "Ürün Adı", "Seri Sayısı", "Seri No", "Durum", "Tarih"]
+        widths = [100, 180, 100, 140, 80, 100]
+        
+        for i, (header, width) in enumerate(zip(headers, widths)):
+            lbl = tk.Label(header_frame, text=header, bg="#252525", fg="#FFD700", 
+                          font=("Segoe UI", 10, "bold"), anchor="w", padx=5)
+            lbl.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Treeview columns - only show children
         columns = ("stok_kod", "stok_adi", "seri_sayisi", "seri_no", "durum", "tarih")
-        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree headings", height=20)
-
-        self.stock_tree.heading("#0", text="")
-        self.stock_tree.heading("stok_kod", text="Stok Kodu")
-        self.stock_tree.heading("stok_adi", text="Ürün Adı")
-        self.stock_tree.heading("seri_sayisi", text="Seri Sayısı")
-        self.stock_tree.heading("seri_no", text="Seri No")
-        self.stock_tree.heading("durum", text="Durum")
-        self.stock_tree.heading("tarih", text="Tarih")
+        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree", height=20)
 
         self.stock_tree.column("#0", width=0)
         self.stock_tree.column("stok_kod", width=100, anchor="w")
@@ -5247,10 +5253,7 @@ class PuantajApp(tk.Tk):
         self.stock_tree.column("durum", width=80, anchor="center")
         self.stock_tree.column("tarih", width=100, anchor="center")
 
-        self.stock_tree.tag_configure("ok", background="#1f1f1f", foreground="#6db66d")
-        self.stock_tree.tag_configure("yok", background="#1f1f1f", foreground="#ff6b6b")
-        self.stock_tree.tag_configure("fazla", background="#1f1f1f", foreground="#ffeb99")
-        self.stock_tree.tag_configure("parent", background="#252525", foreground="#FFD700")
+        self.stock_tree.tag_configure("parent", background="#252525", foreground="#FFD700", font=("Segoe UI", 10, "bold"))
         self.stock_tree.tag_configure("child", background="#1f1f1f", foreground="#e0e0e0")
 
         stock_xscroll = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
@@ -5258,10 +5261,10 @@ class PuantajApp(tk.Tk):
         self.stock_tree.configure(xscrollcommand=stock_xscroll.set, yscrollcommand=stock_yscroll.set)
 
         tree_container.columnconfigure(0, weight=1)
-        tree_container.rowconfigure(0, weight=1)
-        self.stock_tree.grid(row=0, column=0, sticky="nsew")
-        stock_yscroll.grid(row=0, column=1, sticky="ns")
-        stock_xscroll.grid(row=1, column=0, sticky="ew")
+        tree_container.rowconfigure(1, weight=1)
+        self.stock_tree.grid(row=1, column=0, sticky="nsew")
+        stock_yscroll.grid(row=1, column=1, sticky="ns")
+        stock_xscroll.grid(row=2, column=0, sticky="ew")
         
         # Click handler for expand/collapse
         self.stock_tree.bind("<Button-1>", self._on_stock_tree_click)
