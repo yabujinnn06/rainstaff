@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta, timezone
@@ -1537,7 +1537,7 @@ def stock_export():
         ws.title = 'Stok Envanteri'
         
         # Headers
-        headers = ['Stok Kod', 'Stok Adı', 'Seri No', 'Durum', 'Tarih', 'Girdi Yapan', 'Adet', 'Bölge']
+        headers = ['Stok Kod', 'Stok AdÄ±', 'Seri No', 'Durum', 'Tarih', 'Girdi Yapan', 'Adet', 'BÃ¶lge']
         ws.append(headers)
         
         # Style headers
@@ -1588,6 +1588,65 @@ def stock_export():
         return {'success': False, 'error': str(e)}, 500
 
 
+
+@app.route('/api/stock-data')
+def api_stock_data():
+    """Get stock inventory data grouped by stok_kod for accordion UI"""
+    if 'user' not in session:
+        return {'error': 'Unauthorized'}, 401
+    
+    try:
+        conn = get_conn()
+        cursor = conn.execute("""
+            SELECT stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet 
+            FROM stock_inventory 
+            ORDER BY stok_kod, seri_no
+        """)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Group by stok_kod
+        grouped = {}
+        for row in rows:
+            stok_kod = row[0]
+            stok_adi = row[1]
+            seri_no = row[2]
+            durum = row[3]
+            tarih = row[4]
+            girdi_yapan = row[5]
+            bolge = row[6]
+            adet = row[7]
+            
+            if stok_kod not in grouped:
+                grouped[stok_kod] = {
+                    'stok_adi': stok_adi,
+                    'seri_list': []
+                }
+            grouped[stok_kod]['seri_list'].append({
+                'seri_no': seri_no,
+                'durum': durum,
+                'tarih': tarih,
+                'girdi_yapan': girdi_yapan,
+                'bolge': bolge,
+                'adet': adet
+            })
+        
+        # Convert to list format
+        data = []
+        for stok_kod, info in grouped.items():
+            data.append({
+                'stok_kod': stok_kod,
+                'stok_adi': info['stok_adi'],
+                'seri_count': len(info['seri_list']),
+                'seri_list': info['seri_list']
+            })
+        
+        from flask import jsonify
+        return jsonify(data), 200
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+
 @app.route("/auto-sync", methods=["GET", "HEAD", "POST"])
 def auto_sync():
     """
@@ -1604,5 +1663,6 @@ def auto_sync():
 if __name__ == "__main__":
     ensure_data_dir()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)
+
 
 
