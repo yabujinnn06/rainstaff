@@ -194,6 +194,16 @@ def setup_logging():
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+    # Konsola da yaz (komut penceresinde anlık görmek için)
+    try:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+    except Exception:
+        # Konsol eklenemese de dosyaya yazmaya devam etsin
+        pass
+
     def handle_uncaught(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):
             return
@@ -926,12 +936,14 @@ class PuantajApp(tk.Tk):
         self.tab_dashboard = ttk.Frame(self.notebook)
         self.tab_service = ttk.Frame(self.notebook)
         self.tab_logs = ttk.Frame(self.notebook)
+        self.tab_stock = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_dashboard, text="Dashboard")
         self.notebook.add(self.tab_timesheets, text="Puantaj")
         self.notebook.add(self.tab_employees, text="Çalışanlar")
         self.notebook.add(self.tab_vehicles, text="Araçlar")
         self.notebook.add(self.tab_service, text="Servis")
+        self.notebook.add(self.tab_stock, text="Stok Yönetimi")
         self.notebook.add(self.tab_reports, text="Raporlar")
         self.notebook.add(self.tab_admin, text="Yönetim")
         self.notebook.add(self.tab_settings, text="Ayarlar")
@@ -946,6 +958,7 @@ class PuantajApp(tk.Tk):
         self.tab_dashboard_body = self._make_tab_scrollable(self.tab_dashboard)
         self.tab_service_body = self._make_tab_scrollable(self.tab_service)
         self.tab_logs_body = self._make_tab_scrollable(self.tab_logs)
+        self.tab_stock_body = self._make_tab_scrollable(self.tab_stock)
 
         self._build_employees_tab()
         self._build_timesheets_tab()
@@ -955,6 +968,7 @@ class PuantajApp(tk.Tk):
         self._build_vehicles_tab()
         self._build_dashboard_tab()
         self._build_service_tab()
+        self._build_stock_tab()
         self._build_logs_tab()
 
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
@@ -5156,6 +5170,267 @@ class PuantajApp(tk.Tk):
             if self.logger:
                 self.logger.exception("Import failed")
             messagebox.showerror("Hata", f"Iceri aktarma basarisiz: {exc}")
+
+    def _build_stock_tab(self):
+        """Build stock inventory management tab"""
+        upload_frame = ttk.LabelFrame(self.tab_stock_body, text="Excel Yukle", style="Section.TLabelframe")
+        upload_frame.pack(fill=tk.X, padx=6, pady=6)
+
+        self.stock_file_var = tk.StringVar(value="Dosya secilmedi")
+        self.stock_region_var = tk.StringVar(value="Ankara")
+        self.stock_file_path = None
+
+        row1 = ttk.Frame(upload_frame)
+        row1.pack(fill=tk.X, pady=4)
+        ttk.Label(row1, text="Dosya").pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Label(row1, textvariable=self.stock_file_var, foreground="#5B9BD5").pack(side=tk.LEFT, padx=6)
+        ttk.Button(row1, text="Excel Sec", command=self.select_stock_file).pack(side=tk.LEFT, padx=6)
+
+        row2 = ttk.Frame(upload_frame)
+        row2.pack(fill=tk.X, pady=4)
+        ttk.Label(row2, text="Bolge").pack(side=tk.LEFT, padx=(0, 8))
+        region_combo = ttk.Combobox(row2, textvariable=self.stock_region_var, values=REGIONS, width=14, state="readonly")
+        region_combo.pack(side=tk.LEFT, padx=6)
+        ttk.Button(row2, text="Yukle", style="Accent.TButton", command=self.upload_stock_file).pack(side=tk.LEFT, padx=6)
+
+        self.stock_status_var = tk.StringVar(value="")
+        status_label = ttk.Label(upload_frame, textvariable=self.stock_status_var, foreground="#B0B0B0")
+        status_label.pack(anchor="w", padx=6, pady=4)
+
+        # Stock list
+        list_frame = ttk.LabelFrame(self.tab_stock_body, text="Stok Envanteri", style="Section.TLabelframe")
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        filter_row = ttk.Frame(list_frame)
+        filter_row.pack(fill=tk.X, pady=4)
+        ttk.Label(filter_row, text="Bolge").pack(side=tk.LEFT, padx=6)
+        self.stock_filter_bolge = tk.StringVar(value="ALL")
+        bolge_filter = ttk.Combobox(filter_row, textvariable=self.stock_filter_bolge, 
+                                     values=["ALL"] + REGIONS, width=12, state="readonly")
+        bolge_filter.pack(side=tk.LEFT, padx=6)
+        bolge_filter.bind("<<ComboboxSelected>>", lambda _: self.refresh_stock_list())
+
+        ttk.Label(filter_row, text="Durum").pack(side=tk.LEFT, padx=(12, 6))
+        self.stock_filter_durum = tk.StringVar(value="ALL")
+        durum_filter = ttk.Combobox(filter_row, textvariable=self.stock_filter_durum,
+                                     values=["ALL", "VAR", "YOK", "FAZLA"], width=10, state="readonly")
+        durum_filter.pack(side=tk.LEFT, padx=6)
+        durum_filter.bind("<<ComboboxSelected>>", lambda _: self.refresh_stock_list())
+
+        ttk.Label(filter_row, text="Ara").pack(side=tk.LEFT, padx=(12, 6))
+        self.stock_search_var = tk.StringVar()
+        search_entry = ttk.Entry(filter_row, textvariable=self.stock_search_var, width=20)
+        search_entry.pack(side=tk.LEFT, padx=6)
+        search_entry.bind("<Return>", lambda _: self.refresh_stock_list())
+        ttk.Button(filter_row, text="Filtrele", command=self.refresh_stock_list).pack(side=tk.LEFT, padx=6)
+
+        # Treeview
+        columns = ("stok_kod", "stok_adi", "seri_no", "durum", "tarih", "girdi_yapan", "adet", "bolge")
+        self.stock_tree = ttk.Treeview(list_frame, columns=columns, show="headings")
+
+        self.stock_tree.heading("stok_kod", text="Stok Kod")
+        self.stock_tree.heading("stok_adi", text="Stok Adi")
+        self.stock_tree.heading("seri_no", text="Seri No")
+        self.stock_tree.heading("durum", text="Durum")
+        self.stock_tree.heading("tarih", text="Tarih")
+        self.stock_tree.heading("girdi_yapan", text="Girdi Yapan")
+        self.stock_tree.heading("adet", text="Adet")
+        self.stock_tree.heading("bolge", text="Bolge")
+
+        self.stock_tree.column("stok_kod", width=100)
+        self.stock_tree.column("stok_adi", width=200)
+        self.stock_tree.column("seri_no", width=150)
+        self.stock_tree.column("durum", width=100)
+        self.stock_tree.column("tarih", width=100)
+        self.stock_tree.column("girdi_yapan", width=100)
+        self.stock_tree.column("adet", width=80)
+        self.stock_tree.column("bolge", width=100)
+
+        self.stock_tree.tag_configure("odd", background="#252525", foreground="#E0E0E0")
+        self.stock_tree.tag_configure("even", background="#1F1F1F", foreground="#E0E0E0")
+        self.stock_tree.tag_configure("yok", background="#ffcccc", foreground="#E0E0E0")
+        self.stock_tree.tag_configure("fazla", background="#ffffcc", foreground="#333333")
+
+        stock_xscroll = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
+        stock_yscroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.stock_tree.yview)
+        self.stock_tree.configure(xscrollcommand=stock_xscroll.set, yscrollcommand=stock_yscroll.set)
+
+        list_frame.columnconfigure(0, weight=1)
+        list_frame.rowconfigure(0, weight=1)
+        self.stock_tree.grid(row=0, column=0, sticky="nsew")
+        stock_yscroll.grid(row=0, column=1, sticky="ns")
+        stock_xscroll.grid(row=1, column=0, sticky="ew")
+
+    def select_stock_file(self):
+        """Select Excel file for stock upload"""
+        path = filedialog.askopenfilename(
+            filetypes=[("Excel", "*.xlsx;*.xls"), ("XLSX", "*.xlsx"), ("XLS", "*.xls"), ("All", "*.*")]
+        )
+        if path:
+            self.stock_file_path = path
+            filename = os.path.basename(path)
+            self.stock_file_var.set(filename)
+            self.stock_status_var.set("")
+
+    def upload_stock_file(self):
+        """Upload stock Excel file to server"""
+        if not self.stock_file_path:
+            messagebox.showwarning("Uyari", "Once dosya secin.")
+            return
+
+        if not os.path.isfile(self.stock_file_path):
+            messagebox.showwarning("Uyari", "Dosya bulunamadi.")
+            return
+
+        bolge = self.stock_region_var.get().strip()
+        if not bolge:
+            messagebox.showwarning("Uyari", "Bolge secin.")
+            return
+
+        self.stock_status_var.set("Dosya isleniyor...")
+        self.after(100, self._stock_upload_worker, self.stock_file_path, bolge)
+
+    def _stock_upload_worker(self, file_path, bolge):
+        """Process stock file upload in background"""
+        try:
+            # Read Excel locally first
+            rows = load_tabular_file(file_path)
+            if not rows:
+                self.stock_status_var.set("Dosyada veri bulunamadi!")
+                messagebox.showwarning("Uyari", "Dosyada veri bulunamadi.")
+                return
+
+            # Parse headers (flexible)
+            headers = [str(h).strip().lower() if h else '' for h in rows[0]]
+            
+            stok_kod_idx = next((i for i, h in enumerate(headers) if 'stok' in h and 'kod' in h), 0)
+            stok_adi_idx = next((i for i, h in enumerate(headers) if 'stok' in h and ('adi' in h or 'ad' in h)), 1)
+            seri_no_idx = next((i for i, h in enumerate(headers) if 'seri' in h), 2)
+            durum_idx = next((i for i, h in enumerate(headers) if 'durum' in h), None)
+            tarih_idx = next((i for i, h in enumerate(headers) if 'tarih' in h), None)
+            girdi_yapan_idx = next((i for i, h in enumerate(headers) if 'girdi' in h), None)
+            adet_idx = next((i for i, h in enumerate(headers) if 'adet' in h), None)
+
+            # Insert into local DB
+            conn = db.get_conn().__enter__()
+            cursor = conn.cursor()
+            
+            # Delete existing records for this region
+            cursor.execute("DELETE FROM stock_inventory WHERE bolge = ?", (bolge,))
+            
+            imported = 0
+            for row in rows[1:]:
+                try:
+                    stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
+                    stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) else ''
+                    seri_no = str(row[seri_no_idx]).strip() if seri_no_idx < len(row) else ''
+
+                    if not seri_no:
+                        continue
+
+                    durum = str(row[durum_idx]).strip() if durum_idx and durum_idx < len(row) and row[durum_idx] else None
+                    tarih = str(row[tarih_idx]).strip() if tarih_idx and tarih_idx < len(row) and row[tarih_idx] else None
+                    girdi_yapan = str(row[girdi_yapan_idx]).strip() if girdi_yapan_idx and girdi_yapan_idx < len(row) and row[girdi_yapan_idx] else None
+                    adet = None
+                    try:
+                        adet = int(row[adet_idx]) if adet_idx and adet_idx < len(row) and row[adet_idx] else None
+                    except (ValueError, TypeError):
+                        pass
+
+                    cursor.execute(
+                        """INSERT INTO stock_inventory 
+                           (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, datetime.now().isoformat())
+                    )
+                    imported += 1
+
+                except Exception as e:
+                    if self.logger:
+                        self.logger.debug(f"Stock row error: {e}")
+                    continue
+
+            conn.commit()
+            conn.close()
+
+            self.stock_status_var.set(f"✓ {imported} kayit yuklendi ({bolge})")
+            self._log_action("stock_upload", f"file={os.path.basename(file_path)} region={bolge} count={imported}")
+            
+            # Refresh view
+            self.refresh_stock_list()
+            messagebox.showinfo("Basarili", f"{imported} stok kaydı yüklendi.")
+            
+            # Trigger sync
+            self.trigger_sync("stock_upload")
+
+        except Exception as e:
+            self.stock_status_var.set(f"✗ Hata: {str(e)[:50]}")
+            if self.logger:
+                self.logger.error(f"Stock upload error: {e}")
+            messagebox.showerror("Hata", f"Yukleme basarisiz: {str(e)[:100]}")
+
+    def refresh_stock_list(self):
+        """Refresh stock inventory list"""
+        if not hasattr(self, "stock_tree"):
+            return
+
+        for item in self.stock_tree.get_children():
+            self.stock_tree.delete(item)
+
+        try:
+            conn = db.get_conn().__enter__()
+            cursor = conn.cursor()
+
+            query = "SELECT * FROM stock_inventory WHERE 1=1"
+            params = []
+
+            bolge_filter = self.stock_filter_bolge.get()
+            if bolge_filter and bolge_filter != "ALL":
+                query += " AND bolge = ?"
+                params.append(bolge_filter)
+
+            durum_filter = self.stock_filter_durum.get()
+            if durum_filter and durum_filter != "ALL":
+                query += " AND durum = ?"
+                params.append(durum_filter)
+
+            search = self.stock_search_var.get().strip()
+            if search:
+                query += " AND (stok_kod LIKE ? OR stok_adi LIKE ? OR seri_no LIKE ?)"
+                search_term = f"%{search}%"
+                params.extend([search_term, search_term, search_term])
+
+            query += " ORDER BY stok_kod, seri_no"
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            conn.close()
+
+            for row in rows:
+                stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, *_ = row
+                
+                # Tag based on durum
+                tag = ""
+                if durum == "YOK":
+                    tag = "yok"
+                elif durum == "FAZLA":
+                    tag = "fazla"
+                else:
+                    tag = "odd" if len(self.stock_tree.get_children()) % 2 else "even"
+
+                self.stock_tree.insert("", tk.END, values=(
+                    stok_kod or "",
+                    stok_adi or "",
+                    seri_no or "",
+                    durum or "",
+                    tarih or "",
+                    girdi_yapan or "",
+                    adet or "",
+                    bolge or ""
+                ), tags=(tag,))
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Stock list refresh error: {e}")
 
 
 if __name__ == "__main__":
