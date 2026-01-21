@@ -5228,33 +5228,33 @@ class PuantajApp(tk.Tk):
         tree_container = ttk.Frame(list_frame)
         tree_container.pack(fill=tk.BOTH, expand=True)
         
-        # Create header frame for column titles
+        # Create header frame for column titles - Parent info
         header_frame = tk.Frame(tree_container, bg="#252525", height=25)
         header_frame.grid(row=0, column=0, sticky="ew", columnspan=2)
         header_frame.grid_propagate(False)
         
         headers = ["Stok Kodu", "Ürün Adı", "Seri Sayısı", "Seri No", "Durum", "Tarih"]
-        widths = [100, 180, 100, 140, 80, 100]
+        widths = [120, 200, 100, 140, 80, 100]
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             lbl = tk.Label(header_frame, text=header, bg="#252525", fg="#FFD700", 
                           font=("Segoe UI", 10, "bold"), anchor="w", padx=5)
             lbl.pack(side=tk.LEFT, padx=5, pady=5)
         
-        # Treeview columns - only show children
+        # Treeview columns - match header layout
         columns = ("stok_kod", "stok_adi", "seri_sayisi", "seri_no", "durum", "tarih")
         self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree", height=20)
 
         self.stock_tree.column("#0", width=0)
-        self.stock_tree.column("stok_kod", width=100, anchor="w")
-        self.stock_tree.column("stok_adi", width=180, anchor="w")
+        self.stock_tree.column("stok_kod", width=120, anchor="w")
+        self.stock_tree.column("stok_adi", width=200, anchor="w")
         self.stock_tree.column("seri_sayisi", width=100, anchor="center")
         self.stock_tree.column("seri_no", width=140, anchor="w")
         self.stock_tree.column("durum", width=80, anchor="center")
         self.stock_tree.column("tarih", width=100, anchor="center")
 
         self.stock_tree.tag_configure("parent", background="#252525", foreground="#FFD700", font=("Segoe UI", 10, "bold"))
-        self.stock_tree.tag_configure("child", background="#1f1f1f", foreground="#e0e0e0")
+        self.stock_tree.tag_configure("child", background="#1f1f1f", foreground="#e0e0e0", font=("Segoe UI", 9))
 
         stock_xscroll = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
         stock_yscroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.stock_tree.yview)
