@@ -216,7 +216,7 @@
         filteredData.forEach((item, idx) => {
           // Parent row
           html += `
-            <tr class="parent-row" onclick="toggleSerials(${idx})">
+            <tr class="parent-row" data-idx="${idx}" onclick="toggleSerials(this)">
               <td><span class="stock-toggle">▶</span>${item.stok_kod}</td>
               <td>${item.stok_adi || '-'}</td>
               <td>${item.seri_count} seri</td>
@@ -225,7 +225,7 @@
           `;
           
           // Child rows
-          item.seri_list.forEach(seri => {
+          item.seri_list.forEach((seri, sIdx) => {
             const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
             html += `
               <tr class="child-row" data-parent="${idx}">
@@ -243,13 +243,19 @@
         tbody.innerHTML = html;
       }
 
-      function toggleSerials(parentIdx) {
-        const parentRow = document.querySelector(`tr.parent-row[onclick="toggleSerials(${parentIdx})"]`);
+      function toggleSerials(parentRow) {
+        const idx = parentRow.getAttribute('data-idx');
         const toggle = parentRow.querySelector('.stock-toggle');
-        const childRows = document.querySelectorAll(`tr.child-row[data-parent="${parentIdx}"]`);
+        const childRows = document.querySelectorAll(`tr.child-row[data-parent="${idx}"]`);
 
         childRows.forEach(row => row.classList.toggle('open'));
-        toggle.textContent = childRows[0].classList.contains('open') ? '▼' : '▶';
+        
+        // Update toggle icon
+        if (childRows[0] && childRows[0].classList.contains('open')) {
+          toggle.textContent = '▼';
+        } else {
+          toggle.textContent = '▶';
+        }
       }
 
       document.getElementById('stockSearch').addEventListener('input', renderStockTable);
