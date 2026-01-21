@@ -1,0 +1,304 @@
+﻿<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rainstaff Stok Envanteri</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <style>
+      .stock-container {
+        max-width: 100%;
+      }
+
+      .stock-item {
+        margin-bottom: 12px;
+        border: 1px solid #333;
+        border-radius: 3px;
+        overflow: hidden;
+        background-color: #1f1f1f;
+      }
+
+      .stock-header {
+        display: flex;
+        align-items: center;
+        padding: 14px 16px;
+        background-color: #252525;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s;
+      }
+
+      .stock-header:hover {
+        background-color: #2a2a2a;
+      }
+
+      .stock-header.open {
+        background-color: #2a2a2a;
+      }
+
+      .stock-toggle-icon {
+        display: inline-block;
+        color: #FFD700;
+        font-weight: bold;
+        margin-right: 12px;
+        min-width: 15px;
+        text-align: center;
+        transition: transform 0.3s ease;
+        font-size: 12px;
+      }
+
+      .stock-toggle-icon.open {
+        transform: rotate(90deg);
+      }
+
+      .stock-code {
+        color: #FFD700;
+        font-weight: bold;
+        min-width: 80px;
+        font-size: 13px;
+      }
+
+      .stock-name {
+        color: #e0e0e0;
+        flex: 1;
+        margin-left: 20px;
+        font-size: 13px;
+      }
+
+      .stock-count {
+        color: #aaa;
+        font-size: 12px;
+        min-width: 70px;
+        text-align: right;
+      }
+
+      .stock-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease;
+        background-color: #1a1a1a;
+      }
+
+      .stock-content.open {
+        max-height: 10000px;
+      }
+
+      .serial-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+      }
+
+      .serial-item {
+        display: grid;
+        grid-template-columns: 30px 1fr 60px 100px;
+        align-items: center;
+        padding: 10px 16px;
+        padding-left: 45px;
+        border-bottom: 1px solid #2a2a2a;
+        font-size: 12px;
+        gap: 12px;
+      }
+
+      .serial-item:last-child {
+        border-bottom: none;
+      }
+
+      .serial-icon {
+        color: #666;
+        font-size: 10px;
+      }
+
+      .serial-no {
+        color: #e0e0e0;
+        font-family: monospace;
+        word-break: break-all;
+      }
+
+      .serial-status {
+        display: inline-block;
+        padding: 3px 6px;
+        border-radius: 2px;
+        font-size: 10px;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .serial-status.ok {
+        background-color: #2a4a2a;
+        color: #6db66d;
+      }
+
+      .serial-status.yok {
+        background-color: #4a2a2a;
+        color: #ff6b6b;
+      }
+
+      .serial-status.fazla {
+        background-color: #4a4a2a;
+        color: #ffeb99;
+      }
+
+      .serial-date {
+        color: #888;
+        font-size: 11px;
+        text-align: right;
+      }
+
+      .search-box {
+        margin-bottom: 20px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px 12px;
+        background-color: #252525;
+        border: 1px solid #333;
+        color: #e0e0e0;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+
+      .search-box input::placeholder {
+        color: #666;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: #FFD700;
+      }
+
+      .no-results {
+        padding: 40px;
+        text-align: center;
+        color: #888;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <div>
+          <div class="brand-title">Stok Envanteri</div>
+          <div class="brand-sub">ÃœrÃ¼n ve seri numaralarÄ±</div>
+        </div>
+      </div>
+      <div class="sync">
+        <button class="notify-btn" id="refreshBtn" type="button">Yenile</button>
+        <a class="logout" href="/dashboard">Dashboard</a>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="content single" style="margin-left: 0; width: 100%;">
+        <section class="section panel">
+          <div class="panel-head">
+            <h2>Stok Listesi</h2>
+          </div>
+
+          <div class="search-box">
+            <input 
+              type="text" 
+              id="stockSearch" 
+              placeholder="Stok No, ÃœrÃ¼n AdÄ± veya Seri No ile ara..."
+            />
+          </div>
+
+          <div class="stock-container" id="stockContainer">
+            <div class="no-results">YÃ¼kleniyor...</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      let allStockData = [];
+
+      async function loadStockData() {
+        try {
+          const response = await fetch('/api/stock-data');
+          if (!response.ok) throw new Error('Veri alÄ±namadÄ±');
+          
+          allStockData = await response.json();
+          console.log('Stock data loaded:', allStockData);
+          renderStockList();
+        } catch (error) {
+          console.error('Hata:', error);
+          document.getElementById('stockContainer').innerHTML = 
+            '<div class="no-results">âŒ Hata: ' + error.message + '</div>';
+        }
+      }
+
+      function renderStockList() {
+        const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
+        const container = document.getElementById('stockContainer');
+
+        let filteredData = allStockData;
+
+        if (searchTerm) {
+          filteredData = allStockData.filter(item =>
+            item.stok_kod.toLowerCase().includes(searchTerm) ||
+            (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm)) ||
+            item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(searchTerm))
+          );
+        }
+
+        if (filteredData.length === 0) {
+          container.innerHTML = '<div class="no-results">KayÄ±t bulunamadÄ±</div>';
+          return;
+        }
+
+        let html = '';
+        filteredData.forEach((item, idx) => {
+          html += `
+            <div class="stock-item" data-idx="${idx}">
+              <div class="stock-header" onclick="toggleStock(this)">
+                <span class="stock-toggle-icon">â–¶</span>
+                <span class="stock-code">${item.stok_kod}</span>
+                <span class="stock-name">${item.stok_adi || '-'}</span>
+                <span class="stock-count">${item.seri_count} seri</span>
+              </div>
+              <div class="stock-content">
+                <ul class="serial-list">
+                  ${item.seri_list.map(seri => {
+                    const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
+                    return `
+                      <li class="serial-item">
+                        <span class="serial-icon">â€¢</span>
+                        <span class="serial-no">${seri.seri_no || '-'}</span>
+                        <span class="serial-status ${statusClass}">${seri.durum || 'OK'}</span>
+                        <span class="serial-date">${seri.tarih || '-'}</span>
+                      </li>
+                    `;
+                  }).join('')}
+                </ul>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      }
+
+      function toggleStock(headerElement) {
+        const stockItem = headerElement.parentElement;
+        const content = stockItem.querySelector('.stock-content');
+        const icon = headerElement.querySelector('.stock-toggle-icon');
+
+        headerElement.classList.toggle('open');
+        content.classList.toggle('open');
+        icon.classList.toggle('open');
+      }
+
+      document.getElementById('stockSearch').addEventListener('input', renderStockList);
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        document.getElementById('stockContainer').innerHTML = '<div class="no-results">YÃ¼kleniyor...</div>';
+        loadStockData();
+      });
+
+      loadStockData();
+    </script>
+  </body>
+</html>
+

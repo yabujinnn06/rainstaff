@@ -1,342 +1,79 @@
 ﻿<!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rainstaff Uyarilar</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-  </head>
-  <body class="admin" data-alert-urgent="{{ total_alerts }}">
-    <header class="topbar">
-      <div class="brand">
-        <div>
-          <div class="brand-title">Uyari Merkezi</div>
-          <div class="brand-sub">Arac ve servis uyarilari</div>
-        </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Uyarılar | Rainstaff ERP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #3b82f6; --accent: #06b6d4; --success: #10b981;
+      --warning: #f59e0b; --danger: #ef4444; --bg-dark: #0f172a;
+      --bg-card: #1e293b; --bg-hover: #334155; --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8; --border-color: #334155;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-primary); min-height: 100vh; }
+    .header { background: var(--bg-card); padding: 12px 20px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+    .header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
+    .logo-text h1 { font-size: 16px; font-weight: 600; }
+    .header-actions { display: flex; gap: 8px; }
+    .btn { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; border: none; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .main-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+    .page-header p { color: var(--text-secondary); font-size: 14px; }
+    .alert-list { display: flex; flex-direction: column; gap: 12px; }
+    .alert-item { background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); display: flex; align-items: flex-start; gap: 16px; transition: all 0.2s; }
+    .alert-item:hover { border-color: var(--primary); }
+    .alert-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .alert-icon.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .alert-icon.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .alert-icon.info { background: rgba(59, 130, 246, 0.15); color: var(--primary); }
+    .alert-content { flex: 1; }
+    .alert-content h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .alert-content p { color: var(--text-secondary); font-size: 13px; }
+    .alert-time { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text-primary); }
+    @media (max-width: 768px) {
+      .header { padding: 10px 12px; }
+      .main-container { padding: 16px; }
+      .alert-item { flex-direction: column; }
+      .btn span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon"><i class="fas fa-bell"></i></div>
+        <div class="logo-text"><h1>Uyarılar</h1></div>
       </div>
-      <div class="sync">
-        <span class="alert-pill {{ 'pulse' if total_alerts else '' }}">Toplam Uyari {{ total_alerts }}</span>
-        <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
-        <a class="logout" href="/dashboard">Dashboard</a>
+      <div class="header-actions">
+        <a href="/dashboard" class="btn btn-primary"><i class="fas fa-arrow-left"></i><span>Dashboard</span></a>
       </div>
-    </header>
-
-    <main class="content single">
-      <section class="section panel">
-        <div class="panel-head">
-          <h2>Haftalik Kontrol Uyarilari</h2>
-        </div>
-        <div class="table-wrap tall">
-          <div class="table-tools">
-            <input class="table-search" data-target="weekly-alert-table" placeholder="Uyari ara..." />
-            <input class="table-date" data-target="weekly-alert-table" data-date-col="1" data-date-type="start" type="date" />
-            <input class="table-date" data-target="weekly-alert-table" data-date-col="1" data-date-type="end" type="date" />
-          </div>
-          <table id="weekly-alert-table">
-            <thead>
-              <tr>
-                <th>Plaka</th>
-                <th>Hafta</th>
-                <th>Kontrol</th>
-                <th>Onceki</th>
-                <th>Bu Hafta</th>
-                <th>Durum</th>
-                <th>Rapor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if weekly_alerts %}
-                {% for row in weekly_alerts %}
-                  <tr class="alert-row {{ row['level'] }}">
-                    <td>{{ row['plate'] }}</td>
-                    <td>{{ row['week_start'] }}</td>
-                    <td>{{ row['item'] }}</td>
-                    <td>{{ row['prev_status'] }}</td>
-                    <td>{{ row['current_status'] }}</td>
-                    <td>{{ row['change'] }}</td>
-                    <td>
-                      <a class="link" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">Ac</a>
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr><td colspan="7">Kayit yok</td></tr>
-              {% endif %}
-            </tbody>
-          </table>
-          <div class="table-footer" data-target="weekly-alert-table"></div>
-        </div>
-      </section>
-
-      <section class="section grid-2">
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Acik Arizalar</h2>
-          </div>
-          <div class="table-wrap">
-            <div class="table-tools">
-              <input class="table-search" data-target="open-faults-table" placeholder="Ara..." />
-            </div>
-            <table id="open-faults-table">
-              <thead>
-                <tr>
-                  <th>Plaka</th>
-                  <th>Baslik</th>
-                  <th>Acilis</th>
-                  <th>Durum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if open_faults %}
-                  {% for row in open_faults %}
-                    <tr>
-                      <td>{{ row['plate'] }}</td>
-                      <td>{{ row['title'] }}</td>
-                      <td>{{ row['opened_date'] or '-' }}</td>
-                      <td>{{ row['status'] }}</td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr><td colspan="4">Kayit yok</td></tr>
-                {% endif %}
-              </tbody>
-            </table>
-            <div class="table-footer" data-target="open-faults-table"></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Sanayide Olan Araclar</h2>
-          </div>
-          <div class="table-wrap">
-            <div class="table-tools">
-              <input class="table-search" data-target="service-open-table" placeholder="Ara..." />
-            </div>
-            <table id="service-open-table">
-              <thead>
-                <tr>
-                  <th>Plaka</th>
-                  <th>Gidis</th>
-                  <th>Neden</th>
-                  <th>Masraf</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if service_open %}
-                  {% for row in service_open %}
-                    <tr>
-                      <td>{{ row['plate'] }}</td>
-                      <td>{{ row['start_date'] }}</td>
-                      <td>{{ row['reason'] or '-' }}</td>
-                      <td>{{ row['cost'] or '-' }}</td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr><td colspan="4">Kayit yok</td></tr>
-                {% endif %}
-              </tbody>
-            </table>
-            <div class="table-footer" data-target="service-open-table"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section panel">
-        <div class="panel-head">
-          <h2>Sanayi Gecmisi</h2>
-        </div>
-        <div class="table-wrap tall">
-          <div class="table-tools">
-            <input class="table-search" data-target="service-history-table" placeholder="Ara..." />
-            <input class="table-date" data-target="service-history-table" data-date-col="1" data-date-type="start" type="date" />
-            <input class="table-date" data-target="service-history-table" data-date-col="1" data-date-type="end" type="date" />
-          </div>
-          <table id="service-history-table">
-            <thead>
-              <tr>
-                <th>Plaka</th>
-                <th>Gidis</th>
-                <th>Donus</th>
-                <th>Neden</th>
-                <th>Masraf</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if service_history %}
-                {% for row in service_history %}
-                  <tr>
-                    <td>{{ row['plate'] }}</td>
-                    <td>{{ row['start_date'] }}</td>
-                    <td>{{ row['end_date'] or '-' }}</td>
-                    <td>{{ row['reason'] or '-' }}</td>
-                    <td>{{ row['cost'] or '-' }}</td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                <tr><td colspan="5">Kayit yok</td></tr>
-              {% endif %}
-            </tbody>
-          </table>
-          <div class="table-footer" data-target="service-history-table"></div>
-        </div>
-      </section>
-    </main>
-
-    <script>
-      const PAGE_SIZE = 200;
-      const tableStates = new Map();
-
-      const buildFooter = (footer, state) => {
-        const prevDisabled = state.page <= 1 ? "disabled" : "";
-        const nextDisabled = state.page >= state.pages ? "disabled" : "";
-        footer.innerHTML = `
-          <div>Sayfa ${state.page} / ${state.pages} (Kayit: ${state.total})</div>
-          <div>
-            <button data-action="prev" ${prevDisabled}>Onceki</button>
-            <button data-action="next" ${nextDisabled}>Sonraki</button>
-          </div>
-        `;
-        footer.querySelectorAll("button").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            if (btn.dataset.action === "prev") {
-              state.page = Math.max(1, state.page - 1);
-            } else {
-              state.page = Math.min(state.pages, state.page + 1);
-            }
-            renderTable(state);
-          });
-        });
-      };
-
-      const filterRows = (state) => {
-        const needle = state.search.toLowerCase();
-        const start = state.dateStart;
-        const end = state.dateEnd;
-        return state.rows.filter((row) => {
-          const text = row.innerText.toLowerCase();
-          if (needle && !text.includes(needle)) return false;
-          if (state.dateCol !== null && (start || end)) {
-            const cell = row.children[state.dateCol];
-            if (!cell) return false;
-            const raw = (cell.innerText || "").trim().slice(0, 10);
-            if (!raw) return false;
-            if (start && raw < start) return false;
-            if (end && raw > end) return false;
-          }
-          return true;
-        });
-      };
-
-      const renderTable = (state) => {
-        const visibleRows = filterRows(state);
-        state.total = visibleRows.length;
-        state.pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
-        if (state.page > state.pages) state.page = state.pages;
-        const startIndex = (state.page - 1) * PAGE_SIZE;
-        const endIndex = startIndex + PAGE_SIZE;
-        const pageRows = visibleRows.slice(startIndex, endIndex);
-        state.rows.forEach((row) => {
-          row.style.display = pageRows.includes(row) ? "" : "none";
-        });
-        if (state.emptyRow) {
-          state.emptyRow.remove();
-          state.emptyRow = null;
-        }
-        if (!pageRows.length) {
-          const empty = document.createElement("tr");
-          empty.className = "empty-row";
-          const cell = document.createElement("td");
-          cell.colSpan = state.colCount;
-          cell.innerText = "Kayit yok";
-          empty.appendChild(cell);
-          state.tbody.appendChild(empty);
-          state.emptyRow = empty;
-        }
-        buildFooter(state.footer, state);
-      };
-
-      const setupTable = (table) => {
-        if (!table || !table.id) return;
-        const tbody = table.querySelector("tbody");
-        if (!tbody) return;
-        const rawRows = Array.from(tbody.querySelectorAll("tr"));
-        const rows = rawRows.filter((row) => {
-          return !row.innerText.toLowerCase().includes("kayit yok");
-        });
-        rawRows
-          .filter((row) => row !== null && row.innerText.toLowerCase().includes("kayit yok"))
-          .forEach((row) => row.remove());
-        const footer = document.querySelector(`.table-footer[data-target="${table.id}"]`);
-        if (!footer) return;
-        const dateInput = document.querySelector(`.table-date[data-target="${table.id}"]`);
-        const dateCol = dateInput ? Number(dateInput.dataset.dateCol) : null;
-        const state = {
-          table,
-          tbody,
-          rows,
-          footer,
-          page: 1,
-          pages: 1,
-          total: rows.length,
-          search: "",
-          dateStart: "",
-          dateEnd: "",
-          dateCol: Number.isNaN(dateCol) ? null : dateCol,
-          colCount: table.querySelectorAll("thead th").length || 1,
-          emptyRow: null,
-        };
-        tableStates.set(table.id, state);
-        const searchInputs = document.querySelectorAll(`.table-search[data-target="${table.id}"]`);
-        searchInputs.forEach((input) => {
-          input.addEventListener("input", () => {
-            state.search = input.value || "";
-            state.page = 1;
-            renderTable(state);
-          });
-        });
-        const dateInputs = document.querySelectorAll(`.table-date[data-target="${table.id}"]`);
-        dateInputs.forEach((input) => {
-          input.addEventListener("change", () => {
-            if (input.dataset.dateType === "start") {
-              state.dateStart = input.value || "";
-            } else {
-              state.dateEnd = input.value || "";
-            }
-            state.page = 1;
-            renderTable(state);
-          });
-        });
-        renderTable(state);
-      };
-
-      document.querySelectorAll("table").forEach(setupTable);
-
-      const notifyBtn = document.getElementById("notifyBtn");
-      const alertUrgent = Number(document.body.dataset.alertUrgent || 0);
-      if (!("Notification" in window)) {
-        if (notifyBtn) notifyBtn.style.display = "none";
-      } else {
-        const updateNotifyBtn = () => {
-          if (!notifyBtn) return;
-          notifyBtn.style.display = Notification.permission === "granted" ? "none" : "inline-flex";
-        };
-        updateNotifyBtn();
-        if (notifyBtn) {
-          notifyBtn.addEventListener("click", async () => {
-            const result = await Notification.requestPermission();
-            if (result === "granted" && alertUrgent > 0) {
-              new Notification("Rainstaff Uyari", {
-                body: `Toplam uyari: ${alertUrgent}`,
-              });
-              if (navigator.vibrate) {
-                navigator.vibrate([200, 120, 200]);
-              }
-            }
-            updateNotifyBtn();
-          });
-        }
-      }
-    </script>
-  </body>
+    </div>
+  </header>
+  <main class="main-container">
+    <div class="page-header">
+      <h2>Sistem Uyarıları</h2>
+      <p>Önemli bildirimler ve uyarılar</p>
+    </div>
+    <div class="alert-list">
+      <div class="empty-state">
+        <i class="fas fa-check-circle"></i>
+        <h3>Tüm sistemler normal</h3>
+        <p>Şu anda aktif uyarı bulunmuyor</p>
+      </div>
+    </div>
+  </main>
+</body>
 </html>
