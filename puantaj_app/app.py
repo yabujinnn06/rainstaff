@@ -5303,50 +5303,67 @@ class PuantajApp(tk.Tk):
             
             stok_kod_idx = next((i for i, h in enumerate(headers) if 'stok' in h and 'kod' in h), 0)
             stok_adi_idx = next((i for i, h in enumerate(headers) if 'stok' in h and ('adi' in h or 'ad' in h)), 1)
-            seri_no_idx = next((i for i, h in enumerate(headers) if 'seri' in h), 2)
-            durum_idx = next((i for i, h in enumerate(headers) if 'durum' in h), None)
-            tarih_idx = next((i for i, h in enumerate(headers) if 'tarih' in h), None)
-            girdi_yapan_idx = next((i for i, h in enumerate(headers) if 'girdi' in h), None)
-            adet_idx = next((i for i, h in enumerate(headers) if 'adet' in h), None)
+            seri_no_idx = next((i for i, h in enumerate(headers) if 'seri' in h and 'no' in h), 2)
+            seri_sayi_idx = next((i for i, h in enumerate(headers) if 'seri' in h and 'say' in h), 3)
 
-            # Insert into local DB
+            # Parse nested Excel structure
+            # Format: Stok header row followed by seri_no child rows (with empty stok_kod)
             imported = 0
             with db.get_conn() as conn:
                 cursor = conn.cursor()
-                
-                # Delete existing records for this region
                 cursor.execute("DELETE FROM stock_inventory WHERE bolge = ?", (bolge,))
                 
-                for row in rows[1:]:
-                    try:
-                        stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
+                i = 1
+                while i < len(rows):
+                    row = rows[i]
+                    
+                    # Check if this is a product header (stok_kod not empty)
+                    stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
+                    
+                    if stok_kod and stok_kod not in ['', 'nan', 'None', None]:
+                        # This is a product header
                         stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) else ''
-                        seri_no = str(row[seri_no_idx]).strip() if seri_no_idx < len(row) else ''
-
-                        if not seri_no:
-                            continue
-
-                        durum = str(row[durum_idx]).strip() if durum_idx and durum_idx < len(row) and row[durum_idx] else None
-                        tarih = str(row[tarih_idx]).strip() if tarih_idx and tarih_idx < len(row) and row[tarih_idx] else None
-                        girdi_yapan = str(row[girdi_yapan_idx]).strip() if girdi_yapan_idx and girdi_yapan_idx < len(row) and row[girdi_yapan_idx] else None
-                        adet = None
+                        seri_sayi = 0
                         try:
-                            adet = int(row[adet_idx]) if adet_idx and adet_idx < len(row) and row[adet_idx] else None
+                            seri_sayi = int(row[seri_sayi_idx]) if seri_sayi_idx < len(row) and row[seri_sayi_idx] else 0
                         except (ValueError, TypeError):
                             pass
-
-                        cursor.execute(
-                            """INSERT INTO stock_inventory 
-                               (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                            (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, datetime.now().isoformat())
-                        )
-                        imported += 1
-
-                    except Exception as e:
-                        if self.logger:
-                            self.logger.debug(f"Stock row error: {e}")
-                        continue
+                        
+                        # Collect all following seri_no rows (child rows where stok_kod is empty)
+                        i += 1
+                        seri_count = 0
+                        while i < len(rows):
+                            child_row = rows[i]
+                            child_stok_kod = str(child_row[stok_kod_idx]).strip() if stok_kod_idx < len(child_row) else ''
+                            
+                            # If stok_kod is empty/nan, this is a seri_no row
+                            if not child_stok_kod or child_stok_kod in ['', 'nan', 'None', None]:
+                                try:
+                                    seri_no = str(child_row[seri_no_idx]).strip() if seri_no_idx < len(child_row) else ''
+                                    
+                                    # Skip if seri_no is empty or just a number (serial position)
+                                    if seri_no and seri_no not in ['', 'nan', 'None', None]:
+                                        cursor.execute(
+                                            """INSERT INTO stock_inventory 
+                                               (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
+                                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                            (stok_kod, stok_adi, seri_no, "OK", datetime.now().strftime("%Y-%m-%d"), 
+                                             "system", bolge, 1, datetime.now().isoformat())
+                                        )
+                                        imported += 1
+                                        seri_count += 1
+                                    
+                                    i += 1
+                                except Exception as e:
+                                    if self.logger:
+                                        self.logger.debug(f"Stock seri row error: {e}")
+                                    i += 1
+                                    break
+                            else:
+                                # Next product header found
+                                break
+                    else:
+                        i += 1
 
             self.stock_status_var.set(f"✓ {imported} kayit yuklendi ({bolge})")
             self._log_action("stock_upload", f"file={os.path.basename(file_path)} region={bolge} count={imported}")
