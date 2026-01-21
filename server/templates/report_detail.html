@@ -1,101 +1,107 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="tr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rapor Detay | Rainstaff ERP</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-:root{--primary:#3b82f6;--accent:#06b6d4;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--bg-dark:#0f172a;--bg-card:#1e293b;--bg-hover:#334155;--text-primary:#f1f5f9;--text-secondary:#94a3b8;--border-color:#334155}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:var(--bg-dark);color:var(--text-primary);min-height:100vh}
-.header{background:var(--bg-card);padding:12px 20px;border-bottom:1px solid var(--border-color);position:sticky;top:0;z-index:100}
-.header-content{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:white}
-.logo-text h1{font-size:16px;font-weight:600}
-.header-actions{display:flex;gap:8px}
-.btn{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;border:none;text-decoration:none}
-.btn-primary{background:var(--primary);color:white}
-.btn-primary:hover{background:#2563eb}
-.main-container{max-width:1400px;margin:0 auto;padding:24px}
-.page-header{margin-bottom:24px}
-.page-header h2{font-size:24px;font-weight:600}
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.card{background:var(--bg-card);border-radius:12px;padding:20px;border:1px solid var(--border-color);transition:all .2s}
-.card:hover{border-color:var(--primary)}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.card-title{font-size:16px;font-weight:600}
-.badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
-.badge-success{background:rgba(16,185,129,.15);color:var(--success)}
-.badge-warning{background:rgba(245,158,11,.15);color:var(--warning)}
-.badge-danger{background:rgba(239,68,68,.15);color:var(--danger)}
-.card-info{font-size:13px;color:var(--text-secondary)}
-.data-table{width:100%;background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);overflow:hidden}
-.data-table th,.data-table td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border-color)}
-.data-table th{background:var(--bg-hover);font-weight:600;font-size:12px;text-transform:uppercase;color:var(--text-secondary)}
-.data-table tr:last-child td{border-bottom:none}
-.data-table tr:hover td{background:var(--bg-hover)}
-.action-btn{padding:6px 10px;border-radius:6px;background:var(--primary);color:white;border:none;cursor:pointer;font-size:12px;text-decoration:none}
-.action-btn:hover{background:#2563eb}
-.empty-state{text-align:center;padding:60px 20px;color:var(--text-secondary)}
-.empty-state i{font-size:48px;margin-bottom:16px;opacity:.5}
-@media(max-width:768px){.header{padding:10px 12px}.main-container{padding:16px}.data-table{display:block;overflow-x:auto}.btn span{display:none}}
-</style>
-</head><body>
-  <header class="header">
-    <div class="header-content">
-      <div class="logo">
-        <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
-        <div class="logo-text"><h1>Rapor Detay</h1></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Haftalik Rapor - {{ vehicle['plate'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-title">{{ vehicle['plate'] }} Haftalik Rapor</div>
+        <div class="brand-sub">{{ week_start }}</div>
       </div>
-      <div class="header-actions">
-        <a href="/dashboard" class="btn btn-primary"><i class="fas fa-arrow-left"></i><span>Dashboard</span></a>
+      <div class="sync">
+        <a class="logout" href="/reports">Raporlar</a>
+        <a class="logout" href="/dashboard">Dashboard</a>
       </div>
+    </header>
+
+    <div class="layout">
+      {% include "_sidebar.html" %}
+      <main class="content single">
+      <section class="section panel">
+        <div class="panel-head">
+          <h2>Arac Bilgisi</h2>
+        </div>
+        <div class="info-grid">
+          <div><span>Plaka:</span> {{ vehicle['plate'] }}</div>
+          <div><span>Marka/Model:</span> {{ vehicle['brand'] or '-' }} {{ vehicle['model'] or '' }}</div>
+          <div><span>Yil:</span> {{ vehicle['year'] or '-' }}</div>
+          <div><span>KM:</span> {{ vehicle['km'] or '-' }}</div>
+          <div><span>Muayene:</span> {{ vehicle['inspection_date'] or '-' }}</div>
+          <div><span>Sigorta:</span> {{ vehicle['insurance_date'] or '-' }}</div>
+          <div><span>Bakim:</span> {{ vehicle['maintenance_date'] or '-' }}</div>
+        </div>
+      </section>
+
+      <section class="section grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Kontrol Kayitlari</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Surucu</th>
+                  <th>KM</th>
+                  <th>Ariza Durum</th>
+                  <th>Sanayi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if inspections %}
+                  {% for row in inspections %}
+                    <tr>
+                      <td>{{ row['inspection_date'] }}</td>
+                      <td>{{ row['driver'] or '-' }}</td>
+                      <td>{{ row['km'] or '-' }}</td>
+                      <td>{{ row['fault_status'] or '-' }}</td>
+                      <td>{{ 'Evet' if row['service_visit'] else 'Hayir' }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="5">Kayit yok</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Kontrol Formu (Son Kayit)</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kontrol</th>
+                  <th>Durum</th>
+                  <th>Not</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if results %}
+                  {% for key, label in checklist.items() %}
+                    <tr>
+                      <td>{{ label }}</td>
+                      <td>{{ results.get(key, {}).get('status', '-') }}</td>
+                      <td>{{ results.get(key, {}).get('note', '-') }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="3">Kayit yok</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      </main>
     </div>
-  </header>
-  <main class="main-container">
-    <div class="page-header">
-      <h2>{{ plate }} - {{ week_start }}</h2>
-    </div>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Tarih</th>
-          <th>Kontrol</th>
-          <th>Sonuc</th>
-          <th>Not</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if results %}
-          {% for r in results %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.check_item }}</td>
-            <td>
-              {% if r.result == 'OK' %}
-                <span class="badge badge-success">OK</span>
-              {% else %}
-                <span class="badge badge-danger">FAIL</span>
-              {% endif %}
-            </td>
-            <td>{{ r.note or '-' }}</td>
-          </tr>
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="4">
-              <div class="empty-state">
-                <i class="fas fa-clipboard-list"></i>
-                <p>Sonuc bulunamadi</p>
-              </div>
-            </td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </main>
-</body>
+  </body>
 </html>
