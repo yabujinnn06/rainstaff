@@ -5228,26 +5228,30 @@ class PuantajApp(tk.Tk):
         tree_container = ttk.Frame(list_frame)
         tree_container.pack(fill=tk.BOTH, expand=True)
         
-        columns = ("stok_kod", "stok_adi", "seri_no", "durum", "tarih", "girdi_yapan")
-        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="headings", height=20)
+        columns = ("stok_kod", "stok_adi", "seri_sayisi", "seri_no", "durum", "tarih")
+        self.stock_tree = ttk.Treeview(tree_container, columns=columns, show="tree headings", height=20)
 
+        self.stock_tree.heading("#0", text="")
         self.stock_tree.heading("stok_kod", text="Stok Kodu")
         self.stock_tree.heading("stok_adi", text="Ürün Adı")
+        self.stock_tree.heading("seri_sayisi", text="Seri Sayısı")
         self.stock_tree.heading("seri_no", text="Seri No")
         self.stock_tree.heading("durum", text="Durum")
         self.stock_tree.heading("tarih", text="Tarih")
-        self.stock_tree.heading("girdi_yapan", text="Girdi Yapan")
 
+        self.stock_tree.column("#0", width=0)
         self.stock_tree.column("stok_kod", width=100, anchor="w")
         self.stock_tree.column("stok_adi", width=180, anchor="w")
+        self.stock_tree.column("seri_sayisi", width=100, anchor="center")
         self.stock_tree.column("seri_no", width=140, anchor="w")
         self.stock_tree.column("durum", width=80, anchor="center")
         self.stock_tree.column("tarih", width=100, anchor="center")
-        self.stock_tree.column("girdi_yapan", width=100, anchor="w")
 
         self.stock_tree.tag_configure("ok", background="#1f1f1f", foreground="#6db66d")
         self.stock_tree.tag_configure("yok", background="#1f1f1f", foreground="#ff6b6b")
         self.stock_tree.tag_configure("fazla", background="#1f1f1f", foreground="#ffeb99")
+        self.stock_tree.tag_configure("parent", background="#252525", foreground="#FFD700")
+        self.stock_tree.tag_configure("child", background="#1f1f1f", foreground="#e0e0e0")
 
         stock_xscroll = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.stock_tree.xview)
         stock_yscroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.stock_tree.yview)
@@ -5258,6 +5262,9 @@ class PuantajApp(tk.Tk):
         self.stock_tree.grid(row=0, column=0, sticky="nsew")
         stock_yscroll.grid(row=0, column=1, sticky="ns")
         stock_xscroll.grid(row=1, column=0, sticky="ew")
+        
+        # Click handler for expand/collapse
+        self.stock_tree.bind("<Button-1>", self._on_stock_tree_click)
 
     def select_stock_file(self):
         """Select Excel file for stock upload"""
@@ -5434,23 +5441,55 @@ class PuantajApp(tk.Tk):
                     'adet': adet
                 })
 
-            # Insert flat list - Excel gibi, tüm serileri listele
+            # Insert hierarchical list - parent headers with children
             for stok_kod, data in grouped.items():
-                for item in data['items']:
-                    tag = "yok" if item['durum'] == "YOK" else "fazla" if item['durum'] == "FAZLA" else "ok"
-                    
-                    self.stock_tree.insert("", tk.END, values=(
+                # Parent row: stok_kod | stok_adi | seri_sayisi
+                parent_id = self.stock_tree.insert("", tk.END, text="",
+                    values=(
                         stok_kod,
                         data['stok_adi'] or "",
-                        item['seri_no'] or "",
-                        item['durum'] or "OK",
-                        item['tarih'] or "-",
-                        item['girdi_yapan'] or "-"
-                    ), tags=(tag,))
+                        f"{len(data['items'])} seri",
+                        "",
+                        "",
+                        ""
+                    ),
+                    tags=("parent",),
+                    open=False
+                )
+                
+                # Child rows: seri numaraları
+                for item in data['items']:
+                    tag = "child"
+                    
+                    self.stock_tree.insert(parent_id, tk.END, text="",
+                        values=(
+                            "",
+                            "",
+                            "",
+                            item['seri_no'] or "",
+                            item['durum'] or "OK",
+                            item['tarih'] or "-"
+                        ),
+                        tags=(tag,)
+                    )
 
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Stock list refresh error: {e}")
+
+    def _on_stock_tree_click(self, event):
+        """Handle treeview click for expand/collapse"""
+        item = self.stock_tree.identify('item', event.x, event.y)
+        if not item:
+            return
+        
+        # Check if this is a parent item (has children)
+        children = self.stock_tree.get_children(item)
+        if children:
+            # Toggle open state
+            current_open = self.stock_tree.item(item, 'open')
+            self.stock_tree.item(item, open=not current_open)
+
 
 if __name__ == "__main__":
     ensure_app_dirs()
