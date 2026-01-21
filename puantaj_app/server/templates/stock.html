@@ -48,11 +48,16 @@
 
       .stock-table tbody tr.child-row {
         background-color: #1f1f1f;
-        display: none;
+        display: table-row;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        opacity: 0;
       }
 
       .stock-table tbody tr.child-row.open {
-        display: table-row;
+        max-height: 60px;
+        opacity: 1;
       }
 
       .stock-table tbody tr.child-row td {
