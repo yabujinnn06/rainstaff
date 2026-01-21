@@ -1,301 +1,687 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rainstaff Stok Envanteri</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <title>Stok Yönetimi | Rainstaff ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-      .stock-container {
-        max-width: 100%;
+      :root {
+        --primary: #3b82f6;
+        --primary-dark: #2563eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg-dark: #0f172a;
+        --bg-card: #1e293b;
+        --bg-hover: #334155;
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --border-color: #334155;
+        --accent: #06b6d4;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-dark);
+        color: var(--text-primary);
+        min-height: 100vh;
+        line-height: 1.5;
+      }
+
+      /* Header */
+      .header {
+        background: linear-gradient(135deg, var(--bg-card) 0%, #1a2744 100%);
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      .logo-text h1 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .logo-text span {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+      }
+
+      .btn-ghost:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      /* Main Container */
+      .main-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      /* Stats Cards */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .stat-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      }
+
+      .stat-card .icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+
+      .stat-card .icon.blue { background: rgba(59, 130, 246, 0.15); color: var(--primary); }
+      .stat-card .icon.green { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+      .stat-card .icon.yellow { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+      .stat-card .icon.cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent); }
+
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .stat-card .label {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+
+      /* Search & Filter */
+      .search-section {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        border: 1px solid var(--border-color);
+      }
+
+      .search-box {
+        position: relative;
+        max-width: 500px;
+      }
+
+      .search-box i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 14px 16px 14px 48px;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      }
+
+      .search-box input::placeholder {
+        color: var(--text-secondary);
+      }
+
+      /* Stock List */
+      .stock-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
 
       .stock-item {
-        margin-bottom: 12px;
-        border: 1px solid #333;
-        border-radius: 3px;
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
         overflow: hidden;
-        background-color: #1f1f1f;
+        transition: box-shadow 0.2s;
+      }
+
+      .stock-item:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
       }
 
       .stock-header {
         display: flex;
         align-items: center;
-        padding: 14px 16px;
-        background-color: #252525;
+        padding: 16px 20px;
         cursor: pointer;
-        user-select: none;
-        transition: background-color 0.2s;
+        transition: background 0.2s;
+        gap: 16px;
       }
 
       .stock-header:hover {
-        background-color: #2a2a2a;
+        background: var(--bg-hover);
       }
 
-      .stock-header.open {
-        background-color: #2a2a2a;
+      .stock-toggle {
+        width: 32px;
+        height: 32px;
+        background: var(--bg-dark);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        transition: transform 0.3s, background 0.2s;
+        flex-shrink: 0;
       }
 
-      .stock-toggle-icon {
-        display: inline-block;
-        color: #FFD700;
-        font-weight: bold;
-        margin-right: 12px;
-        min-width: 15px;
-        text-align: center;
-        transition: transform 0.3s ease;
-        font-size: 12px;
-      }
-
-      .stock-toggle-icon.open {
+      .stock-toggle.open {
         transform: rotate(90deg);
+        background: var(--primary);
+        color: white;
+      }
+
+      .stock-info {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 100px 1fr auto;
+        gap: 16px;
+        align-items: center;
       }
 
       .stock-code {
-        color: #FFD700;
-        font-weight: bold;
-        min-width: 80px;
-        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+        font-size: 15px;
+        font-family: 'JetBrains Mono', monospace;
       }
 
       .stock-name {
-        color: #e0e0e0;
-        flex: 1;
-        margin-left: 20px;
-        font-size: 13px;
+        color: var(--text-primary);
+        font-size: 14px;
       }
 
-      .stock-count {
-        color: #aaa;
+      .stock-badge {
+        background: rgba(6, 182, 212, 0.15);
+        color: var(--accent);
+        padding: 6px 12px;
+        border-radius: 20px;
         font-size: 12px;
-        min-width: 70px;
-        text-align: right;
+        font-weight: 600;
+        white-space: nowrap;
       }
 
-      .stock-content {
+      /* Serial List */
+      .serial-content {
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.4s ease;
-        background-color: #1a1a1a;
+        background: var(--bg-dark);
       }
 
-      .stock-content.open {
-        max-height: 10000px;
+      .serial-content.open {
+        max-height: 2000px;
       }
 
       .serial-list {
-        padding: 0;
-        margin: 0;
-        list-style: none;
+        padding: 8px;
       }
 
       .serial-item {
         display: grid;
-        grid-template-columns: 30px 1fr 60px 100px;
-        align-items: center;
-        padding: 10px 16px;
-        padding-left: 45px;
-        border-bottom: 1px solid #2a2a2a;
-        font-size: 12px;
+        grid-template-columns: 1fr 80px 100px;
         gap: 12px;
+        padding: 12px 16px;
+        background: var(--bg-card);
+        border-radius: 8px;
+        margin-bottom: 6px;
+        align-items: center;
+        transition: background 0.2s;
       }
 
       .serial-item:last-child {
-        border-bottom: none;
+        margin-bottom: 0;
       }
 
-      .serial-icon {
-        color: #666;
-        font-size: 10px;
+      .serial-item:hover {
+        background: var(--bg-hover);
       }
 
       .serial-no {
-        color: #e0e0e0;
-        font-family: monospace;
-        word-break: break-all;
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--text-primary);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
-      .serial-status {
-        display: inline-block;
-        padding: 3px 6px;
-        border-radius: 2px;
-        font-size: 10px;
-        font-weight: 500;
+      .serial-no::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: var(--accent);
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .status-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
         text-align: center;
+        text-transform: uppercase;
       }
 
-      .serial-status.ok {
-        background-color: #2a4a2a;
-        color: #6db66d;
+      .status-badge.ok {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
       }
 
-      .serial-status.yok {
-        background-color: #4a2a2a;
-        color: #ff6b6b;
+      .status-badge.yok {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
       }
 
-      .serial-status.fazla {
-        background-color: #4a4a2a;
-        color: #ffeb99;
+      .status-badge.fazla {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
       }
 
       .serial-date {
-        color: #888;
-        font-size: 11px;
+        color: var(--text-secondary);
+        font-size: 12px;
         text-align: right;
       }
 
-      .search-box {
-        margin-bottom: 20px;
-      }
-
-      .search-box input {
-        width: 100%;
-        padding: 10px 12px;
-        background-color: #252525;
-        border: 1px solid #333;
-        color: #e0e0e0;
-        border-radius: 3px;
-        font-size: 13px;
-      }
-
-      .search-box input::placeholder {
-        color: #666;
-      }
-
-      .search-box input:focus {
-        outline: none;
-        border-color: #FFD700;
-      }
-
-      .no-results {
-        padding: 40px;
+      /* Empty State */
+      .empty-state {
         text-align: center;
-        color: #888;
-        font-size: 13px;
+        padding: 60px 20px;
+        color: var(--text-secondary);
       }
-    </style>
-  </head>
-  <body class="admin">
-    <header class="topbar">
-      <div class="brand">
-        <div>
-          <div class="brand-title">Stok Envanteri</div>
-          <div class="brand-sub">Ürün ve seri numaraları</div>
-        </div>
-      </div>
-      <div class="sync">
-        <button class="notify-btn" id="refreshBtn" type="button">Yenile</button>
-        <a class="logout" href="/dashboard">Dashboard</a>
-      </div>
-    </header>
 
-    <div class="layout">
-      <main class="content single" style="margin-left: 0; width: 100%;">
-        <section class="section panel">
-          <div class="panel-head">
-            <h2>Stok Listesi</h2>
-          </div>
+      .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
 
-          <div class="search-box">
-            <input 
-              type="text" 
-              id="stockSearch" 
-              placeholder="Stok No, Ürün Adı veya Seri No ile ara..."
-            />
-          </div>
+      .empty-state h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+      }
 
-          <div class="stock-container" id="stockContainer">
-            <div class="no-results">Yükleniyor...</div>
-          </div>
-        </section>
-      </main>
-    </div>
+      /* Loading */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        gap: 12px;
+        color: var(--text-secondary);
+      }
 
-    <script>
-      let allStockData = [];
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid var(--border-color);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
 
-      async function loadStockData() {
-        try {
-          const response = await fetch('/api/stock-data');
-          if (!response.ok) throw new Error('Veri alınamadı');
-          
-          allStockData = await response.json();
-          console.log('Stock data loaded:', allStockData);
-          renderStockList();
-        } catch (error) {
-          console.error('Hata:', error);
-          document.getElementById('stockContainer').innerHTML = 
-            '<div class="no-results">❌ Hata: ' + error.message + '</div>';
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .header {
+          padding: 12px 16px;
+        }
+
+        .header-content {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .header-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+
+        .main-container {
+          padding: 16px;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .stat-card {
+          padding: 16px;
+        }
+
+        .stat-card .value {
+          font-size: 22px;
+        }
+
+        .stock-info {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .stock-header {
+          padding: 14px 16px;
+          flex-wrap: wrap;
+        }
+
+        .stock-badge {
+          margin-left: 48px;
+        }
+
+        .serial-item {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .serial-date {
+          text-align: left;
         }
       }
 
+      @media (max-width: 480px) {
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          font-size: 13px;
+        }
+
+        .logo-text h1 {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-warehouse"></i>
+          </div>
+          <div class="logo-text">
+            <h1>Stok Yönetimi</h1>
+            <span>Depo Envanter Sistemi</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i>
+            <span class="btn-text">Yenile</span>
+          </button>
+          <a href="/dashboard" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i>
+            <span class="btn-text">Dashboard</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="icon blue"><i class="fas fa-boxes"></i></div>
+          <div class="value" id="totalProducts">-</div>
+          <div class="label">Toplam Ürün</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon cyan"><i class="fas fa-barcode"></i></div>
+          <div class="value" id="totalSerials">-</div>
+          <div class="label">Toplam Seri No</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon green"><i class="fas fa-check-circle"></i></div>
+          <div class="value" id="okCount">-</div>
+          <div class="label">Mevcut</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon yellow"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="value" id="issueCount">-</div>
+          <div class="label">Eksik/Fazla</div>
+        </div>
+      </div>
+
+      <div class="search-section">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchInput" placeholder="Stok kodu, ürün adı veya seri no ara...">
+        </div>
+      </div>
+
+      <div class="stock-list" id="stockList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>Veriler yükleniyor...</span>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      let stockData = [];
+
+      async function loadStockData() {
+        try {
+          document.getElementById('stockList').innerHTML = `
+            <div class="loading">
+              <div class="spinner"></div>
+              <span>Veriler yükleniyor...</span>
+            </div>
+          `;
+
+          const response = await fetch('/api/stock-data');
+          if (!response.ok) throw new Error('Veri alınamadı');
+          
+          stockData = await response.json();
+          updateStats();
+          renderStockList();
+        } catch (error) {
+          console.error('Hata:', error);
+          document.getElementById('stockList').innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-exclamation-circle"></i>
+              <h3>Veri yüklenemedi</h3>
+              <p>${error.message}</p>
+            </div>
+          `;
+        }
+      }
+
+      function updateStats() {
+        const totalProducts = stockData.length;
+        let totalSerials = 0;
+        let okCount = 0;
+        let issueCount = 0;
+
+        stockData.forEach(item => {
+          totalSerials += item.seri_count;
+          item.seri_list.forEach(s => {
+            if (s.durum === 'OK' || !s.durum) okCount++;
+            else issueCount++;
+          });
+        });
+
+        document.getElementById('totalProducts').textContent = totalProducts;
+        document.getElementById('totalSerials').textContent = totalSerials;
+        document.getElementById('okCount').textContent = okCount;
+        document.getElementById('issueCount').textContent = issueCount;
+      }
+
       function renderStockList() {
-        const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
-        const container = document.getElementById('stockContainer');
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const container = document.getElementById('stockList');
 
-        let filteredData = allStockData;
-
+        let filtered = stockData;
         if (searchTerm) {
-          filteredData = allStockData.filter(item =>
+          filtered = stockData.filter(item =>
             item.stok_kod.toLowerCase().includes(searchTerm) ||
             (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm)) ||
             item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(searchTerm))
           );
         }
 
-        if (filteredData.length === 0) {
-          container.innerHTML = '<div class="no-results">Kayıt bulunamadı</div>';
+        if (filtered.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <h3>Kayıt bulunamadı</h3>
+              <p>Arama kriterlerinize uygun stok kaydı yok</p>
+            </div>
+          `;
           return;
         }
 
-        let html = '';
-        filteredData.forEach((item, idx) => {
-          html += `
-            <div class="stock-item" data-idx="${idx}">
-              <div class="stock-header" onclick="toggleStock(this)">
-                <span class="stock-toggle-icon">▶</span>
+        container.innerHTML = filtered.map((item, idx) => `
+          <div class="stock-item">
+            <div class="stock-header" onclick="toggleItem(${idx})">
+              <div class="stock-toggle" id="toggle-${idx}">
+                <i class="fas fa-chevron-right"></i>
+              </div>
+              <div class="stock-info">
                 <span class="stock-code">${item.stok_kod}</span>
                 <span class="stock-name">${item.stok_adi || '-'}</span>
-                <span class="stock-count">${item.seri_count} seri</span>
-              </div>
-              <div class="stock-content">
-                <ul class="serial-list">
-                  ${item.seri_list.map(seri => {
-                    const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
-                    return `
-                      <li class="serial-item">
-                        <span class="serial-icon">•</span>
-                        <span class="serial-no">${seri.seri_no || '-'}</span>
-                        <span class="serial-status ${statusClass}">${seri.durum || 'OK'}</span>
-                        <span class="serial-date">${seri.tarih || '-'}</span>
-                      </li>
-                    `;
-                  }).join('')}
-                </ul>
+                <span class="stock-badge">
+                  <i class="fas fa-barcode"></i> ${item.seri_count} Seri
+                </span>
               </div>
             </div>
-          `;
-        });
-
-        container.innerHTML = html;
+            <div class="serial-content" id="content-${idx}">
+              <div class="serial-list">
+                ${item.seri_list.map(seri => {
+                  const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
+                  return `
+                    <div class="serial-item">
+                      <span class="serial-no">${seri.seri_no || '-'}</span>
+                      <span class="status-badge ${statusClass}">${seri.durum || 'OK'}</span>
+                      <span class="serial-date">${seri.tarih || '-'}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `).join('');
       }
 
-      function toggleStock(headerElement) {
-        const stockItem = headerElement.parentElement;
-        const content = stockItem.querySelector('.stock-content');
-        const icon = headerElement.querySelector('.stock-toggle-icon');
-
-        headerElement.classList.toggle('open');
+      function toggleItem(idx) {
+        const toggle = document.getElementById(`toggle-${idx}`);
+        const content = document.getElementById(`content-${idx}`);
+        toggle.classList.toggle('open');
         content.classList.toggle('open');
-        icon.classList.toggle('open');
       }
 
-      document.getElementById('stockSearch').addEventListener('input', renderStockList);
-      document.getElementById('refreshBtn').addEventListener('click', () => {
-        document.getElementById('stockContainer').innerHTML = '<div class="no-results">Yükleniyor...</div>';
-        loadStockData();
-      });
+      document.getElementById('searchInput').addEventListener('input', renderStockList);
+      document.getElementById('refreshBtn').addEventListener('click', loadStockData);
 
       loadStockData();
     </script>
