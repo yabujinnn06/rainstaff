@@ -36,15 +36,14 @@
         line-height: 1.5;
       }
 
-      /* Header */
+      /* Header - Compact */
       .header {
-        background: linear-gradient(135deg, var(--bg-card) 0%, #1a2744 100%);
-        padding: 16px 24px;
+        background: var(--bg-card);
+        padding: 12px 20px;
         border-bottom: 1px solid var(--border-color);
         position: sticky;
         top: 0;
         z-index: 100;
-        backdrop-filter: blur(10px);
       }
 
       .header-content {
@@ -53,41 +52,43 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 16px;
+        gap: 12px;
       }
 
       .logo {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
       }
 
       .logo-icon {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-        border-radius: 10px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 16px;
+        flex-shrink: 0;
       }
 
       .logo-text h1 {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: var(--text-primary);
+        white-space: nowrap;
       }
 
       .logo-text span {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--text-secondary);
+        display: none;
       }
 
       .header-actions {
         display: flex;
-        gap: 12px;
+        gap: 8px;
         align-items: center;
       }
 
@@ -434,17 +435,29 @@
       /* Responsive */
       @media (max-width: 768px) {
         .header {
-          padding: 12px 16px;
+          padding: 10px 12px;
         }
 
         .header-content {
-          flex-direction: column;
-          align-items: flex-start;
+          gap: 8px;
         }
 
-        .header-actions {
-          width: 100%;
-          justify-content: flex-end;
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+
+        .logo-text h1 {
+          font-size: 14px;
+        }
+
+        .btn {
+          padding: 8px 12px;
+        }
+
+        .btn .btn-text {
+          display: none;
         }
 
         .main-container {
@@ -687,3 +700,4 @@
     </script>
   </body>
 </html>
+
