@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stok Yönetimi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body class="admin">
+    <header class="topbar">
+      <div class="brand">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">Menu</button>
+        <div>
+          <div class="brand-title">Stok Envanteri</div>
+          <div class="brand-sub">Depo stok durumu ve takip</div>
+        </div>
+      </div>
+      <div class="sync">
+        <a class="logout" href="/dashboard">Dashboard</a>
+      </div>
+    </header>
+    <div class="backdrop" id="sidebarBackdrop"></div>
+
+    <div class="layout">
+      {% include "_sidebar.html" %}
+      <main class="content">
+        <div class="container">
+          <div class="header">
+              <h1>Stok Envanteri</h1>
+              <p class="subtitle">Depo stok durumu ve takip</p>
+          </div>
+
+          <!-- Filters -->
+          <div class="card filters-card">
+              <div class="filter-row">
+                  <div class="filter-group">
+                      <label>Bölge</label>
+                      <select id="bölgeFilter" onchange="applyFilters()">
+                          <option value="">Tüm Bölgeler</option>
+                          <option value="Ankara">Ankara</option>
+                          <option value="Istanbul">Istanbul</option>
+                          <option value="Bursa">Bursa</option>
+                          <option value="Izmir">Izmir</option>
+                      </select>
+                  </div>
+
+                  <div class="filter-group">
+                      <label>Durum</label>
+                      <select id="durumFilter" onchange="applyFilters()">
+                          <option value="">Tümü</option>
+                          <option value="VAR">VAR</option>
+                          <option value="YOK">YOK</option>
+                          <option value="FAZLA">FAZLA</option>
+                      </select>
+                  </div>
+
+                  <div class="filter-group" style="flex: 2;">
+                      <label>Ara (Stok Kod / Seri No)</label>
+                      <input type="text" id="searchInput" placeholder="Arama yapın..." onkeyup="if(event.key==='Enter') applyFilters()">
+                  </div>
+
+                  <button class="btn btn-primary" onclick="applyFilters()">Filtrele</button>
+                  <button class="btn btn-secondary" onclick="clearFilters()">Temizle</button>
+              </div>
+
+              <div class="filter-stats">
+                  <span id="totalCount">Toplam: 0 kayıt</span>
+                  <span id="varCount">Var: 0</span>
+                  <span id="yokCount">Yok: 0</span>
+                  <span id="fazlaCount">Fazla: 0</span>
+              </div>
+          </div>
+
+          <!-- Stock Table -->
+          <div class="card table-card">
+              <div class="table-header">
+                  <h3>Stok Listesi</h3>
+                  <button class="btn btn-sm btn-secondary" onclick="exportToExcel()">📥 Excel İndir</button>
+              </div>
+
+              <div class="table-responsive">
+                  <table id="stockTable">
+                      <thead>
+                          <tr>
+                              <th>Stok Kod</th>
+                              <th>Stok Adı</th>
+                              <th>Seri No</th>
+                              <th>Durum</th>
+                              <th>Tarih</th>
+                              <th>Girdi Yapan</th>
+                              <th>Adet</th>
+                              <th>Bölge</th>
+                          </tr>
+                      </thead>
+                      <tbody id="stockTableBody">
+                          <tr>
+                              <td colspan="8" style="text-align: center; padding: 20px; color: #999;">Yükleniyor...</td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+
+          <!-- Stock Summary by Type -->
+          <div class="card summary-card">
+              <h3>Bölge Özeti</h3>
+              <div class="summary-grid" id="summaryGrid">
+                  <div class="summary-box">
+                      <span class="summary-label">Yükleniyor...</span>
+                      <span class="summary-value">-</span>
+                  </div>
+              </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+<style>
+    body {
+        background-color: #0f172a;
+        color: #e0e0e0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #5B9BD5;
+        padding-bottom: 20px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+        color: #C9A961;
+        margin: 0;
+    }
+
+    .header .subtitle {
+        color: #b0b0b0;
+        margin: 8px 0 0 0;
+    }
+
+    .card {
+        background-color: #2a2a2a;
+        border: 1px solid #3a3a3a;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .filters-card {
+        background-color: #323232;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: 150px 150px 1fr 100px 100px;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filter-group label {
+        font-size: 12px;
+        color: #5B9BD5;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        padding: 8px 12px;
+        background-color: #363636;
+        border: 1px solid #454545;
+        color: #e0e0e0;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+        outline: none;
+        border-color: #5B9BD5;
+        background-color: #3d3d3d;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background-color: #5B9BD5;
+        color: #1e1e1e;
+    }
+
+    .btn-primary:hover {
+        background-color: #7BB3E0;
+    }
+
+    .btn-secondary {
+        background-color: #454545;
+        color: #e0e0e0;
+    }
+
+    .btn-secondary:hover {
+        background-color: #555555;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .filter-stats {
+        display: flex;
+        gap: 24px;
+        font-size: 13px;
+        color: #b0b0b0;
+    }
+
+    .filter-stats span {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .table-card {
+        overflow-x: auto;
+    }
+
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .table-header h3 {
+        margin: 0;
+        color: #5B9BD5;
+        font-size: 16px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    thead {
+        background-color: #363636;
+    }
+
+    th {
+        padding: 12px;
+        text-align: left;
+        color: #5B9BD5;
+        font-weight: 600;
+        border-bottom: 2px solid #454545;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #3a3a3a;
+        color: #e0e0e0;
+    }
+
+    tbody tr:hover {
+        background-color: #323232;
+    }
+
+    tbody tr:nth-child(odd) {
+        background-color: #252525;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #1f1f1f;
+    }
+
+    /* Status colors */
+    .status-var {
+        color: #4caf50;
+        font-weight: 600;
+    }
+
+    .status-yok {
+        color: #f44336;
+        font-weight: 600;
+    }
+
+    .status-fazla {
+        color: #ff9800;
+        font-weight: 600;
+    }
+
+    .summary-card {
+        margin-top: 30px;
+    }
+
+    .summary-card h3 {
+        margin: 0 0 15px 0;
+        color: #5B9BD5;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .summary-box {
+        background-color: #1f1f1f;
+        border: 1px solid #3a3a3a;
+        border-radius: 6px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .summary-label {
+        display: block;
+        font-size: 12px;
+        color: #b0b0b0;
+        margin-bottom: 8px;
+    }
+
+    .summary-value {
+        display: block;
+        font-size: 24px;
+        font-weight: 700;
+        color: #5B9BD5;
+    }
+
+    @media (max-width: 768px) {
+        .filter-row {
+            grid-template-columns: 1fr;
+        }
+
+        table {
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 8px;
+        }
+    }
+</style>
+
+<script>
+    // Load stock data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStockData();
+    });
+
+    function loadStockData() {
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const bolge = document.getElementById('bölgeFilter').value;
+        const durum = document.getElementById('durumFilter').value;
+        const search = document.getElementById('searchInput').value;
+
+        const url = new URL('/stock/list', window.location.origin);
+        if (bolge) url.searchParams.append('bolge', bolge);
+        if (durum) url.searchParams.append('durum', durum);
+        if (search) url.searchParams.append('search', search);
+
+        document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Yükleniyor...</td></tr>';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayStocks(data.data);
+                    updateStats(data.data);
+                } else {
+                    showError('Veri yüklenemedi: ' + data.error);
+                }
+            })
+            .catch(error => {
+                showError('Bağlantı hatası: ' + error);
+            });
+    }
+
+    function displayStocks(stocks) {
+        const tbody = document.getElementById('stockTableBody');
+        tbody.innerHTML = '';
+
+        if (!stocks || stocks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #666;">Veri bulunamadı</td></tr>';
+            return;
+        }
+
+        stocks.forEach(stock => {
+            const row = document.createElement('tr');
+            
+            let durumClass = '';
+            if (stock.durum === 'VAR') durumClass = 'status-var';
+            else if (stock.durum === 'YOK') durumClass = 'status-yok';
+            else if (stock.durum === 'FAZLA') durumClass = 'status-fazla';
+
+            row.innerHTML = `
+                <td><strong>${stock.stok_kod || '-'}</strong></td>
+                <td>${stock.stok_adi || '-'}</td>
+                <td>${stock.seri_no || '-'}</td>
+                <td><span class="${durumClass}">${stock.durum || '-'}</span></td>
+                <td>${stock.tarih || '-'}</td>
+                <td>${stock.girdi_yapan || '-'}</td>
+                <td>${stock.adet || '-'}</td>
+                <td>${stock.bolge || '-'}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function updateStats(stocks) {
+        let total = 0;
+        let varCount = 0;
+        let yokCount = 0;
+        let fazlaCount = 0;
+
+        stocks.forEach(stock => {
+            // Flatten items if grouped
+            const items = stock.items || [stock];
+            total += items.length;
+            
+            items.forEach(item => {
+                if (item.durum === 'VAR') varCount++;
+                else if (item.durum === 'YOK') yokCount++;
+                else if (item.durum === 'FAZLA') fazlaCount++;
+            });
+        });
+
+        document.getElementById('totalCount').textContent = `Toplam: ${total} kayıt`;
+        document.getElementById('varCount').textContent = `Var: ${varCount}`;
+        document.getElementById('yokCount').textContent = `Yok: ${yokCount}`;
+        document.getElementById('fazlaCount').textContent = `Fazla: ${fazlaCount}`;
+    }
+
+    function clearFilters() {
+        document.getElementById('bölgeFilter').value = '';
+        document.getElementById('durumFilter').value = '';
+        document.getElementById('searchInput').value = '';
+        applyFilters();
+    }
+
+    function exportToExcel() {
+        const bolge = document.getElementById('bölgeFilter').value;
+        const url = `/stock/export${bolge ? '?bolge=' + bolge : ''}`;
+        window.location.href = url;
+    }
+
+    function showError(message) {
+        const tbody = document.getElementById('stockTableBody');
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: #f44336;">${message}</td></tr>`;
+    }
+        </script>
+        <script>
+            (() => {
+                const sidebarToggle = document.getElementById("sidebarToggle");
+                if (!sidebarToggle) return;
+                sidebarToggle.addEventListener("click", () => {
+                    document.body.classList.toggle("sidebar-mobile-expanded");
+                    document.body.classList.remove("sidebar-open");
+                });
+            })();
+        </script>
+    </body>
+</html>
