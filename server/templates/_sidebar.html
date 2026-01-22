@@ -1,7 +1,6 @@
 ﻿<aside class="sidebar">
   <div class="sidebar-head">
     <span class="menu-title">Genel</span>
-    <button class="sidebar-collapse" id="sidebarCollapse" aria-label="Sidebar Daralt">Daralt</button>
   </div>
   <a href="/dashboard#overview" title="Ozet" data-section="overview">
     <span class="icon">
@@ -118,6 +117,14 @@
     <span class="label">Stok</span>
   </a>
 </aside>
+
+<!-- Modern Sidebar Collapse Button -->
+<button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Sidebar Daralt/Genislet" data-tooltip="Daralt">
+  <svg viewBox="0 0 24 24">
+    <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
+
 <script>
   (() => {
     const sidebarToggle = document.getElementById("sidebarToggle");

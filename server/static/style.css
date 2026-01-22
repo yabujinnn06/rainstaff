@@ -2660,3 +2660,145 @@ body.dark-theme .sidebar-toggle:hover {
 body.dark-theme .backdrop {
   background: rgba(0, 0, 0, 0.7);
 }
+
+/* ============================================
+   MODERN SIDEBAR TOGGLE BUTTON
+   ============================================ */
+
+/* Toggle button - Fixed to sidebar edge */
+.sidebar-collapse-btn {
+  position: fixed;
+  top: 50%;
+  left: 244px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  border: none;
+  border-radius: 0 12px 12px 0;
+  box-shadow: 2px 0 12px rgba(91, 107, 255, 0.3);
+  cursor: pointer;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.sidebar-collapse-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.sidebar-collapse-btn:hover::before {
+  opacity: 1;
+}
+
+.sidebar-collapse-btn:hover {
+  transform: translateY(-50%) translateX(2px);
+  box-shadow: 3px 0 20px rgba(91, 107, 255, 0.5);
+}
+
+.sidebar-collapse-btn:active {
+  transform: translateY(-50%) translateX(0) scale(0.95);
+}
+
+/* Arrow icon */
+.sidebar-collapse-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: white;
+  stroke-width: 2.5;
+  fill: none;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Collapsed state */
+body.sidebar-collapsed .sidebar-collapse-btn {
+  left: 56px;
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn svg {
+  transform: rotate(180deg);
+}
+
+/* Mobile - hide desktop toggle */
+@media (max-width: 768px) {
+  .sidebar-collapse-btn {
+    display: none;
+  }
+}
+
+/* Dark theme */
+body.dark-theme .sidebar-collapse-btn {
+  background: linear-gradient(135deg, var(--accent) 0%, #4f5bff 100%);
+  box-shadow: 2px 0 16px rgba(91, 107, 255, 0.4);
+}
+
+body.dark-theme .sidebar-collapse-btn:hover {
+  box-shadow: 3px 0 24px rgba(91, 107, 255, 0.6);
+}
+
+/* Pulse animation on hover */
+@keyframes sidebar-pulse {
+  0%, 100% {
+    box-shadow: 2px 0 12px rgba(91, 107, 255, 0.3);
+  }
+  50% {
+    box-shadow: 3px 0 20px rgba(91, 107, 255, 0.5);
+  }
+}
+
+.sidebar-collapse-btn:hover {
+  animation: sidebar-pulse 2s ease-in-out infinite;
+}
+
+/* Tooltip */
+.sidebar-collapse-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  z-index: 1000;
+}
+
+.sidebar-collapse-btn:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(12px);
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn::after {
+  content: "GeniÅŸlet";
+}
+
+/* Glow effect */
+.sidebar-collapse-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-radius: 0 14px 14px 0;
+  opacity: 0;
+  z-index: -1;
+  filter: blur(8px);
+  transition: opacity 0.3s;
+}
+
+.sidebar-collapse-btn:hover::before {
+  opacity: 0.6;
+}

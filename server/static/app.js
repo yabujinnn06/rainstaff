@@ -32,4 +32,24 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
+
+  // Desktop sidebar collapse toggle
+  const collapseBtn = document.getElementById('sidebarCollapseBtn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', function() {
+      body.classList.toggle('sidebar-collapsed');
+      
+      // Save preference to localStorage
+      if (body.classList.contains('sidebar-collapsed')) {
+        localStorage.setItem('sidebarCollapsed', 'true');
+      } else {
+        localStorage.removeItem('sidebarCollapsed');
+      }
+    });
+
+    // Restore sidebar state from localStorage
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      body.classList.add('sidebar-collapsed');
+    }
+  }
 });
