@@ -5,15 +5,24 @@ document.addEventListener('DOMContentLoaded', function() {
   const body = document.body;
 
   if (toggle) {
-    toggle.addEventListener('click', function() {
+    toggle.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Hamburger clicked!');
       body.classList.toggle('sidebar-open');
+      console.log('Sidebar open:', body.classList.contains('sidebar-open'));
     });
+  } else {
+    console.log('Hamburger button not found!');
   }
 
   if (backdrop) {
-    backdrop.addEventListener('click', function() {
+    backdrop.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Backdrop clicked!');
       body.classList.remove('sidebar-open');
     });
+  } else {
+    console.log('Backdrop not found!');
   }
 
   // Close sidebar on escape key

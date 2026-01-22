@@ -3245,3 +3245,122 @@ body.sidebar-collapsed .sidebar-collapse-btn {
 body.sidebar-collapsed .sidebar-collapse-btn svg {
   transform: rotate(180deg) !important;
 }
+
+/* ============================================
+   MOBILE FIX - AGGRESSIVE OVERRIDES
+   ============================================ */
+
+/* Force mobile sidebar behavior */
+@media (max-width: 768px) {
+  /* Sidebar hidden by default on mobile */
+  .sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s ease !important;
+  }
+
+  /* Sidebar visible when open */
+  body.sidebar-open .sidebar {
+    transform: translateX(0) !important;
+  }
+
+  /* Backdrop visible when sidebar open */
+  body.sidebar-open .backdrop {
+    display: block !important;
+    opacity: 1 !important;
+  }
+
+  /* Header mobile fixes */
+  .topbar {
+    flex-wrap: wrap !important;
+  }
+
+  .brand {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .sync {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Hide long text on mobile */
+  .sync > span:not(.status):not(.alert-pill) {
+    display: none !important;
+  }
+
+  .sync .hint {
+    display: none !important;
+  }
+
+  /* Mobile header height adjustment */
+  .topbar {
+    min-height: 56px !important;
+    max-height: 56px !important;
+  }
+
+  /* Ensure hamburger is visible */
+  .sidebar-toggle {
+    display: flex !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Brand text */
+  .brand > div {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .brand-title {
+    font-size: 16px !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 480px) {
+  .sync {
+    font-size: 9px !important;
+  }
+
+  .sync .logout,
+  .sync .notify-btn {
+    padding: 4px 6px !important;
+    font-size: 9px !important;
+  }
+
+  .sync .status,
+  .sync .alert-pill {
+    padding: 3px 6px !important;
+    font-size: 9px !important;
+  }
+
+  .brand-title {
+    font-size: 14px !important;
+  }
+}
+
+/* Desktop - disable mobile sidebar behavior */
+@media (min-width: 769px) {
+  .sidebar {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar-toggle {
+    display: none !important;
+  }
+
+  .backdrop {
+    display: none !important;
+  }
+
+  body.sidebar-open .backdrop {
+    display: none !important;
+  }
+}
