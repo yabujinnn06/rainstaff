@@ -124,14 +124,4 @@
     <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 </button>
-
-<script>
-  (() => {
-    const sidebarToggle = document.getElementById("sidebarToggle");
-    if (!sidebarToggle) return;
-    sidebarToggle.addEventListener("click", () => {
-      document.body.classList.toggle("sidebar-mobile-expanded");
-      document.body.classList.remove("sidebar-open");
-    });
-  })();
 </script>

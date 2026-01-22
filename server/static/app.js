@@ -12,34 +12,51 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (toggle) {
-    toggle.addEventListener('click', function(e) {
+    // Remove any existing listeners by cloning
+    const newToggle = toggle.cloneNode(true);
+    toggle.parentNode.replaceChild(newToggle, toggle);
+    
+    // Add new listener with capture phase (runs before bubble)
+    newToggle.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Hamburger clicked!');
+      e.stopImmediatePropagation();
+      console.log('Hamburger clicked! Width:', window.innerWidth);
       
       const sidebar = document.querySelector('.sidebar');
       const isOpen = body.classList.contains('sidebar-open');
       
+      console.log('Current state - isOpen:', isOpen);
+      console.log('Sidebar element:', sidebar);
+      
       if (isOpen) {
         // Close sidebar
         body.classList.remove('sidebar-open');
-        if (sidebar && window.innerWidth <= 768) {
+        body.classList.remove('sidebar-mobile-expanded'); // Remove old class too
+        if (sidebar) {
           sidebar.style.height = '0';
           sidebar.style.overflow = 'hidden';
+          sidebar.style.padding = '0';
+          console.log('Sidebar closed');
         }
       } else {
         // Open sidebar
         body.classList.add('sidebar-open');
-        if (sidebar && window.innerWidth <= 768) {
+        body.classList.remove('sidebar-mobile-expanded'); // Remove old class
+        if (sidebar) {
           sidebar.style.height = 'auto';
           sidebar.style.maxHeight = 'calc(100vh - 56px)';
           sidebar.style.overflow = 'auto';
+          sidebar.style.overflowY = 'auto';
           sidebar.style.padding = '20px 16px';
+          sidebar.style.display = 'block';
+          console.log('Sidebar opened, height:', sidebar.style.height);
         }
       }
       
-      console.log('Sidebar open:', body.classList.contains('sidebar-open'));
-    });
+      console.log('New state - sidebar-open:', body.classList.contains('sidebar-open'));
+      return false;
+    }, true); // Use capture phase
   } else {
     console.log('Hamburger button not found!');
   }
