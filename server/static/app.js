@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const sidebar = document.querySelector('.sidebar');
 
   // Set initial mobile sidebar state
-  if (sidebar && window.innerWidth <= 768) {
+  if (sidebar && window.innerWidth <= 1100) {
     sidebar.style.height = '0';
     sidebar.style.overflow = 'hidden';
   }
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
       body.classList.remove('sidebar-open');
       
       const sidebar = document.querySelector('.sidebar');
-      if (sidebar && window.innerWidth <= 768) {
+      if (sidebar && window.innerWidth <= 1100) {
         sidebar.style.height = '0';
         sidebar.style.overflow = 'hidden';
       }
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
       body.classList.remove('sidebar-open');
       
       const sidebar = document.querySelector('.sidebar');
-      if (sidebar && window.innerWidth <= 768) {
+      if (sidebar && window.innerWidth <= 1100) {
         sidebar.style.height = '0';
         sidebar.style.overflow = 'hidden';
       }
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Close sidebar when clicking a link (mobile only)
-  if (window.innerWidth <= 768) {
+  if (window.innerWidth <= 1100) {
     const sidebarLinks = document.querySelectorAll('.sidebar a');
     sidebarLinks.forEach(link => {
       link.addEventListener('click', function() {
@@ -100,23 +100,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Desktop sidebar collapse toggle
-  const collapseBtn = document.getElementById('sidebarCollapseBtn');
+  // Desktop sidebar collapse toggle (support both legacy and new IDs)
+  const collapseBtn = document.getElementById('sidebarCollapseBtn') || document.getElementById('sidebarCollapse');
+  const updateCollapseLabel = () => {
+    if (!collapseBtn) return;
+    const collapsed = body.classList.contains('sidebar-collapsed');
+    // Update tooltip and accessible label without altering SVG content
+    collapseBtn.setAttribute('data-tooltip', collapsed ? 'Genislet' : 'Daralt');
+    collapseBtn.setAttribute('aria-label', collapsed ? 'Sidebar Genislet' : 'Sidebar Daralt');
+  };
   if (collapseBtn) {
     collapseBtn.addEventListener('click', function() {
+      // Ensure hidden state is cleared when toggling collapse
+      body.classList.remove('sidebar-hidden');
       body.classList.toggle('sidebar-collapsed');
-      
+
       // Save preference to localStorage
       if (body.classList.contains('sidebar-collapsed')) {
         localStorage.setItem('sidebarCollapsed', 'true');
       } else {
         localStorage.removeItem('sidebarCollapsed');
       }
+      updateCollapseLabel();
     });
 
     // Restore sidebar state from localStorage
     if (localStorage.getItem('sidebarCollapsed') === 'true') {
       body.classList.add('sidebar-collapsed');
     }
+    // Initialize button text
+    updateCollapseLabel();
   }
 });

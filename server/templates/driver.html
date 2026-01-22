@@ -1,12 +1,12 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Surucu Karti - {{ driver['full_name'] }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-  </head>
-  <body class="admin dark-theme">
+      <link rel="stylesheet" href="{{ url_for('static', filename='matrix-fix.css') }}" /></head>
+  <body class="admin dark-theme theme-rainpunk rainpunk-streaks">
     <header class="topbar">
       <div class="brand">
         <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">
@@ -116,5 +116,5 @@
       </main>
     </div>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
-  </body>
+      <script src="{{ url_for('static', filename='matrix-rain.js') }}"></script></body>
 </html>

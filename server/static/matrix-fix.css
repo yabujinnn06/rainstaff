@@ -1,0 +1,335 @@
+/* ============================================
+   RAINSTAFF SIDEBAR & MOBILE FIX
+   ============================================ */
+
+/* Matrix rain container */
+.mbg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: 0.2 !important;
+}
+
+/* Remove old CSS rain effects */
+.sidebar::before,
+.sidebar::after,
+.topbar::before,
+.topbar::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* ============================================
+   DESKTOP SIDEBAR - BUYUK ELEMANLAR
+   ============================================ */
+@media (min-width: 769px) {
+  .sidebar {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 260px !important;
+    height: calc(100vh - 56px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: translateX(0) !important;
+    z-index: 50 !important;
+  }
+
+  /* Sidebar links - BUYUK, TAM GENISLIK VE YUKSEKLIK */
+  .sidebar a {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 52px !important;
+    padding: 0 20px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    gap: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .sidebar a .icon {
+    width: 22px !important;
+    height: 22px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sidebar a .icon svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .sidebar a .label {
+    font-size: 15px !important;
+    font-weight: 500 !important;
+  }
+
+  /* Section titles - BUYUK */
+  .sidebar .menu-title {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 40px !important;
+    padding: 0 20px !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Content margin */
+  .content {
+    margin-left: 260px !important;
+    padding-top: 80px !important;
+  }
+
+  /* Hide mobile toggle */
+  .sidebar-toggle {
+    display: none !important;
+  }
+
+  .backdrop {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   MOBILE SIDEBAR - YUKARIDAN ACILIR
+   ============================================ */
+@media (max-width: 768px) {
+  /* Show hamburger menu */
+  .sidebar-toggle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--card) !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+  }
+
+  .sidebar-toggle svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  /* Topbar mobile */
+  .topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 56px !important;
+    padding: 8px 12px !important;
+    z-index: 100 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .brand-title {
+    font-size: 16px !important;
+  }
+
+  .brand-sub {
+    display: none !important;
+  }
+
+  /* Sync bar compact */
+  .sync {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    font-size: 11px !important;
+  }
+
+  .sync .hint {
+    display: none !important;
+  }
+
+  .sync .status,
+  .sync .alert-pill {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .sync .logout {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* Sidebar - slides from top */
+  .sidebar {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 0 !important;
+    max-height: calc(100vh - 56px) !important;
+    overflow: hidden !important;
+    transform: none !important;
+    transition: height 0.3s ease !important;
+    z-index: 999 !important;
+    padding: 0 !important;
+  }
+
+  /* Sidebar open */
+  body.sidebar-open .sidebar {
+    height: auto !important;
+    overflow-y: auto !important;
+    padding: 12px !important;
+  }
+
+  /* Sidebar links - mobile */
+  .sidebar a {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 48px !important;
+    padding: 0 16px !important;
+    margin: 0 0 4px 0 !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    gap: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .sidebar a .icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .sidebar a .label {
+    font-size: 14px !important;
+  }
+
+  .sidebar .menu-title {
+    height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 11px !important;
+    margin: 8px 0 0 0 !important;
+  }
+
+  /* Backdrop */
+  .backdrop {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 998 !important;
+  }
+
+  body.sidebar-open .backdrop {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* Content full width */
+  .content {
+    margin-left: 0 !important;
+    padding: 16px !important;
+    padding-top: 72px !important;
+  }
+
+  /* KPI grid mobile */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ============================================
+   VERY SMALL MOBILE (480px)
+   ============================================ */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 6px 10px !important;
+    height: 52px !important;
+  }
+
+  .sidebar-toggle {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .brand-title {
+    font-size: 14px !important;
+  }
+
+  .sync {
+    gap: 4px !important;
+    font-size: 10px !important;
+  }
+
+  .sync .status,
+  .sync .alert-pill {
+    padding: 2px 6px !important;
+    font-size: 9px !important;
+  }
+
+  .sync .logout {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .sidebar {
+    top: 52px !important;
+  }
+
+  .backdrop {
+    top: 52px !important;
+  }
+
+  .content {
+    padding: 12px !important;
+    padding-top: 64px !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kpi-card {
+    padding: 12px !important;
+  }
+}
+
+/* ============================================
+   Z-INDEX & CONTENT LAYERING
+   ============================================ */
+.sidebar > *:not(.mbg) {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar > *:not(.mbg) {
+  position: relative;
+  z-index: 1;
+}

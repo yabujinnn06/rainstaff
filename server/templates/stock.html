@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Stok Yönetimi | Rainstaff ERP</title>
+    <title>Stok Y?netimi | Rainstaff ERP</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -515,7 +515,7 @@
         }
       }
     </style>
-  </head>
+      <link rel="stylesheet" href="{{ url_for('static', filename='matrix-fix.css') }}" /></head>
   <body>
     <header class="header">
       <div class="header-content">
@@ -524,7 +524,7 @@
             <i class="fas fa-warehouse"></i>
           </div>
           <div class="logo-text">
-            <h1>Stok Yönetimi</h1>
+            <h1>Stok Y?netimi</h1>
             <span>Depo Envanter Sistemi</span>
           </div>
         </div>
@@ -546,7 +546,7 @@
         <div class="stat-card">
           <div class="icon blue"><i class="fas fa-boxes"></i></div>
           <div class="value" id="totalProducts">-</div>
-          <div class="label">Toplam Ürün</div>
+          <div class="label">Toplam ?r?n</div>
         </div>
         <div class="stat-card">
           <div class="icon cyan"><i class="fas fa-barcode"></i></div>
@@ -568,14 +568,14 @@
       <div class="search-section">
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" id="searchInput" placeholder="Stok kodu, ürün adı veya seri no ara...">
+          <input type="text" id="searchInput" placeholder="Stok kodu, ?r?n ad? veya seri no ara...">
         </div>
       </div>
 
       <div class="stock-list" id="stockList">
         <div class="loading">
           <div class="spinner"></div>
-          <span>Veriler yükleniyor...</span>
+          <span>Veriler y?kleniyor...</span>
         </div>
       </div>
     </main>
@@ -588,12 +588,12 @@
           document.getElementById('stockList').innerHTML = `
             <div class="loading">
               <div class="spinner"></div>
-              <span>Veriler yükleniyor...</span>
+              <span>Veriler y?kleniyor...</span>
             </div>
           `;
 
           const response = await fetch('/api/stock-data');
-          if (!response.ok) throw new Error('Veri alınamadı');
+          if (!response.ok) throw new Error('Veri al?namad?');
           
           stockData = await response.json();
           updateStats();
@@ -603,7 +603,7 @@
           document.getElementById('stockList').innerHTML = `
             <div class="empty-state">
               <i class="fas fa-exclamation-circle"></i>
-              <h3>Veri yüklenemedi</h3>
+              <h3>Veri y?klenemedi</h3>
               <p>${error.message}</p>
             </div>
           `;
@@ -647,8 +647,8 @@
           container.innerHTML = `
             <div class="empty-state">
               <i class="fas fa-inbox"></i>
-              <h3>Kayıt bulunamadı</h3>
-              <p>Arama kriterlerinize uygun stok kaydı yok</p>
+              <h3>Kay?t bulunamad?</h3>
+              <p>Arama kriterlerinize uygun stok kayd? yok</p>
             </div>
           `;
           return;
@@ -699,6 +699,6 @@
       loadStockData();
     </script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
-  </body>
+      <script src="{{ url_for('static', filename='matrix-rain.js') }}"></script></body>
 </html>
 

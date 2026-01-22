@@ -42,6 +42,37 @@ body {
   border: 1px solid var(--border);
   width: 320px;
   box-shadow: 0 10px 30px rgba(15, 45, 80, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(91, 107, 255, 0.08) 0px,
+    rgba(91, 107, 255, 0.08) 1px,
+    transparent 2px,
+    transparent 8px
+  );
+  animation: cyberRainV 1.2s linear infinite;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 0;
+}
+.login-card h1,
+.login-card p,
+.login-card label,
+.login-card input,
+.login-card button {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes cyberRainV {
+  0% { transform: translateY(-6px); }
+  100% { transform: translateY(6px); }
 }
 
 .login-card h1 {
@@ -253,6 +284,10 @@ body {
   color: var(--sidebar-text);
   text-decoration: none;
   font-size: 13px;
+}
+
+.sidebar a:last-child {
+  margin-bottom: 0;
 }
 
 .sidebar a.active {
@@ -3731,6 +3766,323 @@ body.dark-theme .kpi-card .kpi-icon {
 }
 
 /* ============================================
+   RAINPUNK THEME (Cyberpunk Rain for Rainstaff)
+   ============================================ */
+/* Variables and base palette */
+:root.theme-rainpunk {
+  --bg: #0a0f1f;              /* deep night */
+  --bg-soft: #0d1426;
+  --text: #d7e6ff;            /* soft ice */
+  --muted: #9bb4d9;
+  --accent: #5b6bff;          /* neon azure */
+  --accent-2: #00ffd1;        /* neon aqua */
+  --accent-3: #ff2ea6;        /* neon magenta */
+  --border: #1b2a4a;
+  --glass: rgba(13, 20, 38, 0.6);
+  --glass-strong: rgba(13, 20, 38, 0.85);
+}
+
+/* Global typography tweaks */
+body.theme-rainpunk {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Rain background using CSS only */
+body.theme-rainpunk::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 60%),
+    radial-gradient(1200px 600px at 10% -20%, rgba(91,107,255,0.18), transparent 60%),
+    radial-gradient(800px 400px at 90% -10%, rgba(0,255,209,0.12), transparent 60%);
+  z-index: 0;
+}
+
+/* Light rain streaks */
+.rainpunk-streaks::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255,255,255,0.05) 0px,
+    rgba(255,255,255,0.05) 2px,
+    transparent 4px,
+    transparent 12px
+  );
+  animation: rainFall 1.8s linear infinite;
+  opacity: 0.35;
+  z-index: 1;
+}
+
+@keyframes rainFall {
+  0% { transform: translateY(-8px); }
+  100% { transform: translateY(8px); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .rainpunk-streaks::before { animation: none; opacity: 0.2; }
+}
+
+/* App chrome layering */
+.app-shell { position: relative; z-index: 2; }
+
+/* Header: neon + glass */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(13,20,38,0.85) 0%, rgba(13,20,38,0.6) 100%);
+  backdrop-filter: saturate(120%) blur(9px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255,255,255,0.04);
+}
+.topbar .brand {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text);
+}
+.topbar .brand .logo {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 18px rgba(91,107,255,0.55), 0 0 24px rgba(0,255,209,0.35);
+}
+/* Logo pseudo-element so templates need no markup changes */
+.topbar .brand::before {
+  content: "";
+  display: inline-block;
+  width: 22px; height: 22px; border-radius: 6px; margin-right: 8px;
+  background: radial-gradient(circle at 30% 30%, var(--accent) 0%, transparent 60%),
+              radial-gradient(circle at 70% 70%, var(--accent-2) 0%, transparent 60%);
+  box-shadow: 0 0 12px rgba(91,107,255,0.45), 0 0 16px rgba(0,255,209,0.25);
+}
+.topbar .actions .btn {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.topbar .actions .btn:hover {
+  background: var(--glass-strong);
+  box-shadow: 0 0 0 2px rgba(91,107,255,0.25);
+}
+
+/* Cards / panels */
+.panel, .kpi-card, .table-wrap {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255,255,255,0.04);
+}
+.kpi-card:hover, .panel:hover {
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(91,107,255,0.35);
+  transform: translateY(-1px);
+}
+
+/* Neon borders (subtle) */
+.panel.neon, .kpi-card.neon, .table-wrap.neon {
+  border-image: linear-gradient(90deg, var(--accent), var(--accent-2)) 1;
+}
+
+/* Table refinements */
+.dtable table { color: var(--text); }
+.dtable thead th {
+  background: rgba(13,20,38,0.75);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.dtable tbody td { border-top: 1px solid var(--border); }
+.dtable table tr:hover td { background: rgba(91,107,255,0.10); }
+.dtable table tr:active td { background: rgba(91,107,255,0.18); }
+
+/* Buttons */
+.btn, button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #041024;
+  border: none;
+}
+.btn.secondary {
+  background: linear-gradient(135deg, #243b55, #141e30);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* Sidebar alignment with theme */
+.sidebar {
+  background: var(--glass);
+  border-right: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.sidebar::before {
+  content: "";
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background-image: 
+    linear-gradient(180deg, transparent 0%, rgba(91, 107, 255, 0.4) 50%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 255, 209, 0.3) 50%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(91, 107, 255, 0.2) 50%, transparent 100%);
+  background-size: 2px 20px, 1px 30px, 1px 15px;
+  background-position: 10% 0, 30% 10px, 60% 5px;
+  background-repeat: repeat-y;
+  animation: rainDrops 0.8s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background-image: 
+    linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(91, 107, 255, 0.25) 50%, transparent 100%);
+  background-size: 1px 25px, 1px 18px;
+  background-position: 45% 0, 80% 8px;
+  background-repeat: repeat-y;
+  animation: rainDrops 1.2s linear infinite;
+  animation-delay: 0.3s;
+  pointer-events: none;
+  z-index: 0;
+}
+.sidebar a {
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+}
+.sidebar a.active {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 70%);
+  color: #041024;
+}
+.sidebar .menu-title {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header cyber rain effect */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(13,20,38,0.85) 0%, rgba(13,20,38,0.6) 100%);
+  backdrop-filter: saturate(120%) blur(9px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255,255,255,0.04);
+  position: relative;
+  overflow: hidden;
+}
+.topbar::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  background-image: 
+    linear-gradient(180deg, transparent 0%, rgba(0, 255, 209, 0.35) 50%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(91, 107, 255, 0.25) 50%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  background-size: 1px 12px, 2px 18px, 1px 8px;
+  background-position: 15% 0, 40% 5px, 70% 2px;
+  background-repeat: repeat;
+  animation: rainDrops 0.6s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.topbar .brand,
+.topbar .sync {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes rainDrops {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(50%); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar::before,
+  .sidebar::after,
+  .topbar::before {
+    animation: none;
+    opacity: 0.1;
+  }
+}
+
+/* Filter bar */
+.filter-bar {
+  background: var(--glass);
+  border: 1px solid var(--border);
+}
+
+
+/* Accessibility / contrast */
+.muted { color: var(--muted); }
+.high-contrast { color: #ffffff; }
+
+/* Layout containers to sit above rain */
+.content, .sidebar, .topbar { position: relative; z-index: 2; }
+
+/* Responsive tuning */
+@media (max-width: 1100px) {
+  .topbar { top: 0; }
+  .sidebar { backdrop-filter: blur(8px); }
+}
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* Sidebar Compact Density (Desktop) - Moderate */
+@media (min-width: 1100px) {
+  .sidebar {
+    padding: 20px 16px;
+  }
+  .sidebar a {
+    gap: 9px;
+    padding: 9px 11px;
+    margin-bottom: 5px;
+    border-radius: 10px;
+  }
+  .sidebar a .icon {
+    width: 17px;
+    height: 17px;
+  }
+  .sidebar a .label {
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .sidebar .menu-title {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    margin: 10px 0 6px;
+    opacity: 0.75;
+  }
+}
+@media (min-width: 1100px) and (max-height: 900px) {
+  .sidebar a { padding: 8px 10px; }
+  .sidebar a .label { font-size: 12px; }
+  .sidebar .menu-title { margin: 8px 0 5px; }
+}
+
+/* ============================================
    UX POLISH: SIDEBAR, FILTER BAR, TABLE HOVER
    ============================================ */
 
@@ -3828,4 +4180,90 @@ body.dark-theme .kpi-card .kpi-icon {
 
 .panel, .table-wrap {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================
+   FINAL SIDEBAR FIX - COMPACT & NO BOTTOM SPACE
+   ============================================ */
+.sidebar {
+  padding: 16px 14px !important;
+}
+.sidebar a {
+  gap: 8px !important;
+  padding: 7px 10px !important;
+  margin-bottom: 3px !important;
+  font-size: 12px !important;
+}
+.sidebar a .icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+.sidebar a .label {
+  font-size: 11.5px !important;
+}
+.sidebar .menu-title {
+  font-size: 9px !important;
+  margin: 6px 0 3px !important;
+}
+.sidebar a:last-child {
+  margin-bottom: 0 !important;
+}
+
+}
+
+/* ============================================
+   MATRIX RAIN CANVAS STYLES
+   ============================================ */
+.matrix-rain-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Remove old CSS rain effects */
+.sidebar::before,
+.sidebar::after,
+.topbar::before,
+.topbar::after {
+  display: none !important;
+}
+
+/* Ensure content above canvas */
+.sidebar a,
+.sidebar .menu-title,
+.topbar .brand,
+.topbar .sync {
+  position: relative;
+  z-index: 2;
+}
+
+/* Extra tight sidebar */
+.sidebar {
+  padding: 12px 10px !important;
+  overflow: hidden;
+}
+.sidebar a {
+  padding: 6px 8px !important;
+  margin-bottom: 2px !important;
+}
+.sidebar .menu-title {
+  margin: 4px 0 2px !important;
+  font-size: 8px !important;
+}
+/* Login body - Matrix rain background */
+.login-body {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-body .login-card {
+  z-index: 10;
+  position: relative;
+}
+
+.login-body .matrix-bg {
+  z-index: 1;
 }

@@ -1,12 +1,12 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rainstaff Admin Giris</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-  </head>
-  <body class="login-body dark-theme">
+      <link rel="stylesheet" href="{{ url_for('static', filename='matrix-fix.css') }}" /></head>
+  <body class="login-body dark-theme theme-rainpunk rainpunk-streaks">
     <div class="login-card">
       <h1>Rainstaff Admin</h1>
       <p>Yonetici paneline giris</p>
@@ -21,5 +21,5 @@
         <button type="submit">Giris</button>
       </form>
     </div>
-  </body>
+      <script src="{{ url_for('static', filename='matrix-rain.js') }}"></script></body>
 </html>

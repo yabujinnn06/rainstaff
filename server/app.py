@@ -80,6 +80,10 @@ def ensure_schema(conn):
         "vehicle_service_visits",
     ]
     for table in tables:
+        # Check if table exists first
+        cur = conn.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';")
+        if not cur.fetchone():
+            continue  # Table does not exist, skip
         cur = conn.execute(f"PRAGMA table_info({table});")
         columns = {row[1] for row in cur.fetchall()}
         if "region" not in columns:
@@ -1663,6 +1667,7 @@ def auto_sync():
 if __name__ == "__main__":
     ensure_data_dir()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)
+
 
 
 

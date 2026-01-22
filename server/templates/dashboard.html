@@ -1,12 +1,13 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rainstaff Admin Panel</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    </head>
-  <body class="admin dark-theme" data-alert-urgent="{{ alert_counts.urgent }}" data-alert-bad="{{ alert_counts.bad }}" data-alert-repeat="{{ alert_counts.repeat }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='matrix-fix.css') }}" />
+  </head>
+  <body class="admin dark-theme theme-rainpunk rainpunk-streaks" data-alert-urgent="{{ alert_counts.urgent }}" data-alert-bad="{{ alert_counts.bad }}" data-alert-repeat="{{ alert_counts.repeat }}">
     <header class="topbar">
       <div class="brand">
         <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">
@@ -45,7 +46,7 @@
               <div class="kpi-value">{{ summary.employees }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">👥</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 70%"></span></div>
             </div>
@@ -54,7 +55,7 @@
               <div class="kpi-value">{{ summary.timesheets }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">🧾</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 64%"></span></div>
             </div>
@@ -64,7 +65,7 @@
               <div class="card-sub">{{ top_overtime['name'] if top_overtime else 'Kayit yok' }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">LIDER</span>
-                <span class="kpi-icon">🏆</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 58%"></span></div>
             </div>
@@ -73,7 +74,7 @@
               <div class="kpi-value">{{ summary.overtime_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">⏱️</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 75%"></span></div>
             </div>
@@ -82,7 +83,7 @@
               <div class="kpi-value">{{ summary.worked_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">🕒</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 82%"></span></div>
             </div>
@@ -91,7 +92,7 @@
               <div class="kpi-value">{{ summary.night_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">🌙</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 44%"></span></div>
             </div>
@@ -100,7 +101,7 @@
               <div class="kpi-value">{{ summary.special_hours }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">📅</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 36%"></span></div>
             </div>
@@ -110,7 +111,7 @@
               <div class="card-sub">Detaylari gor</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">KRITIK</span>
-                <span class="kpi-icon">🚨</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 62%"></span></div>
             </button>
@@ -120,7 +121,7 @@
               <div class="card-sub">Yaklasti: {{ oil_counts.soon }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">ONEMLI</span>
-                <span class="kpi-icon">🛢️</span>
+                <span class="kpi-icon">???</span>
               </div>
               <div class="kpi-bar"><span style="width: 68%"></span></div>
             </div>
@@ -129,7 +130,7 @@
               <div class="kpi-value">{{ summary.service_open }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">ACIL</span>
-                <span class="kpi-icon">🧰</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 52%"></span></div>
             </a>
@@ -138,7 +139,7 @@
               <div class="kpi-value">{{ summary.vehicles }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">FILO</span>
-                <span class="kpi-icon">🚗</span>
+                <span class="kpi-icon">??</span>
               </div>
               <div class="kpi-bar"><span style="width: 60%"></span></div>
             </div>
@@ -147,7 +148,7 @@
               <div class="kpi-value">{{ summary.drivers }}</div>
               <div class="kpi-meta">
                 <span class="kpi-chip">AKTIF</span>
-                <span class="kpi-icon">🧑‍✈️</span>
+                <span class="kpi-icon">?????</span>
               </div>
               <div class="kpi-bar"><span style="width: 55%"></span></div>
             </div>
@@ -807,41 +808,6 @@
 
       window.addEventListener("scroll", updateActiveLink, { passive: true });
       updateActiveLink();
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      const sidebarBackdrop = document.getElementById("sidebarBackdrop");
-      const sidebarCollapse = document.getElementById("sidebarCollapse");
-      const toggleSidebar = () => {
-        document.body.classList.remove("sidebar-hidden");
-        document.body.classList.remove("sidebar-collapsed");
-        document.body.classList.toggle("sidebar-open");
-      };
-      if (sidebarToggle) {
-        sidebarToggle.addEventListener("click", toggleSidebar);
-      }
-      if (sidebarBackdrop) {
-        sidebarBackdrop.addEventListener("click", () => {
-          document.body.classList.remove("sidebar-open");
-        });
-      }
-      if (sidebarCollapse) {
-        sidebarCollapse.addEventListener("click", () => {
-          document.body.classList.remove("sidebar-hidden");
-          document.body.classList.toggle("sidebar-collapsed");
-          sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
-            ? "Genislet"
-            : "Daralt";
-        });
-        sidebarCollapse.textContent = document.body.classList.contains("sidebar-collapsed")
-          ? "Genislet"
-          : "Daralt";
-      }
-      document.querySelectorAll(".sidebar a").forEach((link) => {
-        link.addEventListener("click", () => {
-          if (window.innerWidth <= 1100) {
-            document.body.classList.remove("sidebar-open");
-          }
-        });
-      });
       const allToggle = document.querySelector('input[name="all"]');
       const startInput = document.querySelector('input[name="start"]');
       const endInput = document.querySelector('input[name="end"]');
@@ -1028,7 +994,8 @@
     </script>
   
     <script src="{{ url_for('static', filename='app.js') }}"></script>
-    </body>
+        <script src="{{ url_for('static', filename='matrix-rain.js') }}"></script>
+  </body>
 </html>
 
 
