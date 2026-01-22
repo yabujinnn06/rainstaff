@@ -2882,3 +2882,302 @@ body.dark-theme .table-tools .btn-primary {
 body.dark-theme .table-tools label {
   color: var(--muted);
 }
+
+/* ============================================
+   MOBILE RESPONSIVE FIX - OVERRIDE ALL
+   ============================================ */
+
+/* Reset base styles for proper mobile behavior */
+.topbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 64px !important;
+  z-index: 100 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.sidebar {
+  position: fixed !important;
+  top: 64px !important;
+  left: 0 !important;
+  width: 260px !important;
+  height: calc(100vh - 64px) !important;
+  z-index: 50 !important;
+  overflow-y: auto !important;
+}
+
+.layout {
+  padding-top: 64px !important;
+  min-height: 100vh !important;
+}
+
+.content {
+  margin-left: 260px !important;
+  transition: margin-left 0.3s ease !important;
+}
+
+/* Hamburger toggle - hidden on desktop */
+.sidebar-toggle {
+  display: none !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Backdrop */
+.backdrop {
+  display: none;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 45;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+body.sidebar-open .backdrop {
+  display: block !important;
+  opacity: 1 !important;
+}
+
+/* ============================================
+   TABLET: 1100px and below
+   ============================================ */
+@media (max-width: 1100px) {
+  .topbar {
+    padding: 10px 16px !important;
+  }
+
+  .sync {
+    gap: 8px !important;
+    font-size: 11px !important;
+  }
+
+  .sync .hint {
+    display: none !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ============================================
+   MOBILE: 768px and below
+   ============================================ */
+@media (max-width: 768px) {
+  /* Show hamburger menu */
+  .sidebar-toggle {
+    display: flex !important;
+  }
+
+  /* Header mobile adjustments */
+  .topbar {
+    height: 56px !important;
+    padding: 8px 12px !important;
+  }
+
+  .layout {
+    padding-top: 56px !important;
+  }
+
+  .brand-title {
+    font-size: 16px !important;
+  }
+
+  .brand-sub {
+    display: none !important;
+  }
+
+  /* Sync bar mobile */
+  .sync {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    font-size: 10px !important;
+  }
+
+  .sync > span:not(.status):not(.alert-pill) {
+    display: none !important;
+  }
+
+  .sync .logout {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+  }
+
+  .sync .notify-btn {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+  }
+
+  /* Sidebar mobile behavior */
+  .sidebar {
+    top: 56px !important;
+    height: calc(100vh - 56px) !important;
+    width: 280px !important;
+    transform: translateX(-100%) !important;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  body.sidebar-open .sidebar {
+    transform: translateX(0) !important;
+  }
+
+  .backdrop {
+    top: 56px !important;
+  }
+
+  /* Content full width on mobile */
+  .content {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+
+  /* Hide desktop sidebar collapse button */
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+
+  /* KPI Grid single column */
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Tables responsive */
+  .dtable {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .dtable table {
+    min-width: 600px !important;
+  }
+
+  /* Panel adjustments */
+  .panel {
+    padding: 16px !important;
+  }
+
+  .panel-head {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .filter-form {
+    width: 100% !important;
+  }
+
+  /* Alert feed stack */
+  .alert-feed {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Section spacing */
+  .section {
+    margin-bottom: 24px !important;
+  }
+
+  .section-title {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+  }
+}
+
+/* ============================================
+   SMALL MOBILE: 480px and below
+   ============================================ */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 6px 10px !important;
+  }
+
+  .brand-title {
+    font-size: 14px !important;
+  }
+
+  .sidebar {
+    width: 260px !important;
+  }
+
+  .content {
+    padding: 12px !important;
+  }
+
+  .kpi-card {
+    padding: 14px !important;
+  }
+
+  .section-title {
+    font-size: 16px !important;
+  }
+
+  /* Mini cards 2 columns */
+  .range-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Buttons stack */
+  .panel-actions {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .panel-actions button,
+  .panel-actions a {
+    width: 100% !important;
+  }
+
+  /* Smaller sync items */
+  .sync {
+    font-size: 9px !important;
+  }
+
+  .sync .logout,
+  .sync .notify-btn {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .sync .status,
+  .sync .alert-pill {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+/* Dark theme mobile fixes */
+@media (max-width: 768px) {
+  body.dark-theme .topbar {
+    background: var(--card) !important;
+  }
+
+  body.dark-theme .sidebar-toggle {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+
+  body.dark-theme .sidebar-toggle:hover {
+    background: var(--accent) !important;
+    color: white !important;
+  }
+
+  body.dark-theme .backdrop {
+    background: rgba(0, 0, 0, 0.8) !important;
+  }
+}
