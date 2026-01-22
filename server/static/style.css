@@ -1006,3 +1006,645 @@ body.sidebar-hidden .sidebar {
 body.sidebar-hidden .content {
   margin-left: 0;
 }
+
+
+/* ============================================
+   DARK THEME - Modern ERP Style
+   Add class="dark-theme" to body to activate
+   ============================================ */
+
+body.dark-theme {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-2: #06b6d4;
+  --warn: #f59e0b;
+  --border: #334155;
+  --sidebar: #1e293b;
+  --sidebar-accent: #334155;
+  --sidebar-text: #f1f5f9;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body.dark-theme .topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+body.dark-theme .topbar .brand-title,
+body.dark-theme .topbar .brand-sub {
+  color: var(--text);
+}
+
+body.dark-theme .sidebar {
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+}
+
+body.dark-theme .sidebar a {
+  color: var(--sidebar-text);
+}
+
+body.dark-theme .sidebar a:hover,
+body.dark-theme .sidebar a.active {
+  background: var(--accent);
+  color: white;
+}
+
+body.dark-theme .content {
+  background: var(--bg);
+}
+
+body.dark-theme .panel,
+body.dark-theme .section.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+body.dark-theme .panel-head h2 {
+  color: var(--text);
+}
+
+body.dark-theme .kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+body.dark-theme .kpi-card .kpi-label {
+  color: var(--muted);
+}
+
+body.dark-theme .kpi-card .kpi-value {
+  color: var(--text);
+}
+
+body.dark-theme .kpi-card.warn {
+  border-color: var(--warn);
+}
+
+body.dark-theme table {
+  background: var(--card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+body.dark-theme table th {
+  background: #334155;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+body.dark-theme table td {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme table tr:hover td {
+  background: #334155;
+}
+
+body.dark-theme .table-wrap {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+body.dark-theme input,
+body.dark-theme select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+}
+
+body.dark-theme input:focus,
+body.dark-theme select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+body.dark-theme button,
+body.dark-theme .btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+body.dark-theme button:hover,
+body.dark-theme .btn:hover {
+  background: #2563eb;
+}
+
+body.dark-theme .logout {
+  background: #ef4444;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+body.dark-theme .logout:hover {
+  background: #dc2626;
+}
+
+body.dark-theme .link {
+  color: var(--accent);
+}
+
+body.dark-theme .link:hover {
+  color: var(--accent-2);
+}
+
+body.dark-theme .muted {
+  color: var(--muted);
+}
+
+body.dark-theme .badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+body.dark-theme .badge.bad {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+body.dark-theme .badge.good {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+body.dark-theme .badge.repeat {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+body.dark-theme .filter-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+body.dark-theme .mini-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+body.dark-theme .mini-card .label {
+  color: var(--muted);
+}
+
+body.dark-theme .mini-card .value {
+  color: var(--text);
+}
+
+body.dark-theme .alert-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+body.dark-theme .alert-item.bad {
+  border-left: 3px solid #ef4444;
+}
+
+body.dark-theme .alert-item.good {
+  border-left: 3px solid #10b981;
+}
+
+body.dark-theme .alert-item.repeat {
+  border-left: 3px solid #f59e0b;
+}
+
+body.dark-theme .notification-bar {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 12px;
+}
+
+body.dark-theme .table-footer {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  padding: 12px;
+}
+
+body.dark-theme .table-footer button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .table-footer button:hover:not([disabled]) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+body.dark-theme .section-title {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+body.dark-theme .alert-stats {
+  display: flex;
+  gap: 8px;
+}
+
+body.dark-theme .kpi-detail {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+body.dark-theme .kpi-bar span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* Login page dark theme */
+body.dark-theme.login-body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+body.dark-theme .login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme .login-card h1 {
+  color: var(--text);
+}
+
+body.dark-theme .login-card p {
+  color: var(--muted);
+}
+
+body.dark-theme .login-card input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .login-card button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+body.dark-theme .login-card button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Scrollbar dark theme */
+body.dark-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.dark-theme ::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+
+/* ============================================
+   DARK THEME - Modern ERP Style
+   Add class="dark-theme" to body to activate
+   ============================================ */
+
+body.dark-theme {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-2: #06b6d4;
+  --warn: #f59e0b;
+  --border: #334155;
+  --sidebar: #1e293b;
+  --sidebar-accent: #334155;
+  --sidebar-text: #f1f5f9;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body.dark-theme .topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+body.dark-theme .topbar .brand-title,
+body.dark-theme .topbar .brand-sub {
+  color: var(--text);
+}
+
+body.dark-theme .sidebar {
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+}
+
+body.dark-theme .sidebar a {
+  color: var(--sidebar-text);
+}
+
+body.dark-theme .sidebar a:hover,
+body.dark-theme .sidebar a.active {
+  background: var(--accent);
+  color: white;
+}
+
+body.dark-theme .content {
+  background: var(--bg);
+}
+
+body.dark-theme .panel,
+body.dark-theme .section.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+body.dark-theme .panel-head h2 {
+  color: var(--text);
+}
+
+body.dark-theme .kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+body.dark-theme .kpi-card .kpi-label {
+  color: var(--muted);
+}
+
+body.dark-theme .kpi-card .kpi-value {
+  color: var(--text);
+}
+
+body.dark-theme .kpi-card.warn {
+  border-color: var(--warn);
+}
+
+body.dark-theme table {
+  background: var(--card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+body.dark-theme table th {
+  background: #334155;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+body.dark-theme table td {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme table tr:hover td {
+  background: #334155;
+}
+
+body.dark-theme .table-wrap {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+body.dark-theme input,
+body.dark-theme select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+}
+
+body.dark-theme input:focus,
+body.dark-theme select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+body.dark-theme button,
+body.dark-theme .btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+body.dark-theme button:hover,
+body.dark-theme .btn:hover {
+  background: #2563eb;
+}
+
+body.dark-theme .logout {
+  background: #ef4444;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+body.dark-theme .logout:hover {
+  background: #dc2626;
+}
+
+body.dark-theme .link {
+  color: var(--accent);
+}
+
+body.dark-theme .link:hover {
+  color: var(--accent-2);
+}
+
+body.dark-theme .muted {
+  color: var(--muted);
+}
+
+body.dark-theme .badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+body.dark-theme .badge.bad {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+body.dark-theme .badge.good {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+body.dark-theme .badge.repeat {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+body.dark-theme .filter-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+body.dark-theme .mini-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+body.dark-theme .mini-card .label {
+  color: var(--muted);
+}
+
+body.dark-theme .mini-card .value {
+  color: var(--text);
+}
+
+body.dark-theme .alert-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+body.dark-theme .alert-item.bad {
+  border-left: 3px solid #ef4444;
+}
+
+body.dark-theme .alert-item.good {
+  border-left: 3px solid #10b981;
+}
+
+body.dark-theme .alert-item.repeat {
+  border-left: 3px solid #f59e0b;
+}
+
+body.dark-theme .notification-bar {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 12px;
+}
+
+body.dark-theme .table-footer {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  padding: 12px;
+}
+
+body.dark-theme .table-footer button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .table-footer button:hover:not([disabled]) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+body.dark-theme .section-title {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+body.dark-theme .alert-stats {
+  display: flex;
+  gap: 8px;
+}
+
+body.dark-theme .kpi-detail {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+body.dark-theme .kpi-bar span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* Login page dark theme */
+body.dark-theme.login-body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+body.dark-theme .login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme .login-card h1 {
+  color: var(--text);
+}
+
+body.dark-theme .login-card p {
+  color: var(--muted);
+}
+
+body.dark-theme .login-card input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .login-card button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+body.dark-theme .login-card button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Scrollbar dark theme */
+body.dark-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.dark-theme ::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
