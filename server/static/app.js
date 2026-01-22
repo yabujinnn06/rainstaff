@@ -3,12 +3,41 @@ document.addEventListener('DOMContentLoaded', function() {
   const toggle = document.getElementById('sidebarToggle');
   const backdrop = document.getElementById('sidebarBackdrop');
   const body = document.body;
+  const sidebar = document.querySelector('.sidebar');
+
+  // Set initial mobile sidebar state
+  if (sidebar && window.innerWidth <= 768) {
+    sidebar.style.height = '0';
+    sidebar.style.overflow = 'hidden';
+  }
 
   if (toggle) {
     toggle.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       console.log('Hamburger clicked!');
-      body.classList.toggle('sidebar-open');
+      
+      const sidebar = document.querySelector('.sidebar');
+      const isOpen = body.classList.contains('sidebar-open');
+      
+      if (isOpen) {
+        // Close sidebar
+        body.classList.remove('sidebar-open');
+        if (sidebar && window.innerWidth <= 768) {
+          sidebar.style.height = '0';
+          sidebar.style.overflow = 'hidden';
+        }
+      } else {
+        // Open sidebar
+        body.classList.add('sidebar-open');
+        if (sidebar && window.innerWidth <= 768) {
+          sidebar.style.height = 'auto';
+          sidebar.style.maxHeight = 'calc(100vh - 56px)';
+          sidebar.style.overflow = 'auto';
+          sidebar.style.padding = '20px 16px';
+        }
+      }
+      
       console.log('Sidebar open:', body.classList.contains('sidebar-open'));
     });
   } else {
@@ -20,6 +49,12 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       console.log('Backdrop clicked!');
       body.classList.remove('sidebar-open');
+      
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar && window.innerWidth <= 768) {
+        sidebar.style.height = '0';
+        sidebar.style.overflow = 'hidden';
+      }
     });
   } else {
     console.log('Backdrop not found!');
@@ -29,6 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && body.classList.contains('sidebar-open')) {
       body.classList.remove('sidebar-open');
+      
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar && window.innerWidth <= 768) {
+        sidebar.style.height = '0';
+        sidebar.style.overflow = 'hidden';
+      }
     }
   });
 
