@@ -2802,3 +2802,83 @@ body.sidebar-collapsed .sidebar-collapse-btn::after {
 .sidebar-collapse-btn:hover::before {
   opacity: 0.6;
 }
+
+/* FIX: Table tools - dark theme */
+body.dark-theme .table-tools {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+body.dark-theme .table-tools input[type="text"],
+body.dark-theme .table-tools input[type="search"],
+body.dark-theme .table-tools select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .table-tools input::placeholder {
+  color: var(--muted);
+}
+
+body.dark-theme .table-tools button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .table-tools button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+body.dark-theme .table-tools .btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+body.dark-theme .table-tools label {
+  color: var(--muted);
+}
+
+/* FIX: Table tools - dark theme */
+body.dark-theme .table-tools {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+body.dark-theme .table-tools input[type="text"],
+body.dark-theme .table-tools input[type="search"],
+body.dark-theme .table-tools select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .table-tools input::placeholder {
+  color: var(--muted);
+}
+
+body.dark-theme .table-tools button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.dark-theme .table-tools button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+body.dark-theme .table-tools .btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+body.dark-theme .table-tools label {
+  color: var(--muted);
+}
