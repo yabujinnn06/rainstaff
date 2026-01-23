@@ -17,13 +17,24 @@ else:  # Linux / Server (Render)
     if os.path.exists("/data"):
         DB_DIR = "/data"
     else:
-        # Fallback for local testing or if /data is not mounted
-        DB_DIR = LOCAL_DB_DIR
+        # Fallback to /tmp if /data (persistent disk) is not attached
+        # This prevents Read-Only file system errors on Render code directory
+        DB_DIR = "/tmp/rainstaff_data"
+
+if not os.path.exists(DB_DIR):
+    try:
+        os.makedirs(DB_DIR, exist_ok=True)
+    except OSError:
+        # Last resort fallback if we can't write to specified dir
+        import tempfile
+        DB_DIR = os.path.join(tempfile.gettempdir(), "rainstaff_data")
+        os.makedirs(DB_DIR, exist_ok=True)
 
 DB_PATH = os.path.join(DB_DIR, "puantaj.db")
-BACKUP_DIR = os.path.join(os.path.dirname(DB_DIR), "backups")
+# Store backups and exports INSIDE the data directory to ensure write permissions
+BACKUP_DIR = os.path.join(DB_DIR, "backups")
 BACKUP_MARKER = os.path.join(BACKUP_DIR, "last_backup.txt")
-EXPORT_DIR = os.path.join(os.path.dirname(DB_DIR), "exports")
+EXPORT_DIR = os.path.join(DB_DIR, "exports")
 
 DEFAULT_SETTINGS = {
     "company_name": "",
