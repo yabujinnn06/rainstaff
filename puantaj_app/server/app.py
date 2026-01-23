@@ -67,6 +67,36 @@ def auto_sync():
 # SYNC ENDPOINTS (Public - No Authentication Required)
 # ============================================================================
 
+@app.route('/sync/reset', methods=['POST'])
+@public_endpoint
+def sync_reset():
+    """
+    Reset server database - delete all data so fresh upload can happen.
+    Use with caution! Requires secret key.
+    """
+    try:
+        # Simple security - require a reset key
+        reset_key = request.headers.get('X-Reset-Key', '')
+        if reset_key != 'rainstaff2026reset':
+            return jsonify({'error': 'Invalid reset key'}), 403
+        
+        db_path = db.DB_PATH
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        
+        # Reinitialize empty database
+        db.init_db()
+        
+        return jsonify({
+            'success': True,
+            'action': 'database_reset',
+            'message': 'Server database has been reset',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/sync', methods=['POST'])
 @public_endpoint
 def sync_upload():
