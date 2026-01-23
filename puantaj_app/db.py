@@ -13,8 +13,12 @@ if os.name == 'nt':  # Windows
     APPDATA_DIR = os.path.join(os.environ.get("APPDATA", LOCAL_DB_DIR), APP_NAME, "data")
     DB_DIR = APPDATA_DIR
 else:  # Linux / Server (Render)
-    # Use simpler path structure on server
-    DB_DIR = LOCAL_DB_DIR
+    # Check for Render persistent disk at /data
+    if os.path.exists("/data"):
+        DB_DIR = "/data"
+    else:
+        # Fallback for local testing or if /data is not mounted
+        DB_DIR = LOCAL_DB_DIR
 
 DB_PATH = os.path.join(DB_DIR, "puantaj.db")
 BACKUP_DIR = os.path.join(os.path.dirname(DB_DIR), "backups")
