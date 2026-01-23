@@ -649,6 +649,89 @@ def api_employee_timesheets(emp_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/timesheets')
+def api_timesheets():
+    """Get all timesheets data"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        # Tüm puantaj kayıtlarını al (joinli)
+        timesheets = db.list_timesheets()
+        
+        # Tuple listesini JSON'a çevir
+        result = []
+        for ts in timesheets:
+             # ts: (id, employee_id, full_name, work_date, start_time, end_time, break_minutes, is_special, notes, region)
+            result.append({
+                'id': ts[0],
+                'employee_id': ts[1],
+                'employee_name': ts[2],
+                'work_date': ts[3],
+                'start_time': ts[4],
+                'end_time': ts[5],
+                'break_minutes': ts[6],
+                'is_special': ts[7],
+                'notes': ts[8],
+                'region': ts[9]
+            })
+            
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/employee-overtime')
+def api_employee_overtime():
+    """Get all employees with calculated overtime"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        settings = db.get_all_settings()
+        employees = db.get_all_employees()
+        result = []
+        
+        # Filtre parametrelerini al (opsiyonel)
+        month = request.args.get('month')
+        year = request.args.get('year')
+        
+        for emp in employees:
+            emp_id = emp[0]
+            # Fazla mesai hesapla
+            timesheets = db.list_timesheets(employee_id=emp_id)
+            total_overtime = 0
+            
+            for ts in timesheets:
+                try:
+                    # Tarih filtresi uygula
+                    wd = ts[3] # YYYY-MM-DD
+                    if month and wd[5:7] != month: continue
+                    if year and wd[0:4] != year: continue
+                    
+                    # Basit hesap
+                    worked, regular, overtime, night, overnight, special_day, special_night, special_overnight = calc.calc_day_hours(
+                        ts[3], ts[4], ts[5], ts[6], settings, ts[7]
+                    )
+                    total_overtime += overtime
+                except Exception:
+                    pass
+            
+            result.append({
+                'id': emp[0],
+                'name': emp[1],
+                'identity': emp[2],
+                'department': emp[3],
+                'title': emp[4],
+                'region': emp[5],
+                'overtime': round(total_overtime, 2)
+            })
+            
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/stock-data')
 def api_stock_data():
     """Get stock inventory data grouped by stok_kod"""

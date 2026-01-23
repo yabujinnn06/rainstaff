@@ -69,6 +69,37 @@
     <div id="employees" class="tab-content">
         <div class="card">
             <h2>>>> ÇALIŞAN LİSTESİ</h2>
+
+            <!-- Tarih Filtreleri (Çalışan Özeti İçin) -->
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <label style="color: var(--text-secondary);">AY:</label>
+                <select id="emp-month-filter" onchange="loadEmployeeData()"
+                    style="background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; font-family: 'Courier New', monospace;">
+                    <option value="">[ TÜM AYLAR ]</option>
+                    <option value="01">Ocak</option>
+                    <option value="02">Şubat</option>
+                    <option value="03">Mart</option>
+                    <option value="04">Nisan</option>
+                    <option value="05">Mayıs</option>
+                    <option value="06">Haziran</option>
+                    <option value="07">Temmuz</option>
+                    <option value="08">Ağustos</option>
+                    <option value="09">Eylül</option>
+                    <option value="10">Ekim</option>
+                    <option value="11">Kasım</option>
+                    <option value="12">Aralık</option>
+                </select>
+
+                <label style="color: var(--text-secondary);">YIL:</label>
+                <select id="emp-year-filter" onchange="loadEmployeeData()"
+                    style="background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; font-family: 'Courier New', monospace;">
+                    <option value="">[ TÜM YILLAR ]</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </div>
+
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -96,6 +127,42 @@
     <div id="timesheets" class="tab-content">
         <div class="card">
             <h2>>>> PUANTAJ KAYITLARI</h2>
+
+            <!-- Tarih Filtreleri -->
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <label style="color: var(--text-secondary);">AY:</label>
+                <select id="ts-month-filter" onchange="filterTimesheets()"
+                    style="background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; font-family: 'Courier New', monospace;">
+                    <option value="">[ TÜM AYLAR ]</option>
+                    <option value="01">Ocak</option>
+                    <option value="02">Şubat</option>
+                    <option value="03">Mart</option>
+                    <option value="04">Nisan</option>
+                    <option value="05">Mayıs</option>
+                    <option value="06">Haziran</option>
+                    <option value="07">Temmuz</option>
+                    <option value="08">Ağustos</option>
+                    <option value="09">Eylül</option>
+                    <option value="10">Ekim</option>
+                    <option value="11">Kasım</option>
+                    <option value="12">Aralık</option>
+                </select>
+
+                <label style="color: var(--text-secondary);">YIL:</label>
+                <select id="ts-year-filter" onchange="filterTimesheets()"
+                    style="background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 12px; font-family: 'Courier New', monospace;">
+                    <option value="">[ TÜM YILLAR ]</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+
+                <span id="ts-count"
+                    style="padding: 8px 12px; color: var(--matrix-green); font-family: 'Courier New', monospace; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    >> KAYIT: -
+                </span>
+            </div>
+
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -108,17 +175,10 @@
                             <th>BÖLGE</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for ts in timesheets[:100] %}
+                    <tbody id="timesheets-table">
                         <tr>
-                            <td>{{ ts[2] }}</td>
-                            <td>{{ ts[3] }}</td>
-                            <td>{{ ts[4] }}</td>
-                            <td>{{ ts[5] }}</td>
-                            <td>{{ ts[6] }}</td>
-                            <td>{{ ts[9] or '-' }}</td>
+                            <td colspan="6" class="loading">Yükleniyor...</td>
                         </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -376,7 +436,83 @@
             loadStockData();
         } else if (tabName === 'employees') {
             loadEmployeeData();
+        } else if (tabName === 'timesheets') {
+            loadTimesheetsData();
         }
+    }
+
+    // ==== TIMESHEETS DATA ====
+    let timesheetsData = [];
+
+    function loadTimesheetsData() {
+        const tbody = document.getElementById('timesheets-table');
+        tbody.innerHTML = '<tr><td colspan="6" class="loading">Yükleniyor...</td></tr>';
+
+        fetch('/api/timesheets')
+            .then(res => res.json())
+            .then(data => {
+                timesheetsData = data;
+                filterTimesheets();
+            })
+            .catch(err => {
+                console.error('Timesheets error:', err);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ff4444;">Veri yüklenemedi</td></tr>';
+            });
+    }
+
+    function filterTimesheets() {
+        const month = document.getElementById('ts-month-filter').value;
+        const year = document.getElementById('ts-year-filter').value;
+
+        let filtered = timesheetsData;
+
+        if (month) {
+            filtered = filtered.filter(ts => {
+                const date = ts.work_date || ts[3] || '';
+                return date.substring(5, 7) === month;
+            });
+        }
+
+        if (year) {
+            filtered = filtered.filter(ts => {
+                const date = ts.work_date || ts[3] || '';
+                return date.substring(0, 4) === year;
+            });
+        }
+
+        renderTimesheetsTable(filtered);
+        document.getElementById('ts-count').textContent = `>> KAYIT: ${filtered.length}`;
+    }
+
+    function renderTimesheetsTable(data) {
+        const tbody = document.getElementById('timesheets-table');
+
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Bu dönemde kayıt bulunamadı</td></tr>';
+            return;
+        }
+
+        let html = '';
+        data.forEach(ts => {
+            // Array veya object olabilir
+            const employee = ts.employee_name || ts[2] || '-';
+            const workDate = ts.work_date || ts[3] || '-';
+            const startTime = ts.start_time || ts[4] || '-';
+            const endTime = ts.end_time || ts[5] || '-';
+            const breakMins = ts.break_minutes || ts[6] || 0;
+            const region = ts.region || ts[9] || '-';
+
+            html += `<tr>
+                <td>${employee}</td>
+                <td>${workDate}</td>
+                <td>${startTime}</td>
+                <td>${endTime}</td>
+                <td>${breakMins}</td>
+                <td>${region}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
     }
 
     // Load employee data with overtime calculation
@@ -386,7 +522,19 @@
         const tbody = document.getElementById('employees-table');
         tbody.innerHTML = '<tr><td colspan="7" class="loading">Yükleniyor</td></tr>';
 
-        fetch('/api/employee-overtime')
+        // Filtre değerlerini al
+        const month = document.getElementById('emp-month-filter').value;
+        const year = document.getElementById('emp-year-filter').value;
+
+        let url = '/api/employee-overtime';
+        if (month || year) {
+            const params = new URLSearchParams();
+            if (month) params.append('month', month);
+            if (year) params.append('year', year);
+            url += '?' + params.toString();
+        }
+
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 employeeData = data;
@@ -829,7 +977,28 @@
         applyTheme(themes[nextIdx]);
     }
 
-    // Sayfa yüklenince tema uygula
-    document.addEventListener('DOMContentLoaded', initTheme);
+    function initFilters() {
+        const now = new Date();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const currentYear = String(now.getFullYear());
+
+        // Puantaj filtreleri
+        const tsMonth = document.getElementById('ts-month-filter');
+        const tsYear = document.getElementById('ts-year-filter');
+        if (tsMonth) tsMonth.value = currentMonth;
+        if (tsYear) tsYear.value = currentYear;
+
+        // Çalışan filtreleri
+        const empMonth = document.getElementById('emp-month-filter');
+        const empYear = document.getElementById('emp-year-filter');
+        if (empMonth) empMonth.value = currentMonth;
+        if (empYear) empYear.value = currentYear;
+    }
+
+    // Sayfa yüklenince tema ve filtreleri uygula
+    document.addEventListener('DOMContentLoaded', () => {
+        initTheme();
+        initFilters();
+    });
 </script>
 {% endblock %}
