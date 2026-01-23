@@ -131,6 +131,19 @@ def _merge_databases(incoming_path, master_path):
     master_conn = sqlite3.connect(master_path)
     
     try:
+        # Ensure deleted_records table exists in both DBs
+        for conn in [incoming_conn, master_conn]:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS deleted_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    table_name TEXT NOT NULL,
+                    record_id INTEGER NOT NULL,
+                    deleted_at TEXT NOT NULL,
+                    deleted_by TEXT
+                );
+            """)
+        master_conn.commit()
+        
         # 1. Get deleted records from incoming
         deleted = set()
         try:
