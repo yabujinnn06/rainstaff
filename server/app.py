@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import db
+import staff_db as db
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -34,7 +34,8 @@ def health():
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'database': 'connected'
+            'database': 'connected',
+            'ver': 'staff-v2'
         }), 200
     except Exception as e:
         return jsonify({
@@ -63,9 +64,9 @@ def auto_sync():
         }), 500
 
 
-@app.route('/debug-auth')
+@app.route('/diagnostic-final')
 @public_endpoint
-def debug_auth():
+def diagnostic_final():
     """Temporary debug endpoint to check auth logic"""
     try:
         username = request.args.get('u', 'admin')
@@ -84,12 +85,14 @@ def debug_auth():
             'computed_hash': computed,
             'stored_hash': stored,
             'region': user['region'],
-            'db_file': getattr(db, '__file__', 'unknown')
+            'db_file': getattr(db, '__file__', 'unknown'),
+            'ver': 'staff-v2'
         })
     except Exception as e:
         return jsonify({
             'error': str(e),
-            'db_file': getattr(db, '__file__', 'unknown')
+            'db_file': getattr(db, '__file__', 'unknown'),
+            'ver': 'staff-v2'
         }), 500
 
 
