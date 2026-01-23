@@ -292,6 +292,69 @@ def _merge_databases(incoming_path, master_path):
         except sqlite3.OperationalError as e:
             logs.append(f"Error merging employees: {e}")
         
+        # 6. Merge stock_inventory from incoming (skip deleted)
+        try:
+            cursor = incoming_conn.execute(
+                "SELECT id, stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet FROM stock_inventory"
+            )
+            count = 0
+            skipped = 0
+            for row in cursor.fetchall():
+                record_id = row[0]
+                if ("stock_inventory", record_id) in all_deleted:
+                    skipped += 1
+                    continue
+                master_conn.execute(
+                    "INSERT OR REPLACE INTO stock_inventory (id, stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    row
+                )
+                count += 1
+            logs.append(f"Merged stock_inventory: {count} inserted/updated, {skipped} skipped (deleted)")
+        except sqlite3.OperationalError as e:
+            logs.append(f"Error merging stock_inventory: {e}")
+        
+        # 7. Merge vehicles from incoming (skip deleted)
+        try:
+            cursor = incoming_conn.execute(
+                "SELECT id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date, oil_change_date, oil_change_km, oil_interval_km, notes, region FROM vehicles"
+            )
+            count = 0
+            skipped = 0
+            for row in cursor.fetchall():
+                record_id = row[0]
+                if ("vehicles", record_id) in all_deleted:
+                    skipped += 1
+                    continue
+                master_conn.execute(
+                    "INSERT OR REPLACE INTO vehicles (id, plate, brand, model, year, km, inspection_date, insurance_date, maintenance_date, oil_change_date, oil_change_km, oil_interval_km, notes, region) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    row
+                )
+                count += 1
+            logs.append(f"Merged vehicles: {count} inserted/updated, {skipped} skipped (deleted)")
+        except sqlite3.OperationalError as e:
+            logs.append(f"Error merging vehicles: {e}")
+        
+        # 8. Merge drivers from incoming (skip deleted)
+        try:
+            cursor = incoming_conn.execute(
+                "SELECT id, full_name, license_class, license_expiry, phone, notes, region FROM drivers"
+            )
+            count = 0
+            skipped = 0
+            for row in cursor.fetchall():
+                record_id = row[0]
+                if ("drivers", record_id) in all_deleted:
+                    skipped += 1
+                    continue
+                master_conn.execute(
+                    "INSERT OR REPLACE INTO drivers (id, full_name, license_class, license_expiry, phone, notes, region) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    row
+                )
+                count += 1
+            logs.append(f"Merged drivers: {count} inserted/updated, {skipped} skipped (deleted)")
+        except sqlite3.OperationalError as e:
+            logs.append(f"Error merging drivers: {e}")
+        
         master_conn.commit()
         return logs
     
