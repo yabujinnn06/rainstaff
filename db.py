@@ -461,6 +461,28 @@ def verify_user(username, password):
         return None
     return {"username": row[0], "role": row[2], "region": row[3]}
 
+
+def get_user(username):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT id, username, password_hash, role, region FROM users WHERE username = ?;",
+            (username,),
+        )
+        row = cur.fetchone()
+        if row:
+            return {
+                "id": row[0],
+                "username": row[1],
+                "password_hash": row[2],
+                "role": row[3],
+                "region": row[4],
+            }
+        return None
+
+
+def verify_password(password, hashed):
+    return hash_password(password) == hashed
+
 def get_setting(key):
     with get_conn() as conn:
         cur = conn.execute("SELECT value FROM settings WHERE key = ?;", (key,))
