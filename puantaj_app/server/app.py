@@ -468,76 +468,7 @@ def dashboard():
         return render_template('error.html', error=str(e)), 500
 
 
-@app.route('/api/employee-overtime')
-def api_employee_overtime():
-    """Get employees with overtime calculation"""
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    try:
-        # Import calc module for overtime calculation
-        import sys
-        import os
-        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if parent_dir not in sys.path:
-            sys.path.insert(0, parent_dir)
-        
-        try:
-            import calc
-        except ImportError:
-            # If calc module not available, return basic data
-            employees = db.get_all_employees()
-            result = []
-            for emp in employees:
-                result.append({
-                    'id': emp[0],
-                    'name': emp[1],
-                    'department': emp[3] or '',
-                    'title': emp[4] or '',
-                    'region': emp[5] or '',
-                    'overtime': 0.0
-                })
-            return jsonify(result), 200
-        
-        # Get settings for calculation
-        settings = db.get_all_settings()
-        
-        # Calculate overtime for each employee
-        employees = db.get_all_employees()
-        result = []
-        
-        for emp in employees:
-            emp_id = emp[0]
-            timesheets = db.list_timesheets(employee_id=emp_id)
-            
-            total_overtime = 0.0
-            for ts in timesheets:
-                try:
-                    work_date, start_time, end_time, break_minutes, is_special = ts[3], ts[4], ts[5], ts[6], ts[7]
-                    
-                    # Calculate overtime
-                    _, _, overtime, _, _, _, _, _ = calc.calc_day_hours(
-                        work_date, start_time, end_time, break_minutes, settings, is_special
-                    )
-                    total_overtime += overtime
-                except Exception:
-                    pass
-            
-            result.append({
-                'id': emp[0],
-                'name': emp[1],
-                'department': emp[3] or '',
-                'title': emp[4] or '',
-                'region': emp[5] or '',
-                'overtime': round(total_overtime, 2)
-            })
-        
-        # Sort by overtime descending
-        result.sort(key=lambda x: x['overtime'], reverse=True)
-        
-        return jsonify(result), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/alerts')
