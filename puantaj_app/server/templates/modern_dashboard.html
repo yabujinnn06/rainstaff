@@ -127,40 +127,115 @@
         <div class="card">
             <h2>>>> STOK ENVANTERİ</h2>
 
-            <!-- Barkod Tarayıcı ve PDF Butonları -->
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <button id="scan-btn" onclick="startScanner()"
-                    style="padding: 12px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                    📷 BARKOD TARA
+            <!-- Barkod Tarayıcı ve PDF Butonları - MATRIX TEMASI -->
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button id="scan-btn" onclick="startScanner()" class="matrix-btn matrix-btn-primary">
+                    [ TARA ]
                 </button>
-                <button id="pdf-btn" onclick="downloadPDF()"
-                    style="padding: 12px 20px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                    📄 PDF İNDİR
+                <button id="pdf-btn" onclick="downloadPDF()" class="matrix-btn matrix-btn-secondary">
+                    [ PDF ]
                 </button>
-                <button id="clear-scan-btn" onclick="clearScannedItems()"
-                    style="padding: 12px 20px; background: #ff9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    🗑️ TEMİZLE
+                <button id="clear-scan-btn" onclick="clearScannedItems()" class="matrix-btn matrix-btn-warning">
+                    [ SIFIRLA ]
                 </button>
-                <span id="scan-count" style="padding: 12px; color: var(--matrix-green); font-weight: bold;">
-                    Taranan: 0
+                <span id="scan-count"
+                    style="padding: 10px 15px; color: var(--matrix-green); font-family: 'Courier New', monospace; font-weight: bold; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    &gt;&gt; TARANAN: 0
                 </span>
             </div>
 
-            <!-- Barkod Tarayıcı Modal -->
+            <!-- Barkod Tarayıcı Modal - MATRIX TEMASI -->
             <div id="scanner-modal"
-                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center;">
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center;">
                 <div
-                    style="background: #1a1a1a; padding: 20px; border-radius: 10px; max-width: 500px; width: 90%; text-align: center;">
-                    <h3 style="color: #00ff41; margin-bottom: 15px;">📷 Barkod Tarayıcı</h3>
-                    <div id="scanner-container" style="width: 100%; margin-bottom: 15px;"></div>
-                    <p id="scan-result" style="color: #00ff41; margin-bottom: 15px; font-size: 18px;">Barkodu kameraya
-                        gösterin...</p>
-                    <button onclick="stopScanner()"
-                        style="padding: 12px 30px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                        ✖ KAPAT
+                    style="background: var(--card-bg); padding: 25px; border: 2px solid var(--matrix-green); border-radius: 5px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);">
+                    <h3
+                        style="color: var(--matrix-green); margin-bottom: 20px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--matrix-green);">
+                        &gt;&gt;&gt; BARKOD TARAYICI &lt;&lt;&lt;
+                    </h3>
+                    <div id="scanner-container"
+                        style="width: 100%; margin-bottom: 15px; border: 1px solid var(--border-color);"></div>
+                    <p id="scan-result"
+                        style="color: var(--matrix-green); margin-bottom: 20px; font-size: 16px; font-family: 'Courier New', monospace;">
+                        Barkodu kameraya gosterin_
+                    </p>
+                    <button onclick="stopScanner()" class="matrix-btn matrix-btn-danger">
+                        [ KAPAT ]
                     </button>
                 </div>
             </div>
+
+            <style>
+                .matrix-btn {
+                    padding: 10px 20px;
+                    font-family: 'Courier New', monospace;
+                    font-weight: bold;
+                    font-size: 13px;
+                    letter-spacing: 1px;
+                    border: 2px solid var(--matrix-green);
+                    border-radius: 3px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    text-transform: uppercase;
+                }
+
+                .matrix-btn-primary {
+                    background: transparent;
+                    color: var(--matrix-green);
+                }
+
+                .matrix-btn-primary:hover {
+                    background: var(--matrix-green);
+                    color: var(--matrix-darker);
+                    box-shadow: 0 0 15px var(--matrix-green);
+                }
+
+                .matrix-btn-secondary {
+                    background: transparent;
+                    color: var(--text-secondary);
+                    border-color: var(--text-secondary);
+                }
+
+                .matrix-btn-secondary:hover {
+                    background: var(--text-secondary);
+                    color: var(--matrix-darker);
+                    box-shadow: 0 0 15px var(--text-secondary);
+                }
+
+                .matrix-btn-warning {
+                    background: transparent;
+                    color: #ff9800;
+                    border-color: #ff9800;
+                }
+
+                .matrix-btn-warning:hover {
+                    background: #ff9800;
+                    color: var(--matrix-darker);
+                    box-shadow: 0 0 15px #ff9800;
+                }
+
+                .matrix-btn-danger {
+                    background: transparent;
+                    color: #ff4444;
+                    border-color: #ff4444;
+                }
+
+                .matrix-btn-danger:hover {
+                    background: #ff4444;
+                    color: white;
+                    box-shadow: 0 0 15px #ff4444;
+                }
+
+                .scanned-item {
+                    background: rgba(0, 255, 65, 0.3) !important;
+                    border-left: 3px solid var(--matrix-green) !important;
+                }
+
+                .scanned-item td {
+                    color: var(--matrix-green) !important;
+                    font-weight: bold;
+                }
+            </style>
 
             <!-- Arama ve Filtre -->
             <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
@@ -445,15 +520,13 @@
     let scannedItems = new Set(); // Taranan seri numaraları
     let html5QrCode = null;
 
-    // Taranan öğeyi sarıya boya
+    // Taranan öğeyi Matrix yeşil rengiyle vurgula
     function highlightScannedItem(seriNo) {
         const rows = document.querySelectorAll('#stock-table tr');
         let found = false;
 
         rows.forEach(row => {
             if (row.textContent.includes(seriNo)) {
-                row.style.backgroundColor = '#FFD700';
-                row.style.color = '#000';
                 row.classList.add('scanned-item');
                 found = true;
             }
@@ -480,19 +553,17 @@
     }
 
     function updateScanCount() {
-        document.getElementById('scan-count').textContent = `Taranan: ${scannedItems.size}`;
+        document.getElementById('scan-count').innerHTML = `>> TARANAN: ${scannedItems.size}`;
     }
 
     function clearScannedItems() {
         scannedItems.clear();
-        // Sarı renkleri temizle
+        // Renkleri temizle
         document.querySelectorAll('.scanned-item').forEach(row => {
-            row.style.backgroundColor = '';
-            row.style.color = '';
             row.classList.remove('scanned-item');
         });
         updateScanCount();
-        alert('Taranan öğeler temizlendi!');
+        alert('>> Taranan ogeler sifirlandi!');
     }
 
     // Barkod Tarayıcı Başlat
