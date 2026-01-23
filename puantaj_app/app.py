@@ -1156,6 +1156,12 @@ class PuantajApp(tk.Tk):
             with open(db.DB_PATH, "wb") as f:
                 f.write(resp.content)
 
+            # Step 4.5: Ensure DB schema is up to date (creates deleted_records table if missing)
+            db.init_db()
+
+            # Step 5: Refresh UI to reflect merged data
+            self.after(0, self._refresh_all_after_sync)
+
             msg = "Senkron basarili"
             if self.logger:
                 self.logger.info("Cloud sync completed (upload+download+merge): %s", reason)
@@ -1186,6 +1192,18 @@ class PuantajApp(tk.Tk):
         self.status_var.set(message)
         if reason == "manual":
             messagebox.showinfo("Senkron", message)
+
+    def _refresh_all_after_sync(self):
+        """Refresh all UI views after sync download to reflect merged data."""
+        try:
+            self.settings = db.get_all_settings()
+            self.refresh_employees()
+            self.refresh_timesheets()
+            if hasattr(self, 'refresh_report_archive'):
+                self.refresh_report_archive()
+        except Exception as e:
+            if self.logger:
+                self.logger.warning("UI refresh after sync failed: %s", str(e))
 
     # Employees tab
     def _build_employees_tab(self):

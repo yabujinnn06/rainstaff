@@ -316,6 +316,18 @@ def init_db():
             );
             """
         )
+        # Delete tracking table for multi-PC sync (23 Ocak 2026)
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS deleted_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                table_name TEXT NOT NULL,
+                record_id INTEGER NOT NULL,
+                deleted_at TEXT NOT NULL,
+                deleted_by TEXT
+            );
+            """
+        )
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?);",
@@ -333,9 +345,25 @@ def init_db():
         _ensure_timesheet_columns(conn)
         _ensure_vehicle_columns(conn)
         _ensure_region_columns(conn)
+        _ensure_deleted_records_table(conn)
         _seed_default_users(conn)
         conn.commit()
     _backup_db_if_needed()
+
+
+def _ensure_deleted_records_table(conn):
+    """Ensure deleted_records table exists for sync delete tracking."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS deleted_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_name TEXT NOT NULL,
+            record_id INTEGER NOT NULL,
+            deleted_at TEXT NOT NULL,
+            deleted_by TEXT
+        );
+        """
+    )
 
 
 def _ensure_timesheet_columns(conn):
@@ -461,8 +489,13 @@ def update_employee(employee_id, full_name, identity_no, department, title, regi
         conn.commit()
 
 
-def delete_employee(employee_id):
+def delete_employee(employee_id, deleted_by=None):
     with get_conn() as conn:
+        # Track deletion for sync
+        conn.execute(
+            "INSERT INTO deleted_records (table_name, record_id, deleted_at, deleted_by) VALUES (?, ?, ?, ?);",
+            ("employees", employee_id, datetime.now().isoformat(), deleted_by),
+        )
         conn.execute("DELETE FROM employees WHERE id = ?;", (employee_id,))
         conn.commit()
 
@@ -507,8 +540,13 @@ def update_timesheet(ts_id, employee_id, work_date, start_time, end_time, break_
         conn.commit()
 
 
-def delete_timesheet(ts_id):
+def delete_timesheet(ts_id, deleted_by=None):
     with get_conn() as conn:
+        # Track deletion for sync
+        conn.execute(
+            "INSERT INTO deleted_records (table_name, record_id, deleted_at, deleted_by) VALUES (?, ?, ?, ?);",
+            ("timesheets", ts_id, datetime.now().isoformat(), deleted_by),
+        )
         conn.execute("DELETE FROM timesheets WHERE id = ?;", (ts_id,))
         conn.commit()
 

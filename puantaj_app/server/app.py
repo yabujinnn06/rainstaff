@@ -71,8 +71,8 @@ def auto_sync():
 @public_endpoint
 def sync_upload():
     """
-    Upload database file from desktop app
-    Receives: multipart/form-data with 'file' key containing SQLite DB
+    Upload database file from desktop app with merge support.
+    Respects deleted_records table to prevent deleted data from reappearing.
     """
     try:
         if 'file' not in request.files:
@@ -82,19 +82,124 @@ def sync_upload():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
-        # Save uploaded DB to server's master DB location
         db_path = db.DB_PATH
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        file.save(db_path)
+        
+        # Save incoming DB to temp location
+        temp_path = db_path + ".incoming"
+        file.save(temp_path)
+        
+        # If master DB doesn't exist, just use incoming as master
+        if not os.path.exists(db_path):
+            os.rename(temp_path, db_path)
+            return jsonify({
+                'success': True,
+                'action': 'sync_upload_new',
+                'timestamp': datetime.now().isoformat()
+            }), 200
+
+        # Ensure master DB schema is up to date (creates deleted_records if missing)
+        db.init_db()
+        
+        # Merge incoming DB into master
+        try:
+            _merge_databases(temp_path, db_path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
         
         return jsonify({
             'success': True,
-            'action': 'sync_upload',
+            'action': 'sync_upload_merged',
             'timestamp': datetime.now().isoformat()
         }), 200
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+def _merge_databases(incoming_path, master_path):
+    """
+    Merge incoming database into master, respecting deletions.
+    
+    Strategy:
+    1. Get all deleted records from incoming DB
+    2. Apply deletions to master DB
+    3. Merge new/updated records from incoming (skip if deleted)
+    """
+    incoming_conn = sqlite3.connect(incoming_path)
+    master_conn = sqlite3.connect(master_path)
+    
+    try:
+        # 1. Get deleted records from incoming
+        deleted = set()
+        try:
+            cursor = incoming_conn.execute("SELECT table_name, record_id FROM deleted_records")
+            for row in cursor.fetchall():
+                deleted.add((row[0], row[1]))
+        except sqlite3.OperationalError:
+            pass  # Table may not exist in incoming
+        
+        # 2. Apply deletions to master and track them
+        for table_name, record_id in deleted:
+            # Delete from master
+            master_conn.execute(f"DELETE FROM {table_name} WHERE id = ?", (record_id,))
+            # Record deletion in master's deleted_records
+            master_conn.execute(
+                "INSERT OR IGNORE INTO deleted_records (table_name, record_id, deleted_at) VALUES (?, ?, ?)",
+                (table_name, record_id, datetime.now().isoformat())
+            )
+        
+        # 3. Get existing deleted records from master (to skip during merge)
+        master_deleted = set()
+        try:
+            cursor = master_conn.execute("SELECT table_name, record_id FROM deleted_records")
+            for row in cursor.fetchall():
+                master_deleted.add((row[0], row[1]))
+        except sqlite3.OperationalError:
+            pass
+        
+        # Combine both deletion sets
+        all_deleted = deleted | master_deleted
+        
+        # 4. Merge timesheets from incoming (skip deleted)
+        try:
+            cursor = incoming_conn.execute(
+                "SELECT id, employee_id, work_date, start_time, end_time, break_minutes, is_special, notes, region FROM timesheets"
+            )
+            for row in cursor.fetchall():
+                record_id = row[0]
+                if ("timesheets", record_id) in all_deleted:
+                    continue  # Skip deleted record
+                # Upsert: Insert or replace
+                master_conn.execute(
+                    "INSERT OR REPLACE INTO timesheets (id, employee_id, work_date, start_time, end_time, break_minutes, is_special, notes, region) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    row
+                )
+        except sqlite3.OperationalError:
+            pass
+        
+        # 5. Merge employees from incoming (skip deleted)
+        try:
+            cursor = incoming_conn.execute(
+                "SELECT id, full_name, identity_no, department, title, region FROM employees"
+            )
+            for row in cursor.fetchall():
+                record_id = row[0]
+                if ("employees", record_id) in all_deleted:
+                    continue  # Skip deleted record
+                master_conn.execute(
+                    "INSERT OR REPLACE INTO employees (id, full_name, identity_no, department, title, region) VALUES (?, ?, ?, ?, ?, ?)",
+                    row
+                )
+        except sqlite3.OperationalError:
+            pass
+        
+        master_conn.commit()
+    
+    finally:
+        incoming_conn.close()
+        master_conn.close()
 
 
 @app.route('/sync/download', methods=['GET'])
