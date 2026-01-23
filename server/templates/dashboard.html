@@ -1,1012 +1,1025 @@
 ﻿<!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rainstaff Admin Panel</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='matrix-fix.css') }}" />
-    <link rel="icon" type="image/x-icon" href="https://upload.wikimedia.org/wikipedia/commons/4/4e/Python_logo.png">
-  </head>
-  <body class="admin dark-theme theme-rainpunk rainpunk-streaks" data-alert-urgent="{{ alert_counts.urgent }}" data-alert-bad="{{ alert_counts.bad }}" data-alert-repeat="{{ alert_counts.repeat }}">
-    <header class="topbar">
-      <div class="brand">
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">
-          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
-          </svg>
-        </button>
-        <div>
-          <div class="brand-title">Rainstaff Admin</div>
-          <div class="brand-sub">Yonetim Paneli</div>
-        </div>
-      </div>
-      <div class="sync">
-        <span class="status {{ 'ok' if desktop_online else 'off' }}">
-          Masaustu {{ 'Acik' if desktop_online else 'Kapali' }}
-        </span>
-        <a class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}" href="/alerts">
-          Uyari {{ alert_counts.total }}
-        </a>
-        <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
-        Son senkron: {{ last_sync or 'Yok' }}
-        <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
-        <a class="logout" href="/logout">Cikis</a>
-      </div>
-    </header>
-    <div class="backdrop" id="sidebarBackdrop"></div>
 
-    <div class="layout">
-      {% include "_sidebar.html" %}
-      <div class="brand">
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">
-          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
-          </svg>
-        </button>
-        <div>
-          <div class="brand-title">Rainstaff Admin</div>
-          <div class="brand-sub">Yonetim Paneli</div>
-        </div>
-      </div>
-      <div class="sync">
-        <span class="status {{ 'ok' if desktop_online else 'off' }}">
-          Masaustu {{ 'Acik' if desktop_online else 'Kapali' }}
-        </span>
-        <a class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}" href="/alerts">Uyari {{ alert_counts.total }}</a>
-        <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
-        Son senkron: {{ last_sync or 'Yok' }}
-        <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
-        <a class="logout" href="/logout">Cikis</a>
-      </div>
-      <!-- Mobil çıkış butonu kesin header'ın içinde ve en sonda -->
-      <a class="mobile-logout" href="/logout" title="Çıkış">
-        <svg width="32" height="32" viewBox="0 0 32 32" stroke="currentColor" stroke-width="2" fill="none">
-          <circle cx="16" cy="16" r="15" fill="rgba(248,113,113,0.12)" stroke="#f87171"/>
-          <line x1="11" y1="11" x2="21" y2="21" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
-          <line x1="21" y1="11" x2="11" y2="21" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rainstaff Admin Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='matrix-fix.css') }}" />
+  <link rel="icon" type="image/x-icon" href="https://upload.wikimedia.org/wikipedia/commons/4/4e/Python_logo.png">
+</head>
+
+<body class="admin dark-theme theme-rainpunk rainpunk-streaks" data-alert-urgent="{{ alert_counts.urgent }}"
+  data-alert-bad="{{ alert_counts.bad }}" data-alert-repeat="{{ alert_counts.repeat }}">
+  <header class="topbar">
+    <div class="brand">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M3 12h18M3 6h18M3 18h18" />
         </svg>
+      </button>
+      <div>
+        <div class="brand-title">Rainstaff Admin</div>
+        <div class="brand-sub">Yonetim Paneli</div>
+      </div>
+    </div>
+    <div class="sync">
+      <span class="status {{ 'ok' if desktop_online else 'off' }}">
+        Masaustu {{ 'Acik' if desktop_online else 'Kapali' }}
+      </span>
+      <a class="alert-pill {{ 'pulse' if alert_counts.urgent else '' }}" href="/alerts">
+        Uyari {{ alert_counts.total }}
       </a>
-              <line x1="21" y1="11" x2="11" y2="21" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
-            </svg>
+      <button class="notify-btn" id="notifyBtn" type="button">Bildirim Ac</button>
+      Son senkron: {{ last_sync or 'Yok' }}
+      <span class="hint">Manuel senkron masaustu uygulamadan yapilir</span>
+      <a class="logout" href="/logout">Cikis</a>
+    </div>
+  </header>
+  <div class="backdrop" id="sidebarBackdrop"></div>
+
+  <div class="layout">
+    {% include "_sidebar.html" %}
+    <!-- Mobil çıkış butonu kesin header'ın içinde ve en sonda -->
+    <a class="mobile-logout" href="/logout" title="Çıkış">
+      <svg width="32" height="32" viewBox="0 0 32 32" stroke="currentColor" stroke-width="2" fill="none">
+        <circle cx="16" cy="16" r="15" fill="rgba(248,113,113,0.12)" stroke="#f87171" />
+        <line x1="11" y1="11" x2="21" y2="21" stroke="#f87171" stroke-width="2" stroke-linecap="round" />
+        <line x1="21" y1="11" x2="11" y2="21" stroke="#f87171" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </a>
+
+    <main class="content">
+      <section class="section kpi-section">
+        <div class="panel-head">
+          <h2>Genel Ozet</h2>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">En Fazla Mesai Yapan</div>
+            <div class="kpi-value">{{ top_overtime['overtime']|round(2) if top_overtime else 0 }}</div>
+            <div class="card-sub">{{ top_overtime['name'] if top_overtime else 'Kayit yok' }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">LIDER</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 58%"></span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Toplam Fazla Mesai</div>
+            <div class="kpi-value">{{ summary.overtime_hours }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">BU AY</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 75%"></span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Toplam Calisilan Saat</div>
+            <div class="kpi-value">{{ summary.worked_hours }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">BU AY</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 82%"></span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Toplam Gece</div>
+            <div class="kpi-value">{{ summary.night_hours }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">BU AY</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 44%"></span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Toplam Ozel Gun</div>
+            <div class="kpi-value">{{ summary.special_hours }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">BU AY</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 36%"></span></div>
+          </div>
+          <button class="kpi-card warn card-action" type="button" data-toggle="openFaultsPanel">
+            <div class="kpi-label">Acik Ariza</div>
+            <div class="kpi-value">{{ summary.open_faults }}</div>
+            <div class="card-sub">Detaylari gor</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">KRITIK</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 62%"></span></div>
+          </button>
+          <div class="kpi-card warn {% if oil_counts.due %}pulse{% endif %}">
+            <div class="kpi-label">Yag Bakimi</div>
+            <div class="kpi-value">{{ oil_counts.due }}</div>
+            <div class="card-sub">Yaklasti: {{ oil_counts.soon }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">ONEMLI</span>
+              <span class="kpi-icon">???</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 68%"></span></div>
+          </div>
+          <a class="kpi-card warn card-link" href="#service">
+            <div class="kpi-label">Sanayide</div>
+            <div class="kpi-value">{{ summary.service_open }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">ACIL</span>
+              <span class="kpi-icon">??</span>
+            </div>
+            <div class="kpi-bar"><span style="width: 52%"></span></div>
           </a>
-              <div class="kpi-value">{{ top_overtime['overtime']|round(2) if top_overtime else 0 }}</div>
-              <div class="card-sub">{{ top_overtime['name'] if top_overtime else 'Kayit yok' }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">LIDER</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 58%"></span></div>
+          <div class="kpi-card">
+            <div class="kpi-label">Arac</div>
+            <div class="kpi-value">{{ summary.vehicles }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">FILO</span>
+              <span class="kpi-icon">??</span>
             </div>
-            <div class="kpi-card">
-              <div class="kpi-label">Toplam Fazla Mesai</div>
-              <div class="kpi-value">{{ summary.overtime_hours }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 75%"></span></div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">Toplam Calisilan Saat</div>
-              <div class="kpi-value">{{ summary.worked_hours }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 82%"></span></div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">Toplam Gece</div>
-              <div class="kpi-value">{{ summary.night_hours }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 44%"></span></div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">Toplam Ozel Gun</div>
-              <div class="kpi-value">{{ summary.special_hours }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">BU AY</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 36%"></span></div>
-            </div>
-            <button class="kpi-card warn card-action" type="button" data-toggle="openFaultsPanel">
-              <div class="kpi-label">Acik Ariza</div>
-              <div class="kpi-value">{{ summary.open_faults }}</div>
-              <div class="card-sub">Detaylari gor</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">KRITIK</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 62%"></span></div>
-            </button>
-            <div class="kpi-card warn {% if oil_counts.due %}pulse{% endif %}">
-              <div class="kpi-label">Yag Bakimi</div>
-              <div class="kpi-value">{{ oil_counts.due }}</div>
-              <div class="card-sub">Yaklasti: {{ oil_counts.soon }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">ONEMLI</span>
-                <span class="kpi-icon">???</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 68%"></span></div>
-            </div>
-            <a class="kpi-card warn card-link" href="#service">
-              <div class="kpi-label">Sanayide</div>
-              <div class="kpi-value">{{ summary.service_open }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">ACIL</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 52%"></span></div>
-            </a>
-            <div class="kpi-card">
-              <div class="kpi-label">Arac</div>
-              <div class="kpi-value">{{ summary.vehicles }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">FILO</span>
-                <span class="kpi-icon">??</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 60%"></span></div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">Surucu</div>
-              <div class="kpi-value">{{ summary.drivers }}</div>
-              <div class="kpi-meta">
-                <span class="kpi-chip">AKTIF</span>
-                <span class="kpi-icon">?????</span>
-              </div>
-              <div class="kpi-bar"><span style="width: 55%"></span></div>
-            </div>
+            <div class="kpi-bar"><span style="width: 60%"></span></div>
           </div>
-          <div class="kpi-detail" id="openFaultsPanel">
-            <div class="detail-head">
-              <div class="detail-title">Acik Ariza Detaylari</div>
-              <a href="/alerts" class="detail-link">Tum uyarilar</a>
+          <div class="kpi-card">
+            <div class="kpi-label">Surucu</div>
+            <div class="kpi-value">{{ summary.drivers }}</div>
+            <div class="kpi-meta">
+              <span class="kpi-chip">AKTIF</span>
+              <span class="kpi-icon">?????</span>
             </div>
-            {% if open_faults %}
-            <ul class="detail-list">
-              {% for row in open_faults %}
-              <li>
-                <strong>{{ row['plate'] }}</strong> - {{ row['title'] }}
-                <span class="muted">({{ row['opened_date'] }})</span>
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <div class="muted">Acik ariza yok</div>
-            {% endif %}
+            <div class="kpi-bar"><span style="width: 55%"></span></div>
           </div>
-        </section>
+        </div>
+        <div class="kpi-detail" id="openFaultsPanel">
+          <div class="detail-head">
+            <div class="detail-title">Acik Ariza Detaylari</div>
+            <a href="/alerts" class="detail-link">Tum uyarilar</a>
+          </div>
+          {% if open_faults %}
+          <ul class="detail-list">
+            {% for row in open_faults %}
+            <li>
+              <strong>{{ row['plate'] }}</strong> - {{ row['title'] }}
+              <span class="muted">({{ row['opened_date'] }})</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="muted">Acik ariza yok</div>
+          {% endif %}
+        </div>
+      </section>
 
-        <section class="section filter-bar">
-          <div class="panel-head">
-            <h2>Filtre</h2>
+      <section class="section filter-bar">
+        <div class="panel-head">
+          <h2>Filtre</h2>
+        </div>
+        <form method="get" class="filter-form">
+          <label>Baslangic</label>
+          <input type="date" name="start" value="{{ start_date }}" />
+          <label>Bitis</label>
+          <input type="date" name="end" value="{{ end_date }}" />
+          {% if is_admin %}
+          <label>Bolge</label>
+          <select name="region">
+            <option value="ALL" {% if selected_region in ['', 'ALL' , None] %}selected{% endif %}>Tum Bolgeler</option>
+            {% for region in regions %}
+            <option value="{{ region }}" {% if selected_region==region %}selected{% endif %}>{{ region }}</option>
+            {% endfor %}
+          </select>
+          {% endif %}
+          <label class="check">
+            <input type="checkbox" name="all" value="1" {% if all_months %}checked{% endif %} />
+            Tum Aylar
+          </label>
+          <button type="submit">Uygula</button>
+        </form>
+        <div class="range-cards">
+          <div class="mini-card">
+            <div class="label">Secili Aralik Calisilan</div>
+            <div class="value">{{ range_summary.worked }}</div>
           </div>
-          <form method="get" class="filter-form">
-            <label>Baslangic</label>
-            <input type="date" name="start" value="{{ start_date }}" />
-            <label>Bitis</label>
-            <input type="date" name="end" value="{{ end_date }}" />
-            {% if is_admin %}
-            <label>Bolge</label>
-            <select name="region">
-              <option value="ALL" {% if selected_region in ['', 'ALL', None] %}selected{% endif %}>Tum Bolgeler</option>
-              {% for region in regions %}
-              <option value="{{ region }}" {% if selected_region == region %}selected{% endif %}>{{ region }}</option>
-              {% endfor %}
-            </select>
-            {% endif %}
-            <label class="check">
-              <input type="checkbox" name="all" value="1" {% if all_months %}checked{% endif %} />
-              Tum Aylar
-            </label>
-            <button type="submit">Uygula</button>
-          </form>
-          <div class="range-cards">
-            <div class="mini-card">
-              <div class="label">Secili Aralik Calisilan</div>
-              <div class="value">{{ range_summary.worked }}</div>
-            </div>
-            <div class="mini-card warn">
-              <div class="label">Secili Aralik Fazla Mesai</div>
-              <div class="value">{{ range_summary.overtime }}</div>
-            </div>
-            <div class="mini-card">
-              <div class="label">Secili Aralik Gece</div>
-              <div class="value">{{ range_summary.night }}</div>
-            </div>
-            <div class="mini-card">
-              <div class="label">Secili Aralik Ozel Gun</div>
-              <div class="value">{{ range_summary.special }}</div>
-            </div>
+          <div class="mini-card warn">
+            <div class="label">Secili Aralik Fazla Mesai</div>
+            <div class="value">{{ range_summary.overtime }}</div>
           </div>
-        </section>
+          <div class="mini-card">
+            <div class="label">Secili Aralik Gece</div>
+            <div class="value">{{ range_summary.night }}</div>
+          </div>
+          <div class="mini-card">
+            <div class="label">Secili Aralik Ozel Gun</div>
+            <div class="value">{{ range_summary.special }}</div>
+          </div>
+        </div>
+      </section>
 
-        {% if alert_counts.urgent %}
-        <section class="section notification-bar">
-          <div class="notify-title">Dikkat: Kritik Uyari Var</div>
-          <div class="notify-text">
-            Kotulesti: {{ alert_counts.bad }} | Tekrar: {{ alert_counts.repeat }}
+      {% if alert_counts.urgent %}
+      <section class="section notification-bar">
+        <div class="notify-title">Dikkat: Kritik Uyari Var</div>
+        <div class="notify-text">
+          Kotulesti: {{ alert_counts.bad }} | Tekrar: {{ alert_counts.repeat }}
+        </div>
+      </section>
+      {% endif %}
+
+      <section id="quality" class="section panel">
+        <div class="panel-head">
+          <h2>Veri Kalitesi Kontrolleri</h2>
+          <div class="alert-stats">
+            <span class="badge bad">Kritik: {{ quality_counts.critical }}</span>
+            <span class="badge repeat">Toplam: {{ quality_counts.total }}</span>
           </div>
-        </section>
+        </div>
+        {% if quality_alerts %}
+        <div class="table-wrap">
+          <div class="table-tools">
+            <input class="table-search" data-target="quality-table" placeholder="Uyari ara..." />
+          </div>
+          <table id="quality-table">
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Kayit</th>
+                <th>Detay</th>
+                <th>Seviye</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in quality_alerts %}
+              <tr class="{% if row['level'] == 'critical' %}alert-row bad{% else %}alert-row repeat{% endif %}">
+                <td>{{ row['type'] }}</td>
+                <td>{{ row['entity'] }}</td>
+                <td>{{ row['detail'] }}</td>
+                <td>{{ 'Kritik' if row['level'] == 'critical' else 'Uyari' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="table-footer" data-target="quality-table"></div>
+        </div>
+        {% else %}
+        <div class="muted">Veri kalitesi sorunu bulunamadi</div>
         {% endif %}
+      </section>
 
-        <section id="quality" class="section panel">
-          <div class="panel-head">
-            <h2>Veri Kalitesi Kontrolleri</h2>
-            <div class="alert-stats">
-              <span class="badge bad">Kritik: {{ quality_counts.critical }}</span>
-              <span class="badge repeat">Toplam: {{ quality_counts.total }}</span>
-            </div>
+      <section id="oil-alerts" class="section panel">
+        <div class="panel-head">
+          <h2>Yag Bakim Uyarilari</h2>
+          <div class="alert-stats">
+            <span class="badge bad">Geldi: {{ oil_counts.due }}</span>
+            <span class="badge repeat">Yaklasti: {{ oil_counts.soon }}</span>
           </div>
-          {% if quality_alerts %}
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="quality-table" placeholder="Uyari ara..." />
-              </div>
-              <table id="quality-table">
-                <thead>
-                  <tr>
-                    <th>Tip</th>
-                    <th>Kayit</th>
-                    <th>Detay</th>
-                    <th>Seviye</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in quality_alerts %}
-                    <tr class="{% if row['level'] == 'critical' %}alert-row bad{% else %}alert-row repeat{% endif %}">
-                      <td>{{ row['type'] }}</td>
-                      <td>{{ row['entity'] }}</td>
-                      <td>{{ row['detail'] }}</td>
-                      <td>{{ 'Kritik' if row['level'] == 'critical' else 'Uyari' }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="quality-table"></div>
-            </div>
-          {% else %}
-            <div class="muted">Veri kalitesi sorunu bulunamadi</div>
-          {% endif %}
-        </section>
-
-        <section id="oil-alerts" class="section panel">
-          <div class="panel-head">
-            <h2>Yag Bakim Uyarilari</h2>
-            <div class="alert-stats">
-              <span class="badge bad">Geldi: {{ oil_counts.due }}</span>
-              <span class="badge repeat">Yaklasti: {{ oil_counts.soon }}</span>
-            </div>
-          </div>
-          {% if oil_alerts %}
-            <div class="table-wrap">
-              <table id="oil-table">
-                <thead>
-                  <tr>
-                    <th>Plaka</th>
-                    <th>Kalan KM</th>
-                    <th>Durum</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in oil_alerts %}
-                    <tr class="{% if row['status'] == 'Geldi' %}alert-row bad{% else %}alert-row repeat{% endif %}">
-                      <td>{{ row['plate'] }}</td>
-                      <td>{{ row['remaining'] }}</td>
-                      <td>{{ row['status'] }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="oil-table"></div>
-            </div>
-          {% else %}
-            <div class="muted">Yag bakimi uyarisi yok</div>
-          {% endif %}
-        </section>
-
-        <section id="alerts" class="section panel">
-          <div class="panel-head">
-            <h2>Haftalik Kontrol Uyarilari ({{ alert_counts.total }})</h2>
-            <div class="alert-stats">
-              <span class="badge bad">Kotulesti: {{ alert_counts.bad }}</span>
-              <span class="badge repeat">Tekrar: {{ alert_counts.repeat }}</span>
-              <span class="badge good">Duzeldi: {{ alert_counts.good }}</span>
-            </div>
-          </div>
-          <div class="alert-feed">
-            {% if weekly_alerts %}
-              {% for row in weekly_alerts[:5] %}
-                <a class="alert-item {{ row['level'] }}" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">
-                  <span class="tag">{{ row['change'] }}</span>
-                  <span class="text">{{ row['plate'] }} - {{ row['item'] }} ({{ row['week_start'] }})</span>
-                </a>
+        </div>
+        {% if oil_alerts %}
+        <div class="table-wrap">
+          <table id="oil-table">
+            <thead>
+              <tr>
+                <th>Plaka</th>
+                <th>Kalan KM</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in oil_alerts %}
+              <tr class="{% if row['status'] == 'Geldi' %}alert-row bad{% else %}alert-row repeat{% endif %}">
+                <td>{{ row['plate'] }}</td>
+                <td>{{ row['remaining'] }}</td>
+                <td>{{ row['status'] }}</td>
+              </tr>
               {% endfor %}
-              <a class="more-link" href="/alerts">Daha fazla gormek icin tiklayiniz</a>
-            {% else %}
-              <div class="alert-item">Yeni uyari yok</div>
-            {% endif %}
-          </div>
-          <div class="table-wrap tall">
-            <div class="table-tools">
-              <input class="table-search" data-target="alert-table" placeholder="Uyari ara..." />
-              <input class="table-date" data-target="alert-table" data-date-col="1" data-date-type="start" type="date" />
-              <input class="table-date" data-target="alert-table" data-date-col="1" data-date-type="end" type="date" />
-            </div>
-            <table id="alert-table">
-              <thead>
-                <tr>
-                  <th>Plaka</th>
-                  <th>Hafta</th>
-                  <th>Kontrol</th>
-                  <th>Onceki</th>
-                  <th>Bu Hafta</th>
-                  <th>Durum</th>
-                  <th>Rapor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if weekly_alerts %}
-                  {% for row in weekly_alerts %}
-                    <tr class="alert-row {{ row['level'] }}">
-                      <td>{{ row['plate'] }}</td>
-                      <td>{{ row['week_start'] }}</td>
-                      <td>{{ row['item'] }}</td>
-                      <td>{{ row['prev_status'] }}</td>
-                      <td>{{ row['current_status'] }}</td>
-                      <td>{{ row['change'] }}</td>
-                      <td>
-                        <a class="link" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">Ac</a>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr><td colspan="7">Kayit yok</td></tr>
-                {% endif %}
-              </tbody>
-            </table>
-            <div class="table-footer" data-target="alert-table"></div>
-          </div>
-        </section>
+            </tbody>
+          </table>
+          <div class="table-footer" data-target="oil-table"></div>
+        </div>
+        {% else %}
+        <div class="muted">Yag bakimi uyarisi yok</div>
+        {% endif %}
+      </section>
 
-        <section class="section grid-2">
-          <div class="panel">
-            <div class="panel-head">
-              <h2>Aylik Ozet</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="monthly-table" placeholder="Ara..." />
-              </div>
-              <table id="monthly-table">
-                <thead>
-                  <tr>
-                    <th>Ay</th>
-                    <th>Calisilan</th>
-                    <th>Fazla Mesai</th>
-                    <th>Gece</th>
-                    <th>Ozel Gun</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if monthly_summary %}
-                    {% for row in monthly_summary %}
-                      <tr>
-                        <td>{{ row['month'] }}</td>
-                        <td>{{ row['worked'] }}</td>
-                        <td>{{ row['overtime'] }}</td>
-                        <td>{{ row['night'] }}</td>
-                        <td>{{ row['special'] }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="5">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="monthly-table"></div>
-            </div>
+      <section id="alerts" class="section panel">
+        <div class="panel-head">
+          <h2>Haftalik Kontrol Uyarilari ({{ alert_counts.total }})</h2>
+          <div class="alert-stats">
+            <span class="badge bad">Kotulesti: {{ alert_counts.bad }}</span>
+            <span class="badge repeat">Tekrar: {{ alert_counts.repeat }}</span>
+            <span class="badge good">Duzeldi: {{ alert_counts.good }}</span>
           </div>
-
-          <div class="panel">
-            <div class="panel-head">
-              <h2>Gunluk Ozet (Secili Aralik)</h2>
-            </div>
-            <div class="table-wrap tall">
-              <div class="table-tools">
-                <input class="table-search" data-target="daily-table" placeholder="Ara..." />
-              </div>
-              <table id="daily-table">
-                <thead>
-                  <tr>
-                    <th>Tarih</th>
-                    <th>Calisilan</th>
-                    <th>Fazla Mesai</th>
-                    <th>Gece</th>
-                    <th>Ozel Gun</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if daily_summary %}
-                    {% for row in daily_summary %}
-                      <tr>
-                        <td>{{ row['date'] }}</td>
-                        <td>{{ row['worked'] }}</td>
-                        <td>{{ row['overtime'] }}</td>
-                        <td>{{ row['night'] }}</td>
-                        <td>{{ row['special'] }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="5">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="daily-table"></div>
-            </div>
+        </div>
+        <div class="alert-feed">
+          {% if weekly_alerts %}
+          {% for row in weekly_alerts[:5] %}
+          <a class="alert-item {{ row['level'] }}" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">
+            <span class="tag">{{ row['change'] }}</span>
+            <span class="text">{{ row['plate'] }} - {{ row['item'] }} ({{ row['week_start'] }})</span>
+          </a>
+          {% endfor %}
+          <a class="more-link" href="/alerts">Daha fazla gormek icin tiklayiniz</a>
+          {% else %}
+          <div class="alert-item">Yeni uyari yok</div>
+          {% endif %}
+        </div>
+        <div class="table-wrap tall">
+          <div class="table-tools">
+            <input class="table-search" data-target="alert-table" placeholder="Uyari ara..." />
+            <input class="table-date" data-target="alert-table" data-date-col="1" data-date-type="start" type="date" />
+            <input class="table-date" data-target="alert-table" data-date-col="1" data-date-type="end" type="date" />
           </div>
-        </section>
+          <table id="alert-table">
+            <thead>
+              <tr>
+                <th>Plaka</th>
+                <th>Hafta</th>
+                <th>Kontrol</th>
+                <th>Onceki</th>
+                <th>Bu Hafta</th>
+                <th>Durum</th>
+                <th>Rapor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if weekly_alerts %}
+              {% for row in weekly_alerts %}
+              <tr class="alert-row {{ row['level'] }}">
+                <td>{{ row['plate'] }}</td>
+                <td>{{ row['week_start'] }}</td>
+                <td>{{ row['item'] }}</td>
+                <td>{{ row['prev_status'] }}</td>
+                <td>{{ row['current_status'] }}</td>
+                <td>{{ row['change'] }}</td>
+                <td>
+                  <a class="link" href="/reports/weekly/{{ row['plate'] }}/{{ row['week_start'] }}">Ac</a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% else %}
+              <tr>
+                <td colspan="7">Kayit yok</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+          <div class="table-footer" data-target="alert-table"></div>
+        </div>
+      </section>
 
-
-        <section class="section grid-2">
-          <div id="faults" class="panel">
-            <div class="panel-head">
-              <h2>Acik Arizalar</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="faults-table" placeholder="Ara..." />
-              </div>
-              <table id="faults-table">
-                <thead>
-                  <tr>
-                    <th>Plaka</th>
-                    <th>Baslik</th>
-                    <th>Acilis</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if open_faults %}
-                    {% for row in open_faults %}
-                      <tr>
-                        <td>{{ row['plate'] }}</td>
-                        <td>{{ row['title'] }}</td>
-                        <td>{{ row['opened_date'] or '-' }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="3">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="faults-table"></div>
-            </div>
-          </div>
-
-          <div id="service" class="panel">
-            <div class="panel-head">
-              <h2>Sanayide Olan Araclar</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="service-table" placeholder="Ara..." />
-              </div>
-              <table id="service-table">
-                <thead>
-                  <tr>
-                    <th>Plaka</th>
-                    <th>Gidis</th>
-                    <th>Neden</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if service_open %}
-                    {% for row in service_open %}
-                      <tr>
-                        <td>{{ row['plate'] }}</td>
-                        <td>{{ row['start_date'] }}</td>
-                        <td>{{ row['reason'] or '-' }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="3">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="service-table"></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="employees" class="section panel">
+      <section class="section grid-2">
+        <div class="panel">
           <div class="panel-head">
-            <h2>Calisan Kartlari</h2>
+            <h2>Aylik Ozet</h2>
           </div>
-          <div class="table-wrap tall">
+          <div class="table-wrap">
             <div class="table-tools">
-              <input class="table-search" data-target="employee-table" placeholder="Calisan ara..." />
+              <input class="table-search" data-target="monthly-table" placeholder="Ara..." />
             </div>
-            <table id="employee-table">
+            <table id="monthly-table">
               <thead>
                 <tr>
-                  <th>Calisan</th>
-                  <th>Toplam Gun</th>
-                  <th>Calisilan Saat</th>
+                  <th>Ay</th>
+                  <th>Calisilan</th>
                   <th>Fazla Mesai</th>
                   <th>Gece</th>
                   <th>Ozel Gun</th>
                 </tr>
               </thead>
               <tbody>
-                {% if employee_cards %}
-                {% for row in employee_cards %}
-                  <tr>
-                    <td><a class="link" href="/employee/{{ row['id'] }}">{{ row['name'] }}</a></td>
-                    <td>{{ row['days'] }}</td>
-                    <td>{{ row['worked']|round(2) }}</td>
-                    <td>{{ row['overtime']|round(2) }}</td>
-                    <td>{{ row['night']|round(2) }}</td>
-                    <td>{{ row['special']|round(2) }}</td>
-                    </tr>
-                  {% endfor %}
+                {% if monthly_summary %}
+                {% for row in monthly_summary %}
+                <tr>
+                  <td>{{ row['month'] }}</td>
+                  <td>{{ row['worked'] }}</td>
+                  <td>{{ row['overtime'] }}</td>
+                  <td>{{ row['night'] }}</td>
+                  <td>{{ row['special'] }}</td>
+                </tr>
+                {% endfor %}
                 {% else %}
-                  <tr><td colspan="6">Kayit yok</td></tr>
+                <tr>
+                  <td colspan="5">Kayit yok</td>
+                </tr>
                 {% endif %}
               </tbody>
             </table>
-            <div class="table-footer" data-target="employee-table"></div>
+            <div class="table-footer" data-target="monthly-table"></div>
           </div>
-        </section>
+        </div>
 
-        <section id="overtime" class="section grid-2">
-          <div class="panel">
-            <div class="panel-head">
-              <h2>Fazla Mesai Liderleri</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="overtime-table" placeholder="Ara..." />
-              </div>
-              <table id="overtime-table">
-                <thead>
-                  <tr>
-                    <th>Calisan</th>
-                    <th>Fazla Mesai</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if overtime_leaders %}
-                    {% for row in overtime_leaders %}
-                      <tr>
-                        <td>{{ row['name'] }}</td>
-                        <td>{{ row['overtime']|round(2) }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="2">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="overtime-table"></div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head">
-              <h2>En Cok Ariza Yapan Araclar</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="topfaults-table" placeholder="Ara..." />
-              </div>
-              <table id="topfaults-table">
-                <thead>
-                  <tr>
-                    <th>Plaka</th>
-                    <th>Ariza Adet</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if top_faults %}
-                    {% for row in top_faults %}
-                      <tr>
-                        <td>{{ row['plate'] }}</td>
-                        <td>{{ row['cnt'] }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="2">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="topfaults-table"></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="timesheets" class="section panel">
+        <div class="panel">
           <div class="panel-head">
-            <h2>Son Puantaj Kayitlari</h2>
+            <h2>Gunluk Ozet (Secili Aralik)</h2>
           </div>
           <div class="table-wrap tall">
             <div class="table-tools">
-              <input class="table-search" data-target="timesheet-table" placeholder="Puantaj ara..." />
-              <input class="table-date" data-target="timesheet-table" data-date-col="1" data-date-type="start" type="date" />
-              <input class="table-date" data-target="timesheet-table" data-date-col="1" data-date-type="end" type="date" />
+              <input class="table-search" data-target="daily-table" placeholder="Ara..." />
             </div>
-            <table id="timesheet-table">
+            <table id="daily-table">
               <thead>
                 <tr>
-                  <th>Calisan</th>
                   <th>Tarih</th>
-                  <th>Giris</th>
-                  <th>Cikis</th>
-                  <th>Mola</th>
+                  <th>Calisilan</th>
+                  <th>Fazla Mesai</th>
+                  <th>Gece</th>
                   <th>Ozel Gun</th>
                 </tr>
               </thead>
               <tbody>
-                {% if recent_timesheets %}
-                  {% for row in recent_timesheets %}
-                    <tr>
-                      <td>{{ row['name'] }}</td>
-                      <td>{{ row['work_date'] }}</td>
-                      <td>{{ row['start_time'] }}</td>
-                      <td>{{ row['end_time'] }}</td>
-                      <td>{{ row['break_minutes'] }}</td>
-                      <td>{{ 'Evet' if row['is_special'] else 'Hayir' }}</td>
-                    </tr>
-                  {% endfor %}
+                {% if daily_summary %}
+                {% for row in daily_summary %}
+                <tr>
+                  <td>{{ row['date'] }}</td>
+                  <td>{{ row['worked'] }}</td>
+                  <td>{{ row['overtime'] }}</td>
+                  <td>{{ row['night'] }}</td>
+                  <td>{{ row['special'] }}</td>
+                </tr>
+                {% endfor %}
                 {% else %}
-                  <tr><td colspan="6">Kayit yok</td></tr>
+                <tr>
+                  <td colspan="5">Kayit yok</td>
+                </tr>
                 {% endif %}
               </tbody>
             </table>
-            <div class="table-footer" data-target="timesheet-table"></div>
+            <div class="table-footer" data-target="daily-table"></div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="section grid-2">
-          <div id="vehicles" class="panel">
-            <div class="panel-head">
-              <h2>Arac Kartlari</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="vehicle-table" placeholder="Plaka ara..." />
-              </div>
-              <table id="vehicle-table">
-                <thead>
-                  <tr>
-                    <th>Plaka</th>
-                    <th>KM</th>
-                    <th>Muayene</th>
-                    <th>Sigorta</th>
-                    <th>Bakim</th>
-                    <th>Acik Ariza</th>
-                    <th>Sanayide</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if vehicle_cards %}
-                    {% for row in vehicle_cards %}
-                      <tr>
-                        <td><a class="link" href="/vehicle/{{ row['plate'] }}">{{ row['plate'] }}</a></td>
-                        <td>{{ row['km'] or '-' }}</td>
-                        <td>{{ row['inspection_date'] or '-' }}</td>
-                        <td>{{ row['insurance_date'] or '-' }}</td>
-                        <td>{{ row['maintenance_date'] or '-' }}</td>
-                        <td>{{ row['open_fault'] or '-' }}</td>
-                        <td>{{ row['in_service'] or '-' }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="7">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="vehicle-table"></div>
-            </div>
-          </div>
 
-          <div id="drivers" class="panel">
-            <div class="panel-head">
-              <h2>Surucu Kartlari</h2>
-            </div>
-            <div class="table-wrap">
-              <div class="table-tools">
-                <input class="table-search" data-target="driver-table" placeholder="Surucu ara..." />
-              </div>
-              <table id="driver-table">
-                <thead>
-                  <tr>
-                    <th>Surucu</th>
-                    <th>Ehliyet</th>
-                    <th>Bitis</th>
-                    <th>Telefon</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if driver_cards %}
-                    {% for row in driver_cards %}
-                      <tr>
-                        <td><a class="link" href="/driver/{{ row['id'] }}">{{ row['name'] }}</a></td>
-                        <td>{{ row['license_class'] or '-' }}</td>
-                        <td>{{ row['license_expiry'] or '-' }}</td>
-                        <td>{{ row['phone'] or '-' }}</td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr><td colspan="4">Kayit yok</td></tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <div class="table-footer" data-target="driver-table"></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="inspections" class="section panel">
+      <section class="section grid-2">
+        <div id="faults" class="panel">
           <div class="panel-head">
-            <h2>Son Kontroller</h2>
+            <h2>Acik Arizalar</h2>
           </div>
           <div class="table-wrap">
             <div class="table-tools">
-              <input class="table-search" data-target="inspection-table" placeholder="Kontrol ara..." />
-              <input class="table-date" data-target="inspection-table" data-date-col="1" data-date-type="start" type="date" />
-              <input class="table-date" data-target="inspection-table" data-date-col="1" data-date-type="end" type="date" />
+              <input class="table-search" data-target="faults-table" placeholder="Ara..." />
             </div>
-            <table id="inspection-table">
+            <table id="faults-table">
               <thead>
                 <tr>
                   <th>Plaka</th>
-                  <th>Tarih</th>
-                  <th>Hafta</th>
-                  <th>Surucu</th>
-                  <th>KM</th>
-                  <th>Ariza Durum</th>
-                  <th>Sanayi</th>
+                  <th>Baslik</th>
+                  <th>Acilis</th>
                 </tr>
               </thead>
               <tbody>
-                {% if recent_inspections %}
-                  {% for row in recent_inspections %}
-                    <tr>
-                      <td>{{ row['plate'] }}</td>
-                      <td>{{ row['inspection_date'] }}</td>
-                      <td>{{ row['week_start'] }}</td>
-                      <td>{{ row['driver'] or '-' }}</td>
-                      <td>{{ row['km'] or '-' }}</td>
-                      <td>{{ row['fault_status'] or '-' }}</td>
-                      <td>{{ 'Evet' if row['service_visit'] else 'Hayir' }}</td>
-                    </tr>
-                  {% endfor %}
+                {% if open_faults %}
+                {% for row in open_faults %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['title'] }}</td>
+                  <td>{{ row['opened_date'] or '-' }}</td>
+                </tr>
+                {% endfor %}
                 {% else %}
-                  <tr><td colspan="7">Kayit yok</td></tr>
+                <tr>
+                  <td colspan="3">Kayit yok</td>
+                </tr>
                 {% endif %}
               </tbody>
             </table>
-            <div class="table-footer" data-target="inspection-table"></div>
+            <div class="table-footer" data-target="faults-table"></div>
           </div>
-        </section>
-      </main>
-    </div>
+        </div>
 
-    <script>
-      const sectionLinks = document.querySelectorAll(".sidebar a[data-section]");
-      const sections = Array.from(document.querySelectorAll("main .section")).filter((section) => section.id);
-      const updateActiveLink = () => {
-        let currentId = "";
-        const offset = 140;
-        sections.forEach((section) => {
-          const rect = section.getBoundingClientRect();
-          if (rect.top - offset <= 0) {
-            currentId = section.id;
-          }
-        });
-        sectionLinks.forEach((link) => {
-          const target = link.getAttribute("href").replace("#", "");
-          link.classList.toggle("active", target && target === currentId);
-        });
+        <div id="service" class="panel">
+          <div class="panel-head">
+            <h2>Sanayide Olan Araclar</h2>
+          </div>
+          <div class="table-wrap">
+            <div class="table-tools">
+              <input class="table-search" data-target="service-table" placeholder="Ara..." />
+            </div>
+            <table id="service-table">
+              <thead>
+                <tr>
+                  <th>Plaka</th>
+                  <th>Gidis</th>
+                  <th>Neden</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if service_open %}
+                {% for row in service_open %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['start_date'] }}</td>
+                  <td>{{ row['reason'] or '-' }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="3">Kayit yok</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <div class="table-footer" data-target="service-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="employees" class="section panel">
+        <div class="panel-head">
+          <h2>Calisan Kartlari</h2>
+        </div>
+        <div class="table-wrap tall">
+          <div class="table-tools">
+            <input class="table-search" data-target="employee-table" placeholder="Calisan ara..." />
+          </div>
+          <table id="employee-table">
+            <thead>
+              <tr>
+                <th>Calisan</th>
+                <th>Toplam Gun</th>
+                <th>Calisilan Saat</th>
+                <th>Fazla Mesai</th>
+                <th>Gece</th>
+                <th>Ozel Gun</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if employee_cards %}
+              {% for row in employee_cards %}
+              <tr>
+                <td><a class="link" href="/employee/{{ row['id'] }}">{{ row['name'] }}</a></td>
+                <td>{{ row['days'] }}</td>
+                <td>{{ row['worked']|round(2) }}</td>
+                <td>{{ row['overtime']|round(2) }}</td>
+                <td>{{ row['night']|round(2) }}</td>
+                <td>{{ row['special']|round(2) }}</td>
+              </tr>
+              {% endfor %}
+              {% else %}
+              <tr>
+                <td colspan="6">Kayit yok</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+          <div class="table-footer" data-target="employee-table"></div>
+        </div>
+      </section>
+
+      <section id="overtime" class="section grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Fazla Mesai Liderleri</h2>
+          </div>
+          <div class="table-wrap">
+            <div class="table-tools">
+              <input class="table-search" data-target="overtime-table" placeholder="Ara..." />
+            </div>
+            <table id="overtime-table">
+              <thead>
+                <tr>
+                  <th>Calisan</th>
+                  <th>Fazla Mesai</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if overtime_leaders %}
+                {% for row in overtime_leaders %}
+                <tr>
+                  <td>{{ row['name'] }}</td>
+                  <td>{{ row['overtime']|round(2) }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="2">Kayit yok</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <div class="table-footer" data-target="overtime-table"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>En Cok Ariza Yapan Araclar</h2>
+          </div>
+          <div class="table-wrap">
+            <div class="table-tools">
+              <input class="table-search" data-target="topfaults-table" placeholder="Ara..." />
+            </div>
+            <table id="topfaults-table">
+              <thead>
+                <tr>
+                  <th>Plaka</th>
+                  <th>Ariza Adet</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if top_faults %}
+                {% for row in top_faults %}
+                <tr>
+                  <td>{{ row['plate'] }}</td>
+                  <td>{{ row['cnt'] }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="2">Kayit yok</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <div class="table-footer" data-target="topfaults-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="timesheets" class="section panel">
+        <div class="panel-head">
+          <h2>Son Puantaj Kayitlari</h2>
+        </div>
+        <div class="table-wrap tall">
+          <div class="table-tools">
+            <input class="table-search" data-target="timesheet-table" placeholder="Puantaj ara..." />
+            <input class="table-date" data-target="timesheet-table" data-date-col="1" data-date-type="start"
+              type="date" />
+            <input class="table-date" data-target="timesheet-table" data-date-col="1" data-date-type="end"
+              type="date" />
+          </div>
+          <table id="timesheet-table">
+            <thead>
+              <tr>
+                <th>Calisan</th>
+                <th>Tarih</th>
+                <th>Giris</th>
+                <th>Cikis</th>
+                <th>Mola</th>
+                <th>Ozel Gun</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_timesheets %}
+              {% for row in recent_timesheets %}
+              <tr>
+                <td>{{ row['name'] }}</td>
+                <td>{{ row['work_date'] }}</td>
+                <td>{{ row['start_time'] }}</td>
+                <td>{{ row['end_time'] }}</td>
+                <td>{{ row['break_minutes'] }}</td>
+                <td>{{ 'Evet' if row['is_special'] else 'Hayir' }}</td>
+              </tr>
+              {% endfor %}
+              {% else %}
+              <tr>
+                <td colspan="6">Kayit yok</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+          <div class="table-footer" data-target="timesheet-table"></div>
+        </div>
+      </section>
+
+      <section class="section grid-2">
+        <div id="vehicles" class="panel">
+          <div class="panel-head">
+            <h2>Arac Kartlari</h2>
+          </div>
+          <div class="table-wrap">
+            <div class="table-tools">
+              <input class="table-search" data-target="vehicle-table" placeholder="Plaka ara..." />
+            </div>
+            <table id="vehicle-table">
+              <thead>
+                <tr>
+                  <th>Plaka</th>
+                  <th>KM</th>
+                  <th>Muayene</th>
+                  <th>Sigorta</th>
+                  <th>Bakim</th>
+                  <th>Acik Ariza</th>
+                  <th>Sanayide</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if vehicle_cards %}
+                {% for row in vehicle_cards %}
+                <tr>
+                  <td><a class="link" href="/vehicle/{{ row['plate'] }}">{{ row['plate'] }}</a></td>
+                  <td>{{ row['km'] or '-' }}</td>
+                  <td>{{ row['inspection_date'] or '-' }}</td>
+                  <td>{{ row['insurance_date'] or '-' }}</td>
+                  <td>{{ row['maintenance_date'] or '-' }}</td>
+                  <td>{{ row['open_fault'] or '-' }}</td>
+                  <td>{{ row['in_service'] or '-' }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="7">Kayit yok</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <div class="table-footer" data-target="vehicle-table"></div>
+          </div>
+        </div>
+
+        <div id="drivers" class="panel">
+          <div class="panel-head">
+            <h2>Surucu Kartlari</h2>
+          </div>
+          <div class="table-wrap">
+            <div class="table-tools">
+              <input class="table-search" data-target="driver-table" placeholder="Surucu ara..." />
+            </div>
+            <table id="driver-table">
+              <thead>
+                <tr>
+                  <th>Surucu</th>
+                  <th>Ehliyet</th>
+                  <th>Bitis</th>
+                  <th>Telefon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if driver_cards %}
+                {% for row in driver_cards %}
+                <tr>
+                  <td><a class="link" href="/driver/{{ row['id'] }}">{{ row['name'] }}</a></td>
+                  <td>{{ row['license_class'] or '-' }}</td>
+                  <td>{{ row['license_expiry'] or '-' }}</td>
+                  <td>{{ row['phone'] or '-' }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="4">Kayit yok</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <div class="table-footer" data-target="driver-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="inspections" class="section panel">
+        <div class="panel-head">
+          <h2>Son Kontroller</h2>
+        </div>
+        <div class="table-wrap">
+          <div class="table-tools">
+            <input class="table-search" data-target="inspection-table" placeholder="Kontrol ara..." />
+            <input class="table-date" data-target="inspection-table" data-date-col="1" data-date-type="start"
+              type="date" />
+            <input class="table-date" data-target="inspection-table" data-date-col="1" data-date-type="end"
+              type="date" />
+          </div>
+          <table id="inspection-table">
+            <thead>
+              <tr>
+                <th>Plaka</th>
+                <th>Tarih</th>
+                <th>Hafta</th>
+                <th>Surucu</th>
+                <th>KM</th>
+                <th>Ariza Durum</th>
+                <th>Sanayi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_inspections %}
+              {% for row in recent_inspections %}
+              <tr>
+                <td>{{ row['plate'] }}</td>
+                <td>{{ row['inspection_date'] }}</td>
+                <td>{{ row['week_start'] }}</td>
+                <td>{{ row['driver'] or '-' }}</td>
+                <td>{{ row['km'] or '-' }}</td>
+                <td>{{ row['fault_status'] or '-' }}</td>
+                <td>{{ 'Evet' if row['service_visit'] else 'Hayir' }}</td>
+              </tr>
+              {% endfor %}
+              {% else %}
+              <tr>
+                <td colspan="7">Kayit yok</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+          <div class="table-footer" data-target="inspection-table"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const sectionLinks = document.querySelectorAll(".sidebar a[data-section]");
+    const sections = Array.from(document.querySelectorAll("main .section")).filter((section) => section.id);
+    const updateActiveLink = () => {
+      let currentId = "";
+      const offset = 140;
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top - offset <= 0) {
+          currentId = section.id;
+        }
+      });
+      sectionLinks.forEach((link) => {
+        const target = link.getAttribute("href").replace("#", "");
+        link.classList.toggle("active", target && target === currentId);
+      });
+    };
+
+    window.addEventListener("scroll", updateActiveLink, { passive: true });
+    updateActiveLink();
+    const allToggle = document.querySelector('input[name="all"]');
+    const startInput = document.querySelector('input[name="start"]');
+    const endInput = document.querySelector('input[name="end"]');
+    if (allToggle && startInput && endInput) {
+      const toggleDates = () => {
+        const disabled = allToggle.checked;
+        startInput.disabled = disabled;
+        endInput.disabled = disabled;
       };
+      allToggle.addEventListener("change", toggleDates);
+      toggleDates();
+    }
+    const PAGE_SIZE = 200;
+    const tableStates = new Map();
 
-      window.addEventListener("scroll", updateActiveLink, { passive: true });
-      updateActiveLink();
-      const allToggle = document.querySelector('input[name="all"]');
-      const startInput = document.querySelector('input[name="start"]');
-      const endInput = document.querySelector('input[name="end"]');
-      if (allToggle && startInput && endInput) {
-        const toggleDates = () => {
-          const disabled = allToggle.checked;
-          startInput.disabled = disabled;
-          endInput.disabled = disabled;
-        };
-        allToggle.addEventListener("change", toggleDates);
-        toggleDates();
-      }
-      const PAGE_SIZE = 200;
-      const tableStates = new Map();
-
-      const buildFooter = (footer, state) => {
-        const prevDisabled = state.page <= 1 ? "disabled" : "";
-        const nextDisabled = state.page >= state.pages ? "disabled" : "";
-        footer.innerHTML = `
+    const buildFooter = (footer, state) => {
+      const prevDisabled = state.page <= 1 ? "disabled" : "";
+      const nextDisabled = state.page >= state.pages ? "disabled" : "";
+      footer.innerHTML = `
           <div>Sayfa ${state.page} / ${state.pages} (Kayit: ${state.total})</div>
           <div>
             <button data-action="prev" ${prevDisabled}>Onceki</button>
             <button data-action="next" ${nextDisabled}>Sonraki</button>
           </div>
         `;
-        footer.querySelectorAll("button").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            if (btn.dataset.action === "prev") {
-              state.page = Math.max(1, state.page - 1);
-            } else {
-              state.page = Math.min(state.pages, state.page + 1);
-            }
-            renderTable(state);
-          });
-        });
-      };
-
-      const filterRows = (state) => {
-        const needle = state.search.toLowerCase();
-        const start = state.dateStart;
-        const end = state.dateEnd;
-        return state.rows.filter((row) => {
-          const text = row.innerText.toLowerCase();
-          if (needle && !text.includes(needle)) return false;
-          if (state.dateCol !== null && (start || end)) {
-            const cell = row.children[state.dateCol];
-            if (!cell) return false;
-            const raw = (cell.innerText || "").trim().slice(0, 10);
-            if (!raw) return false;
-            if (start && raw < start) return false;
-            if (end && raw > end) return false;
+      footer.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (btn.dataset.action === "prev") {
+            state.page = Math.max(1, state.page - 1);
+          } else {
+            state.page = Math.min(state.pages, state.page + 1);
           }
-          return true;
-        });
-      };
-
-      const renderTable = (state) => {
-        const visibleRows = filterRows(state);
-        state.total = visibleRows.length;
-        state.pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
-        if (state.page > state.pages) state.page = state.pages;
-        const startIndex = (state.page - 1) * PAGE_SIZE;
-        const endIndex = startIndex + PAGE_SIZE;
-        const pageRows = visibleRows.slice(startIndex, endIndex);
-        state.rows.forEach((row) => {
-          row.style.display = pageRows.includes(row) ? "" : "none";
-        });
-        if (state.emptyRow) {
-          state.emptyRow.remove();
-          state.emptyRow = null;
-        }
-        if (!pageRows.length) {
-          const empty = document.createElement("tr");
-          empty.className = "empty-row";
-          const cell = document.createElement("td");
-          cell.colSpan = state.colCount;
-          cell.innerText = "Kayit yok";
-          empty.appendChild(cell);
-          state.tbody.appendChild(empty);
-          state.emptyRow = empty;
-        }
-        buildFooter(state.footer, state);
-      };
-
-      const setupTable = (table) => {
-        if (!table || !table.id) return;
-        const tbody = table.querySelector("tbody");
-        if (!tbody) return;
-        const rawRows = Array.from(tbody.querySelectorAll("tr"));
-        const rows = rawRows.filter((row) => {
-          return !row.innerText.toLowerCase().includes("kayit yok");
-        });
-        rawRows
-          .filter((row) => row !== null && row.innerText.toLowerCase().includes("kayit yok"))
-          .forEach((row) => row.remove());
-        const footer = document.querySelector(`.table-footer[data-target="${table.id}"]`);
-        if (!footer) return;
-        const dateInput = document.querySelector(`.table-date[data-target="${table.id}"]`);
-        const dateCol = dateInput ? Number(dateInput.dataset.dateCol) : null;
-        const state = {
-          table,
-          tbody,
-          rows,
-          footer,
-          page: 1,
-          pages: 1,
-          total: rows.length,
-          search: "",
-          dateStart: "",
-          dateEnd: "",
-          dateCol: Number.isNaN(dateCol) ? null : dateCol,
-          colCount: table.querySelectorAll("thead th").length || 1,
-          emptyRow: null,
-        };
-        tableStates.set(table.id, state);
-        const searchInputs = document.querySelectorAll(`.table-search[data-target="${table.id}"]`);
-        searchInputs.forEach((input) => {
-          input.addEventListener("input", () => {
-            state.search = input.value || "";
-            state.page = 1;
-            renderTable(state);
-          });
-        });
-        const dateInputs = document.querySelectorAll(`.table-date[data-target="${table.id}"]`);
-        dateInputs.forEach((input) => {
-          input.addEventListener("change", () => {
-            if (input.dataset.dateType === "start") {
-              state.dateStart = input.value || "";
-            } else {
-              state.dateEnd = input.value || "";
-            }
-            state.page = 1;
-            renderTable(state);
-          });
-        });
-        renderTable(state);
-      };
-
-      document.querySelectorAll("table").forEach(setupTable);
-
-      const notifyBtn = document.getElementById("notifyBtn");
-      const alertUrgent = Number(document.body.dataset.alertUrgent || 0);
-      const alertBad = Number(document.body.dataset.alertBad || 0);
-      const alertRepeat = Number(document.body.dataset.alertRepeat || 0);
-      if (!("Notification" in window)) {
-        if (notifyBtn) notifyBtn.style.display = "none";
-      } else {
-        const updateNotifyBtn = () => {
-          if (!notifyBtn) return;
-          notifyBtn.style.display = Notification.permission === "granted" ? "none" : "inline-flex";
-        };
-        updateNotifyBtn();
-        if (notifyBtn) {
-          notifyBtn.addEventListener("click", async () => {
-            const result = await Notification.requestPermission();
-            if (result === "granted" && alertUrgent > 0) {
-              new Notification("Rainstaff Uyari", {
-                body: `Kotulesti: ${alertBad} | Tekrar: ${alertRepeat}`,
-              });
-              if (navigator.vibrate) {
-                navigator.vibrate([200, 120, 200]);
-              }
-            }
-            updateNotifyBtn();
-          });
-        }
-        if (Notification.permission === "granted" && alertUrgent > 0) {
-          new Notification("Rainstaff Uyari", {
-            body: `Kotulesti: ${alertBad} | Tekrar: ${alertRepeat}`,
-          });
-        }
-      }
-
-      document.querySelectorAll("[data-toggle]").forEach((trigger) => {
-        trigger.addEventListener("click", () => {
-          const target = document.getElementById(trigger.dataset.toggle);
-          if (!target) return;
-          target.classList.toggle("active");
-          if (target.classList.contains("active")) {
-            target.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
+          renderTable(state);
         });
       });
-    </script>
-  
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
-        <script src="{{ url_for('static', filename='matrix-rain.js') }}"></script>
-  </body>
+    };
+
+    const filterRows = (state) => {
+      const needle = state.search.toLowerCase();
+      const start = state.dateStart;
+      const end = state.dateEnd;
+      return state.rows.filter((row) => {
+        const text = row.innerText.toLowerCase();
+        if (needle && !text.includes(needle)) return false;
+        if (state.dateCol !== null && (start || end)) {
+          const cell = row.children[state.dateCol];
+          if (!cell) return false;
+          const raw = (cell.innerText || "").trim().slice(0, 10);
+          if (!raw) return false;
+          if (start && raw < start) return false;
+          if (end && raw > end) return false;
+        }
+        return true;
+      });
+    };
+
+    const renderTable = (state) => {
+      const visibleRows = filterRows(state);
+      state.total = visibleRows.length;
+      state.pages = Math.max(1, Math.ceil(state.total / PAGE_SIZE));
+      if (state.page > state.pages) state.page = state.pages;
+      const startIndex = (state.page - 1) * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const pageRows = visibleRows.slice(startIndex, endIndex);
+      state.rows.forEach((row) => {
+        row.style.display = pageRows.includes(row) ? "" : "none";
+      });
+      if (state.emptyRow) {
+        state.emptyRow.remove();
+        state.emptyRow = null;
+      }
+      if (!pageRows.length) {
+        const empty = document.createElement("tr");
+        empty.className = "empty-row";
+        const cell = document.createElement("td");
+        cell.colSpan = state.colCount;
+        cell.innerText = "Kayit yok";
+        empty.appendChild(cell);
+        state.tbody.appendChild(empty);
+        state.emptyRow = empty;
+      }
+      buildFooter(state.footer, state);
+    };
+
+    const setupTable = (table) => {
+      if (!table || !table.id) return;
+      const tbody = table.querySelector("tbody");
+      if (!tbody) return;
+      const rawRows = Array.from(tbody.querySelectorAll("tr"));
+      const rows = rawRows.filter((row) => {
+        return !row.innerText.toLowerCase().includes("kayit yok");
+      });
+      rawRows
+        .filter((row) => row !== null && row.innerText.toLowerCase().includes("kayit yok"))
+        .forEach((row) => row.remove());
+      const footer = document.querySelector(`.table-footer[data-target="${table.id}"]`);
+      if (!footer) return;
+      const dateInput = document.querySelector(`.table-date[data-target="${table.id}"]`);
+      const dateCol = dateInput ? Number(dateInput.dataset.dateCol) : null;
+      const state = {
+        table,
+        tbody,
+        rows,
+        footer,
+        page: 1,
+        pages: 1,
+        total: rows.length,
+        search: "",
+        dateStart: "",
+        dateEnd: "",
+        dateCol: Number.isNaN(dateCol) ? null : dateCol,
+        colCount: table.querySelectorAll("thead th").length || 1,
+        emptyRow: null,
+      };
+      tableStates.set(table.id, state);
+      const searchInputs = document.querySelectorAll(`.table-search[data-target="${table.id}"]`);
+      searchInputs.forEach((input) => {
+        input.addEventListener("input", () => {
+          state.search = input.value || "";
+          state.page = 1;
+          renderTable(state);
+        });
+      });
+      const dateInputs = document.querySelectorAll(`.table-date[data-target="${table.id}"]`);
+      dateInputs.forEach((input) => {
+        input.addEventListener("change", () => {
+          if (input.dataset.dateType === "start") {
+            state.dateStart = input.value || "";
+          } else {
+            state.dateEnd = input.value || "";
+          }
+          state.page = 1;
+          renderTable(state);
+        });
+      });
+      renderTable(state);
+    };
+
+    document.querySelectorAll("table").forEach(setupTable);
+
+    const notifyBtn = document.getElementById("notifyBtn");
+    const alertUrgent = Number(document.body.dataset.alertUrgent || 0);
+    const alertBad = Number(document.body.dataset.alertBad || 0);
+    const alertRepeat = Number(document.body.dataset.alertRepeat || 0);
+    if (!("Notification" in window)) {
+      if (notifyBtn) notifyBtn.style.display = "none";
+    } else {
+      const updateNotifyBtn = () => {
+        if (!notifyBtn) return;
+        notifyBtn.style.display = Notification.permission === "granted" ? "none" : "inline-flex";
+      };
+      updateNotifyBtn();
+      if (notifyBtn) {
+        notifyBtn.addEventListener("click", async () => {
+          const result = await Notification.requestPermission();
+          if (result === "granted" && alertUrgent > 0) {
+            new Notification("Rainstaff Uyari", {
+              body: `Kotulesti: ${alertBad} | Tekrar: ${alertRepeat}`,
+            });
+            if (navigator.vibrate) {
+              navigator.vibrate([200, 120, 200]);
+            }
+          }
+          updateNotifyBtn();
+        });
+      }
+      if (Notification.permission === "granted" && alertUrgent > 0) {
+        new Notification("Rainstaff Uyari", {
+          body: `Kotulesti: ${alertBad} | Tekrar: ${alertRepeat}`,
+        });
+      }
+    }
+
+    document.querySelectorAll("[data-toggle]").forEach((trigger) => {
+      trigger.addEventListener("click", () => {
+        const target = document.getElementById(trigger.dataset.toggle);
+        if (!target) return;
+        target.classList.toggle("active");
+        if (target.classList.contains("active")) {
+          target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    });
+  </script>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script src="{{ url_for('static', filename='matrix-rain.js') }}"></script>
+</body>
+
 </html>
-
-
-
-

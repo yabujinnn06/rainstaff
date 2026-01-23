@@ -108,6 +108,7 @@
    MOBILE SIDEBAR - YUKARIDAN ACILIR
    ============================================ */
 @media (max-width: 768px) {
+
   /* Show hamburger menu */
   .sidebar-toggle {
     display: flex !important;
@@ -259,9 +260,32 @@
     padding-top: 72px !important;
   }
 
-  /* KPI grid mobile */
+  /* KPI grid mobile - STACK VERTICALLY */
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Fix horizontal overflow globally */
+  body,
+  html {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  .table-wrap {
+    width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  /* Fix filter form width */
+  .filter-form {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-form * {
+    max-width: 100% !important;
   }
 }
 
@@ -313,23 +337,32 @@
   }
 
   .kpi-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
   }
 
   .kpi-card {
-    padding: 12px !important;
+    padding: 10px !important;
+  }
+
+  .kpi-label {
+    font-size: 9px !important;
+  }
+
+  .kpi-value {
+    font-size: 16px !important;
   }
 }
 
 /* ============================================
    Z-INDEX & CONTENT LAYERING
    ============================================ */
-.sidebar > *:not(.mbg) {
+.sidebar>*:not(.mbg) {
   position: relative;
   z-index: 1;
 }
 
-.topbar > *:not(.mbg) {
+.topbar>*:not(.mbg) {
   position: relative;
   z-index: 1;
 }
