@@ -15,7 +15,11 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import staff_db as db
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
+# Fix template and static folders for Render
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, 
+            template_folder=os.path.join(BASE_DIR, 'templates'), 
+            static_folder=os.path.join(BASE_DIR, 'static'))
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 
@@ -35,7 +39,7 @@ def health():
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'database': 'connected',
-            'ver': 'staff-v2'
+            'ver': 'staff-v3-final-fix'
         }), 200
     except Exception as e:
         return jsonify({
@@ -86,13 +90,13 @@ def diagnostic_final():
             'stored_hash': stored,
             'region': user['region'],
             'db_file': getattr(db, '__file__', 'unknown'),
-            'ver': 'staff-v2'
+            'ver': 'staff-v3-final-fix'
         })
     except Exception as e:
         return jsonify({
             'error': str(e),
             'db_file': getattr(db, '__file__', 'unknown'),
-            'ver': 'staff-v2'
+            'ver': 'staff-v3-final-fix'
         }), 500
 
 
@@ -172,8 +176,13 @@ def sync_upload():
         db.init_db()
         
         # Merge incoming DB into master
+        logs = []
         try:
-            _merge_databases(temp_path, db_path)
+            logs = db.merge_databases(temp_path, db_path)
+        except AttributeError:
+             # Fallback if staff_db doesn't have merge_databases yet
+             from server.app import _merge_databases
+             logs = _merge_databases(temp_path, db_path)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
@@ -181,7 +190,7 @@ def sync_upload():
         return jsonify({
             'success': True,
             'action': 'sync_upload_merged',
-            'debug_logs': debug_logs,
+            'debug_logs': logs,
             'timestamp': datetime.now().isoformat()
         }), 200
     
