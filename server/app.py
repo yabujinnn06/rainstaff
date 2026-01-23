@@ -456,6 +456,12 @@ def server_error(error):
     return render_template('500.html', error=str(error)), 500
 
 
-if __name__ == '__main__':
+# Initialize database on module load (required for Gunicorn/Render)
+try:
     db.init_db()
+    print("Database initialized successfully on startup.")
+except Exception as e:
+    print(f"Error initializing database on startup: {e}")
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
