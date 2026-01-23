@@ -324,8 +324,18 @@ def sync_download():
 @app.before_request
 def check_auth():
     """Check authentication - explicitly whitelist public endpoints"""
-    # These endpoints are publicly accessible without authentication
-    public_endpoints = {'static', 'auto_sync', 'health', 'sync_upload', 'sync_download', 'login', 'index'}
+    # Always allow static files
+    if request.endpoint == 'static':
+        return
+
+    # Check if endpoint is exempt from auth
+    if request.endpoint and request.endpoint in app.view_functions:
+        view_func = app.view_functions[request.endpoint]
+        if getattr(view_func, 'is_public', False):
+            return
+
+    # Hardcoded whitelist fallback (legacy support)
+    public_endpoints = {'static', 'auto_sync', 'health', 'sync_upload', 'sync_download', 'login', 'index', 'debug_auth', 'sync_reset'}
     
     if request.endpoint in public_endpoints:
         return  # Public endpoint - no auth required
