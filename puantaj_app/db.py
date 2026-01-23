@@ -8,8 +8,14 @@ from contextlib import contextmanager
 
 APP_NAME = "Rainstaff"
 LOCAL_DB_DIR = os.path.join(os.path.dirname(__file__), "data")
-APPDATA_DIR = os.path.join(os.environ.get("APPDATA", LOCAL_DB_DIR), APP_NAME, "data")
-DB_DIR = APPDATA_DIR
+
+if os.name == 'nt':  # Windows
+    APPDATA_DIR = os.path.join(os.environ.get("APPDATA", LOCAL_DB_DIR), APP_NAME, "data")
+    DB_DIR = APPDATA_DIR
+else:  # Linux / Server (Render)
+    # Use simpler path structure on server
+    DB_DIR = LOCAL_DB_DIR
+
 DB_PATH = os.path.join(DB_DIR, "puantaj.db")
 BACKUP_DIR = os.path.join(os.path.dirname(DB_DIR), "backups")
 BACKUP_MARKER = os.path.join(BACKUP_DIR, "last_backup.txt")
