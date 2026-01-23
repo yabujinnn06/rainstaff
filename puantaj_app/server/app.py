@@ -117,11 +117,14 @@ def sync_upload():
             return jsonify({'error': 'No file selected'}), 400
         
         db_path = db.DB_PATH
+        print(f"DEBUG: Sync Upload Target Path: {db_path}") # Log to server console
+        
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         
         # Save incoming DB to temp location
         temp_path = db_path + ".incoming"
         file.save(temp_path)
+        print(f"DEBUG: Saved incoming file to {temp_path}, size: {os.path.getsize(temp_path)}")
         
         # If master DB doesn't exist, just use incoming as master
         if not os.path.exists(db_path):

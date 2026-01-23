@@ -1,0 +1,48 @@
+
+--- Columns in timesheets ---
+(0, 'id', 'INTEGER', 0, None, 1)
+(1, 'employee_id', 'INTEGER', 1, None, 0)
+(2, 'work_date', 'TEXT', 1, None, 0)
+(3, 'start_time', 'TEXT', 1, None, 0)
+(4, 'end_time', 'TEXT', 1, None, 0)
+(5, 'break_minutes', 'INTEGER', 1, '0', 0)
+(6, 'notes', 'TEXT', 0, None, 0)
+(7, 'is_special', 'INTEGER', 1, '0', 0)
+(8, 'region', 'TEXT', 0, "'Ankara'", 0)
+✅ 'region' column exists in timesheets
+
+--- Columns in employees ---
+(0, 'id', 'INTEGER', 0, None, 1)
+(1, 'full_name', 'TEXT', 1, None, 0)
+(2, 'identity_no', 'TEXT', 0, None, 0)
+(3, 'department', 'TEXT', 0, None, 0)
+(4, 'title', 'TEXT', 0, None, 0)
+(5, 'region', 'TEXT', 0, "'Ankara'", 0)
+✅ 'region' column exists in employees
+
+--- Columns in vehicles ---
+(0, 'id', 'INTEGER', 0, None, 1)
+(1, 'plate', 'TEXT', 1, None, 0)
+(2, 'brand', 'TEXT', 0, None, 0)
+(3, 'model', 'TEXT', 0, None, 0)
+(4, 'year', 'TEXT', 0, None, 0)
+(5, 'km', 'INTEGER', 0, None, 0)
+(6, 'inspection_date', 'TEXT', 0, None, 0)
+(7, 'insurance_date', 'TEXT', 0, None, 0)
+(8, 'maintenance_date', 'TEXT', 0, None, 0)
+(9, 'notes', 'TEXT', 0, None, 0)
+(10, 'oil_change_date', 'TEXT', 0, None, 0)
+(11, 'oil_change_km', 'INTEGER', 0, None, 0)
+(12, 'oil_interval_km', 'INTEGER', 0, None, 0)
+(13, 'region', 'TEXT', 0, "'Ankara'", 0)
+✅ 'region' column exists in vehicles
+
+--- Columns in drivers ---
+(0, 'id', 'INTEGER', 0, None, 1)
+(1, 'full_name', 'TEXT', 1, None, 0)
+(2, 'license_class', 'TEXT', 0, None, 0)
+(3, 'license_expiry', 'TEXT', 0, None, 0)
+(4, 'phone', 'TEXT', 0, None, 0)
+(5, 'notes', 'TEXT', 0, None, 0)
+(6, 'region', 'TEXT', 0, "'Ankara'", 0)
+✅ 'region' column exists in drivers
