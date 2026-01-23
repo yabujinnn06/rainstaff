@@ -148,6 +148,7 @@ def sync_upload():
         return jsonify({
             'success': True,
             'action': 'sync_upload_merged',
+            'debug_logs': debug_logs,
             'timestamp': datetime.now().isoformat()
         }), 200
     
@@ -158,12 +159,9 @@ def sync_upload():
 def _merge_databases(incoming_path, master_path):
     """
     Merge incoming database into master, respecting deletions.
-    
-    Strategy:
-    1. Get all deleted records from incoming DB
-    2. Apply deletions to master DB
-    3. Merge new/updated records from incoming (skip if deleted)
+    Returns a list of debug log strings.
     """
+    logs = []
     incoming_conn = sqlite3.connect(incoming_path)
     master_conn = sqlite3.connect(master_path)
     
@@ -185,10 +183,13 @@ def _merge_databases(incoming_path, master_path):
         deleted = set()
         try:
             cursor = incoming_conn.execute("SELECT table_name, record_id FROM deleted_records")
-            for row in cursor.fetchall():
+            rows = cursor.fetchall()
+            logs.append(f"Incoming deleted_records count: {len(rows)}")
+            for row in rows:
                 deleted.add((row[0], row[1]))
+                logs.append(f"Incoming deleted: {row[0]} #{row[1]}")
         except sqlite3.OperationalError:
-            pass  # Table may not exist in incoming
+            logs.append("No deleted_records table in incoming")
         
         # 2. Apply deletions to master and track them
         for table_name, record_id in deleted:
@@ -199,12 +200,15 @@ def _merge_databases(incoming_path, master_path):
                 "INSERT OR IGNORE INTO deleted_records (table_name, record_id, deleted_at) VALUES (?, ?, ?)",
                 (table_name, record_id, datetime.now().isoformat())
             )
+            logs.append(f"Applied deletion to master: {table_name} #{record_id}")
         
         # 3. Get existing deleted records from master (to skip during merge)
         master_deleted = set()
         try:
             cursor = master_conn.execute("SELECT table_name, record_id FROM deleted_records")
-            for row in cursor.fetchall():
+            rows = cursor.fetchall()
+            logs.append(f"Master deleted_records count: {len(rows)}")
+            for row in rows:
                 master_deleted.add((row[0], row[1]))
         except sqlite3.OperationalError:
             pass
@@ -217,35 +221,46 @@ def _merge_databases(incoming_path, master_path):
             cursor = incoming_conn.execute(
                 "SELECT id, employee_id, work_date, start_time, end_time, break_minutes, is_special, notes, region FROM timesheets"
             )
+            count = 0
+            skipped = 0
             for row in cursor.fetchall():
                 record_id = row[0]
                 if ("timesheets", record_id) in all_deleted:
+                    skipped += 1
                     continue  # Skip deleted record
                 # Upsert: Insert or replace
                 master_conn.execute(
                     "INSERT OR REPLACE INTO timesheets (id, employee_id, work_date, start_time, end_time, break_minutes, is_special, notes, region) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     row
                 )
-        except sqlite3.OperationalError:
-            pass
+                count += 1
+            logs.append(f"Merged timesheets: {count} inserted/updated, {skipped} skipped (deleted)")
+        except sqlite3.OperationalError as e:
+            logs.append(f"Error merging timesheets: {e}")
         
         # 5. Merge employees from incoming (skip deleted)
         try:
             cursor = incoming_conn.execute(
                 "SELECT id, full_name, identity_no, department, title, region FROM employees"
             )
+            count = 0
+            skipped = 0
             for row in cursor.fetchall():
                 record_id = row[0]
                 if ("employees", record_id) in all_deleted:
+                    skipped += 1
                     continue  # Skip deleted record
                 master_conn.execute(
                     "INSERT OR REPLACE INTO employees (id, full_name, identity_no, department, title, region) VALUES (?, ?, ?, ?, ?, ?)",
                     row
                 )
-        except sqlite3.OperationalError:
-            pass
+                count += 1
+            logs.append(f"Merged employees: {count} inserted/updated, {skipped} skipped (deleted)")
+        except sqlite3.OperationalError as e:
+            logs.append(f"Error merging employees: {e}")
         
         master_conn.commit()
+        return logs
     
     finally:
         incoming_conn.close()
