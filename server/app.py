@@ -63,6 +63,32 @@ def auto_sync():
         }), 500
 
 
+@app.route('/debug-auth')
+@public_endpoint
+def debug_auth():
+    """Temporary debug endpoint to check auth logic"""
+    try:
+        username = request.args.get('u', 'admin')
+        password = request.args.get('p', '748774')
+        
+        user = db.get_user(username)
+        if not user:
+            return jsonify({'status': 'user_not_found', 'username': username})
+        
+        computed = db.hash_password(password)
+        stored = user['password_hash']
+        
+        return jsonify({
+            'status': 'match' if computed == stored else 'mismatch',
+            'username': username,
+            'computed_hash': computed,
+            'stored_hash': stored,
+            'region': user['region']
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # ============================================================================
 # SYNC ENDPOINTS (Public - No Authentication Required)
 # ============================================================================
