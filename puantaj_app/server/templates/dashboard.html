@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rainstaff - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .nav-tab {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f8f8;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌧️ RAINSTAFF Dashboard</h1>
+        <div class="user-info">
+            <span>{{ user['username'] }} ({{ user['region'] }})</span>
+            <a href="/logout" class="logout-btn">Çıkış</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('employees')">Çalışanlar</button>
+            <button class="nav-tab" onclick="showTab('timesheets')">Puantaj</button>
+            <button class="nav-tab" onclick="showTab('stock')">Stok</button>
+        </div>
+        
+        <div id="employees" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Toplam Çalışan</h3>
+                    <div class="value">{{ employees|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Toplam Puantaj</h3>
+                    <div class="value">{{ timesheets|length }}</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Çalışan Listesi</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ad Soyad</th>
+                            <th>TCKN</th>
+                            <th>Departman</th>
+                            <th>Ünvan</th>
+                            <th>Bölge</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in employees %}
+                        <tr>
+                            <td>{{ emp[0] }}</td>
+                            <td>{{ emp[1] }}</td>
+                            <td>{{ emp[2] or '-' }}</td>
+                            <td>{{ emp[3] or '-' }}</td>
+                            <td>{{ emp[4] or '-' }}</td>
+                            <td>{{ emp[5] or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="timesheets" class="tab-content">
+            <div class="card">
+                <h2>Puantaj Kayıtları</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Çalışan</th>
+                            <th>Tarih</th>
+                            <th>Giriş</th>
+                            <th>Çıkış</th>
+                            <th>Mola (dk)</th>
+                            <th>Bölge</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ts in timesheets[:50] %}
+                        <tr>
+                            <td>{{ ts[0] }}</td>
+                            <td>{{ ts[2] }}</td>
+                            <td>{{ ts[3] }}</td>
+                            <td>{{ ts[4] }}</td>
+                            <td>{{ ts[5] }}</td>
+                            <td>{{ ts[6] }}</td>
+                            <td>{{ ts[9] or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="stock" class="tab-content">
+            <div class="card">
+                <h2>Stok Envanteri</h2>
+                <p>Stok verileri yükleniyor...</p>
+                <div id="stock-data"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load stock data if stock tab
+            if (tabName === 'stock') {
+                loadStockData();
+            }
+        }
+        
+        function loadStockData() {
+            fetch('/api/stock-data')
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('stock-data');
+                    if (data.length === 0) {
+                        container.innerHTML = '<p>Henüz stok verisi yok.</p>';
+                        return;
+                    }
+                    
+                    let html = '<table><thead><tr><th>Stok Kodu</th><th>Ürün Adı</th><th>Seri Sayısı</th><th>Bölge</th></tr></thead><tbody>';
+                    
+                    data.forEach(item => {
+                        item.seri_list.forEach(seri => {
+                            html += `<tr>
+                                <td>${item.stok_kod}</td>
+                                <td>${item.stok_adi}</td>
+                                <td>${seri.seri_no}</td>
+                                <td>${seri.bolge}</td>
+                            </tr>`;
+                        });
+                    });
+                    
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('Stock data error:', err);
+                    document.getElementById('stock-data').innerHTML = '<p>Stok verileri yüklenemedi.</p>';
+                });
+        }
+    </script>
+</body>
+</html>

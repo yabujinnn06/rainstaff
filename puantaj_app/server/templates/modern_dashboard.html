@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}Rainstaff ERP - Dashboard{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div class="logo">
+        <h1 style="font-size: 24px; font-weight: bold; letter-spacing: 3px;">
+            RAIN
+        </h1>
+    </div>
+    <div class="user-info">
+        <div class="user-badge">
+            <span>{{ user['username'] }}</span> | <span>{{ user['region'] }}</span>
+        </div>
+        <a href="/logout" class="logout-btn">[ ÇIKIŞ ]</a>
+    </div>
+</div>
+
+<div class="nav-container">
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('overview')">GENEL BAKIŞ</button>
+        <button class="nav-tab" onclick="showTab('employees')">ÇALIŞANLAR</button>
+        <button class="nav-tab" onclick="showTab('timesheets')">PUANTAJ</button>
+        <button class="nav-tab" onclick="showTab('stock')">STOK</button>
+        <button class="nav-tab" onclick="showTab('reports')">RAPORLAR</button>
+    </div>
+</div>
+
+<div class="container">
+    <!-- OVERVIEW TAB -->
+    <div id="overview" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Toplam Çalışan</h3>
+                <div class="value" id="total-employees">{{ employees|length }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Toplam Puantaj</h3>
+                <div class="value" id="total-timesheets">{{ timesheets|length }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Stok Kalemleri</h3>
+                <div class="value" id="total-stock">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Aktif Bölgeler</h3>
+                <div class="value">4</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>>>> SİSTEM DURUMU</h2>
+            <div style="padding: 20px;">
+                <p style="margin-bottom: 10px;">✓ Veritabanı: <span style="color: var(--matrix-green);">AKTIF</span></p>
+                <p style="margin-bottom: 10px;">✓ Senkronizasyon: <span style="color: var(--matrix-green);">HAZIR</span></p>
+                <p style="margin-bottom: 10px;">✓ Bölgeler: <span style="color: var(--matrix-green);">Ankara, İstanbul, İzmir, Bursa</span></p>
+                <p>✓ Son Güncelleme: <span style="color: var(--matrix-green);" id="last-update">-</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- EMPLOYEES TAB -->
+    <div id="employees" class="tab-content">
+        <div class="card">
+            <h2>>>> ÇALIŞAN LİSTESİ</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>ID</th>
+                        <th>AD SOYAD</th>
+                        <th>DEPARTMAN</th>
+                        <th>ÜNVAN</th>
+                        <th>BÖLGE</th>
+                        <th>FAZLA MESAİ</th>
+                    </tr>
+                </thead>
+                <tbody id="employees-table">
+                    <tr><td colspan="7" class="loading">Yükleniyor</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- TIMESHEETS TAB -->
+    <div id="timesheets" class="tab-content">
+        <div class="card">
+            <h2>>>> PUANTAJ KAYITLARI</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ÇALIŞAN</th>
+                        <th>TARİH</th>
+                        <th>GİRİŞ</th>
+                        <th>ÇIKIŞ</th>
+                        <th>MOLA (dk)</th>
+                        <th>BÖLGE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ts in timesheets[:100] %}
+                    <tr>
+                        <td>{{ ts[2] }}</td>
+                        <td>{{ ts[3] }}</td>
+                        <td>{{ ts[4] }}</td>
+                        <td>{{ ts[5] }}</td>
+                        <td>{{ ts[6] }}</td>
+                        <td>{{ ts[9] or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- STOCK TAB -->
+    <div id="stock" class="tab-content">
+        <div class="card">
+            <h2>>>> STOK ENVANTERİ</h2>
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <input type="text" id="stock-search" placeholder="Ara..." style="flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--matrix-green); border-radius: 5px;">
+                <select id="stock-region-filter" style="padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--matrix-green); border-radius: 5px;">
+                    <option value="">Tüm Bölgeler</option>
+                    <option value="Ankara">Ankara</option>
+                    <option value="Istanbul">İstanbul</option>
+                    <option value="Izmir">İzmir</option>
+                    <option value="Bursa">Bursa</option>
+                </select>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>STOK KODU</th>
+                        <th>ÜRÜN ADI</th>
+                        <th>SERİ SAYISI</th>
+                        <th>BÖLGE</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-table">
+                    <tr><td colspan="5" class="loading">Yükleniyor</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- REPORTS TAB -->
+    <div id="reports" class="tab-content">
+        <div class="card">
+            <h2>>>> RAPORLAR</h2>
+            <p style="padding: 20px; color: var(--text-muted);">Rapor modülü yakında eklenecek...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update last update time
+    document.getElementById('last-update').textContent = new Date().toLocaleString('tr-TR');
+    
+    // Tab switching
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+        
+        if (tabName === 'stock') {
+            loadStockData();
+        } else if (tabName === 'employees') {
+            loadEmployeeData();
+        }
+    }
+    
+    // Load employee data with overtime calculation
+    let employeeData = [];
+    
+    function loadEmployeeData() {
+        const tbody = document.getElementById('employees-table');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">Yükleniyor</td></tr>';
+        
+        fetch('/api/employee-overtime')
+            .then(res => res.json())
+            .then(data => {
+                employeeData = data;
+                renderEmployeeTable(data);
+            })
+            .catch(err => {
+                console.error('Employee data error:', err);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ff4444;">Veri yüklenemedi</td></tr>';
+            });
+    }
+    
+    function renderEmployeeTable(data) {
+        const tbody = document.getElementById('employees-table');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Henüz çalışan verisi yok</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach((emp, index) => {
+            // Parent row
+            html += `<tr class="parent-row" onclick="toggleEmployee(${index})">
+                <td><span class="expand-icon" id="emp-icon-${index}">▶</span></td>
+                <td>${emp.id}</td>
+                <td>${emp.name}</td>
+                <td>${emp.department || '-'}</td>
+                <td>${emp.title || '-'}</td>
+                <td>${emp.region || '-'}</td>
+                <td style="color: ${emp.overtime > 0 ? 'var(--matrix-green)' : 'var(--text-muted)'};">
+                    ${emp.overtime.toFixed(1)} saat
+                </td>
+            </tr>`;
+            
+            // Child row for timesheet details
+            html += `<tr class="child-row" id="emp-child-${index}">
+                <td colspan="7">
+                    <div id="emp-details-${index}" style="padding: 15px;">
+                        <div class="loading">Mesai kayıtları yükleniyor...</div>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    function toggleEmployee(index) {
+        const childRow = document.getElementById(`emp-child-${index}`);
+        const icon = document.getElementById(`emp-icon-${index}`);
+        const detailsDiv = document.getElementById(`emp-details-${index}`);
+        
+        if (childRow.classList.contains('show')) {
+            childRow.classList.remove('show');
+            icon.classList.remove('expanded');
+        } else {
+            childRow.classList.add('show');
+            icon.classList.add('expanded');
+            
+            // Load timesheet details if not already loaded
+            if (detailsDiv.innerHTML.includes('loading')) {
+                loadEmployeeTimesheets(index, employeeData[index].id);
+            }
+        }
+    }
+    
+    function loadEmployeeTimesheets(index, empId) {
+        const detailsDiv = document.getElementById(`emp-details-${index}`);
+        
+        fetch(`/api/employee-timesheets/${empId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length === 0) {
+                    detailsDiv.innerHTML = '<p style="color: var(--text-muted);">Henüz mesai kaydı yok</p>';
+                    return;
+                }
+                
+                let html = '<table style="width: 100%; margin-top: 10px;"><thead><tr>';
+                html += '<th>TARİH</th><th>GİRİŞ</th><th>ÇIKIŞ</th><th>MOLA (dk)</th><th>ÇALIŞILAN</th><th>FAZLA MESAİ</th><th>GECE</th></tr></thead><tbody>';
+                
+                data.forEach(ts => {
+                    html += `<tr>
+                        <td>${ts.work_date}</td>
+                        <td>${ts.start_time}</td>
+                        <td>${ts.end_time}</td>
+                        <td>${ts.break_minutes}</td>
+                        <td>${ts.worked_hours.toFixed(1)} saat</td>
+                        <td style="color: ${ts.overtime > 0 ? 'var(--matrix-green)' : 'var(--text-muted)'};">${ts.overtime.toFixed(1)} saat</td>
+                        <td style="color: ${ts.night_hours > 0 ? 'var(--matrix-green)' : 'var(--text-muted)'};">${ts.night_hours.toFixed(1)} saat</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                detailsDiv.innerHTML = html;
+            })
+            .catch(err => {
+                console.error('Timesheet error:', err);
+                detailsDiv.innerHTML = '<p style="color: #ff4444;">Mesai kayıtları yüklenemedi</p>';
+            });
+    }
+    
+    // Load stock data with collapsible rows
+    let stockData = [];
+    
+    function loadStockData() {
+        const tbody = document.getElementById('stock-table');
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">Yükleniyor</td></tr>';
+        
+        fetch('/api/stock-data')
+            .then(res => res.json())
+            .then(data => {
+                stockData = data;
+                renderStockTable(data);
+                document.getElementById('total-stock').textContent = data.length;
+            })
+            .catch(err => {
+                console.error('Stock data error:', err);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ff4444;">Stok verileri yüklenemedi</td></tr>';
+            });
+    }
+    
+    function renderStockTable(data) {
+        const tbody = document.getElementById('stock-table');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Henüz stok verisi yok</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach((item, index) => {
+            // Get unique regions for this stock item
+            const regions = [...new Set(item.seri_list.map(s => s.bolge))].join(', ');
+            
+            // Parent row
+            html += `<tr class="parent-row" onclick="toggleStock(${index})">
+                <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                <td>${item.stok_kod}</td>
+                <td>${item.stok_adi}</td>
+                <td>${item.seri_count} adet</td>
+                <td>${regions}</td>
+            </tr>`;
+            
+            // Child rows (serial numbers)
+            item.seri_list.forEach(seri => {
+                html += `<tr class="child-row" id="child-${index}">
+                    <td></td>
+                    <td colspan="2">└─ Seri: ${seri.seri_no}</td>
+                    <td>Durum: ${seri.durum || 'OK'}</td>
+                    <td>${seri.bolge}</td>
+                </tr>`;
+            });
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    function toggleStock(index) {
+        const children = document.querySelectorAll(`#child-${index}`);
+        const icon = document.getElementById(`icon-${index}`);
+        
+        children.forEach(child => {
+            child.classList.toggle('show');
+        });
+        
+        icon.classList.toggle('expanded');
+    }
+    
+    // Stock search
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('stock-search');
+        const regionFilter = document.getElementById('stock-region-filter');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', filterStock);
+        }
+        
+        if (regionFilter) {
+            regionFilter.addEventListener('change', filterStock);
+        }
+    });
+    
+    function filterStock() {
+        const search = document.getElementById('stock-search').value.toLowerCase();
+        const region = document.getElementById('stock-region-filter').value;
+        
+        let filtered = stockData.filter(item => {
+            const matchSearch = !search || 
+                item.stok_kod.toLowerCase().includes(search) ||
+                item.stok_adi.toLowerCase().includes(search);
+            
+            const matchRegion = !region || 
+                item.seri_list.some(s => s.bolge === region);
+            
+            return matchSearch && matchRegion;
+        });
+        
+        renderStockTable(filtered);
+    }
+</script>
+{% endblock %}

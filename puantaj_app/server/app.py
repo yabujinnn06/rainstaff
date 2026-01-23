@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import staff_db as db
+import puantaj_db as db
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -173,7 +173,7 @@ def sync_upload():
         
         # Merge incoming DB into master
         try:
-            _merge_databases(temp_path, db_path)
+            debug_logs = _merge_databases(temp_path, db_path)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
@@ -397,12 +397,84 @@ def dashboard():
         employees = db.get_all_employees()
         timesheets = db.get_all_timesheets()
         
-        return render_template('dashboard.html', 
+        return render_template('modern_dashboard.html', 
                              user=user,
                              employees=employees,
                              timesheets=timesheets)
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/api/employee-overtime')
+def api_employee_overtime():
+    """Get employees with overtime calculation"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        # Import calc module for overtime calculation
+        import sys
+        import os
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        
+        try:
+            import calc
+        except ImportError:
+            # If calc module not available, return basic data
+            employees = db.get_all_employees()
+            result = []
+            for emp in employees:
+                result.append({
+                    'id': emp[0],
+                    'name': emp[1],
+                    'department': emp[3] or '',
+                    'title': emp[4] or '',
+                    'region': emp[5] or '',
+                    'overtime': 0.0
+                })
+            return jsonify(result), 200
+        
+        # Get settings for calculation
+        settings = db.get_all_settings()
+        
+        # Calculate overtime for each employee
+        employees = db.get_all_employees()
+        result = []
+        
+        for emp in employees:
+            emp_id = emp[0]
+            timesheets = db.list_timesheets(employee_id=emp_id)
+            
+            total_overtime = 0.0
+            for ts in timesheets:
+                try:
+                    work_date, start_time, end_time, break_minutes, is_special = ts[3], ts[4], ts[5], ts[6], ts[7]
+                    
+                    # Calculate overtime
+                    _, _, overtime, _, _, _, _, _ = calc.calc_day_hours(
+                        work_date, start_time, end_time, break_minutes, settings, is_special
+                    )
+                    total_overtime += overtime
+                except Exception:
+                    pass
+            
+            result.append({
+                'id': emp[0],
+                'name': emp[1],
+                'department': emp[3] or '',
+                'title': emp[4] or '',
+                'region': emp[5] or '',
+                'overtime': round(total_overtime, 2)
+            })
+        
+        # Sort by overtime descending
+        result.sort(key=lambda x: x['overtime'], reverse=True)
+        
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/alerts')
@@ -436,6 +508,82 @@ def stock():
         return render_template('stock.html')
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/api/employee-timesheets/<int:emp_id>')
+def api_employee_timesheets(emp_id):
+    """Get timesheet details for a specific employee with calculations"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        # Import calc module
+        import sys
+        import os
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        
+        try:
+            import calc
+        except ImportError:
+            # Return basic data without calculations
+            timesheets = db.list_timesheets(employee_id=emp_id)
+            result = []
+            for ts in timesheets:
+                result.append({
+                    'work_date': ts[3],
+                    'start_time': ts[4],
+                    'end_time': ts[5],
+                    'break_minutes': ts[6],
+                    'worked_hours': 0.0,
+                    'overtime': 0.0,
+                    'night_hours': 0.0
+                })
+            return jsonify(result), 200
+        
+        # Get settings
+        settings = db.get_all_settings()
+        
+        # Get timesheets
+        timesheets = db.list_timesheets(employee_id=emp_id)
+        result = []
+        
+        for ts in timesheets:
+            try:
+                work_date, start_time, end_time, break_minutes, is_special = ts[3], ts[4], ts[5], ts[6], ts[7]
+                
+                # Calculate hours
+                worked, regular, overtime, night, overnight, special_day, special_night, special_overnight = calc.calc_day_hours(
+                    work_date, start_time, end_time, break_minutes, settings, is_special
+                )
+                
+                result.append({
+                    'work_date': work_date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'break_minutes': break_minutes,
+                    'worked_hours': round(worked, 2),
+                    'overtime': round(overtime, 2),
+                    'night_hours': round(night + overnight, 2)
+                })
+            except Exception:
+                result.append({
+                    'work_date': ts[3],
+                    'start_time': ts[4],
+                    'end_time': ts[5],
+                    'break_minutes': ts[6],
+                    'worked_hours': 0.0,
+                    'overtime': 0.0,
+                    'night_hours': 0.0
+                })
+        
+        # Sort by date descending
+        result.sort(key=lambda x: x['work_date'], reverse=True)
+        
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/stock-data')

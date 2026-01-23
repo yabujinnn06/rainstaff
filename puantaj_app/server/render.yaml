@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: rainstaff-erp
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 10000
+    disk:
+      name: rainstaff-data
+      mountPath: /data
+      sizeGB: 1
