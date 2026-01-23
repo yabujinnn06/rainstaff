@@ -1252,3 +1252,8 @@ def get_sync_status(sync_url, api_key):
     except Exception:
         return None
 
+
+def get_all_employees(): return list_employees()
+def get_all_timesheets(): return list_timesheets()
+def get_all_vehicles(): return list_vehicles()
+def get_all_drivers(): return list_drivers()
