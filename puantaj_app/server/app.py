@@ -105,10 +105,14 @@ def sync_upload():
     Respects deleted_records table to prevent deleted data from reappearing.
     """
     try:
-        if 'file' not in request.files:
+        # Accept both 'db' and 'file' keys for backwards compatibility
+        if 'db' in request.files:
+            file = request.files['db']
+        elif 'file' in request.files:
+            file = request.files['file']
+        else:
             return jsonify({'error': 'No file provided'}), 400
         
-        file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
