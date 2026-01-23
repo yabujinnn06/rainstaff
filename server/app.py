@@ -87,7 +87,10 @@ def debug_auth():
             'db_file': getattr(db, '__file__', 'unknown')
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'db_file': getattr(db, '__file__', 'unknown')
+        }), 500
 
 
 # ============================================================================
