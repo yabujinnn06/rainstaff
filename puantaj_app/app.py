@@ -15,7 +15,7 @@ import calc
 from openpyxl import load_workbook
 from tkcalendar import DateEntry
 
-import db
+import staff_db as db
 import report
 
 try:
@@ -1132,6 +1132,18 @@ class PuantajApp(tk.Tk):
                     self.logger.warning("Cloud sync upload error: %s", msg)
                 self.after(0, lambda: self._notify_sync_result(msg, reason))
                 return
+            
+            # Log DEBUG info from server if available
+            try:
+                data = resp.json()
+                if "debug_logs" in data and self.logger:
+                    self.logger.info("--- SERVER SYNC DEBUG LOGS ---")
+                    for log_line in data["debug_logs"]:
+                        self.logger.info("SERVER: %s", log_line)
+                    self.logger.info("------------------------------")
+            except Exception as e:
+                if self.logger:
+                    self.logger.warning("Could not parse server debug logs: %s", str(e))
 
             # Step 2: Download merged DB from server
             headers = {"X-API-KEY": token}

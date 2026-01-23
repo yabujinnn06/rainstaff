@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import db
+import staff_db as db
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -34,7 +34,8 @@ def health():
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'database': 'connected'
+            'database': 'connected',
+            'ver': 'staff-v2'
         }), 200
     except Exception as e:
         return jsonify({
@@ -60,6 +61,38 @@ def auto_sync():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+
+@app.route('/diagnostic-final')
+@public_endpoint
+def diagnostic_final():
+    """Temporary debug endpoint to check auth logic"""
+    try:
+        username = request.args.get('u', 'admin')
+        password = request.args.get('p', '748774')
+        
+        user = db.get_user(username)
+        if not user:
+            return jsonify({'status': 'user_not_found', 'username': username})
+        
+        computed = db.hash_password(password)
+        stored = user['password_hash']
+        
+        return jsonify({
+            'status': 'match' if computed == stored else 'mismatch',
+            'username': username,
+            'computed_hash': computed,
+            'stored_hash': stored,
+            'region': user['region'],
+            'db_file': getattr(db, '__file__', 'unknown'),
+            'ver': 'staff-v2'
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'db_file': getattr(db, '__file__', 'unknown'),
+            'ver': 'staff-v2'
         }), 500
 
 
@@ -298,8 +331,18 @@ def sync_download():
 @app.before_request
 def check_auth():
     """Check authentication - explicitly whitelist public endpoints"""
-    # These endpoints are publicly accessible without authentication
-    public_endpoints = {'static', 'auto_sync', 'health', 'sync_upload', 'sync_download', 'login', 'index'}
+    # Always allow static files
+    if request.endpoint == 'static':
+        return
+
+    # Check if endpoint is exempt from auth
+    if request.endpoint and request.endpoint in app.view_functions:
+        view_func = app.view_functions[request.endpoint]
+        if getattr(view_func, 'is_public', False):
+            return
+
+    # Hardcoded whitelist fallback (legacy support)
+    public_endpoints = {'static', 'auto_sync', 'health', 'sync_upload', 'sync_download', 'login', 'index', 'debug_auth', 'sync_reset'}
     
     if request.endpoint in public_endpoints:
         return  # Public endpoint - no auth required
@@ -456,6 +499,12 @@ def server_error(error):
     return render_template('500.html', error=str(error)), 500
 
 
-if __name__ == '__main__':
+# Initialize database on module load (required for Gunicorn/Render)
+try:
     db.init_db()
+    print("Database initialized successfully on startup.")
+except Exception as e:
+    print(f"Error initializing database on startup: {e}")
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
