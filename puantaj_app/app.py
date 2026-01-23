@@ -1,3 +1,13 @@
+def parse_month(value):
+    """Validate and normalize a month string in 'YYYY-MM' format."""
+    if not value or not isinstance(value, str):
+        raise ValueError("Ay bos olamaz. Ornek: 2026-01")
+    value = value.strip()
+    try:
+        dt = datetime.strptime(value, "%Y-%m")
+        return dt.strftime("%Y-%m")
+    except Exception:
+        raise ValueError("Ay formati gecersiz. Ornek: 2026-01")
 import os
 import csv
 import zipfile
@@ -15,7 +25,7 @@ import calc
 from openpyxl import load_workbook
 from tkcalendar import DateEntry
 
-import staff_db as db
+import puantaj_db as db
 import report
 
 try:
@@ -447,6 +457,48 @@ class PuantajApp(tk.Tk):
         self.is_admin = False
 
         self.settings = db.get_all_settings()
+        self.themes = {
+            "Gece": {
+                "bg_app": "#1E1E1E",
+                "bg_content": "#2A2A2A",
+                "bg_elevated": "#323232",
+                "bg_input": "#363636",
+                "bg_hover": "#3A3A3A",
+                "text_primary": "#E0E0E0",
+                "text_secondary": "#B0B0B0",
+                "text_disabled": "#707070",
+                "primary": "#5B9BD5",
+                "primary_hover": "#7BB3E0",
+                "accent_gold": "#C9A961"
+            },
+            "Sabah": {
+                "bg_app": "#F5F5F5",
+                "bg_content": "#FFFFFF",
+                "bg_elevated": "#E8E8E8",
+                "bg_input": "#F0F0F0",
+                "bg_hover": "#D0D0D0",
+                "text_primary": "#333333",
+                "text_secondary": "#666666",
+                "text_disabled": "#999999",
+                "primary": "#4A90E2",
+                "primary_hover": "#357ABD",
+                "accent_gold": "#F5A623"
+            },
+            "Matrix": {
+                "bg_app": "#000000",
+                "bg_content": "#001100",
+                "bg_elevated": "#002200",
+                "bg_input": "#003300",
+                "bg_hover": "#004400",
+                "text_primary": "#00FF00",
+                "text_secondary": "#00AA00",
+                "text_disabled": "#005500",
+                "primary": "#00FF00",
+                "primary_hover": "#00DD00",
+                "accent_gold": "#FFFF00"
+            }
+        }
+        self.current_theme = self.settings.get("theme", "Gece")
         entry_region = self.settings.get("admin_entry_region", "Ankara")
         view_region = self.settings.get("admin_view_region", "Tum Bolgeler")
         if view_region == "ALL":
@@ -470,7 +522,7 @@ class PuantajApp(tk.Tk):
 
         if not self._login_prompt():
             self.destroy()
-            return
+            # Bu dosya, BACKUP_2026_01_18 içeriğiyle tamamen değiştirilecek...
 
         self._show_loading("Yukleniyor...")
         self.after(10, self._finish_startup)
@@ -704,6 +756,27 @@ class PuantajApp(tk.Tk):
         self.wait_window(dialog)
         return success["ok"]
 
+    def _toggle_theme(self):
+        """Temalar arasında geçiş yap: Gece -> Sabah -> Matrix -> Gece"""
+        theme_order = ["Gece", "Sabah", "Matrix"]
+        current_idx = theme_order.index(self.current_theme) if self.current_theme in theme_order else 0
+        next_idx = (current_idx + 1) % len(theme_order)
+        self.current_theme = theme_order[next_idx]
+        
+        # Ayarı kaydet
+        db.set_setting("theme", self.current_theme)
+        
+        # Tema ikonunu güncelle
+        icons = {"Gece": "🌙", "Sabah": "☀️", "Matrix": "💚"}
+        if hasattr(self, 'theme_btn'):
+            self.theme_btn.config(text=icons.get(self.current_theme, "💡"))
+        
+        # Stili yeniden uygula
+        self._configure_style()
+        
+        # Bildirim göster
+        self.status_var.set(f"Tema: {self.current_theme}")
+
     def _view_region(self):
         if self.is_admin:
             value = self.admin_view_region_var.get().strip()
@@ -735,20 +808,20 @@ class PuantajApp(tk.Tk):
         except tk.TclError:
             pass
 
-        # GECE TEMASI - Silik mavi, gri ve altın tonları
-        primary = "#5B9BD5"
-        primary_hover = "#7BB3E0"
-        accent_gold = "#C9A961"
-
-        bg_app = "#1E1E1E"
-        bg_content = "#2A2A2A"
-        bg_elevated = "#323232"
-        bg_input = "#363636"
-        bg_hover = "#3A3A3A"
-
-        text_primary = "#E0E0E0"
-        text_secondary = "#B0B0B0"
-        text_disabled = "#707070"
+        # Dinamik tema renkleri
+        theme = self.themes.get(self.current_theme, self.themes["Gece"])
+        
+        primary = theme["primary"]
+        primary_hover = theme["primary_hover"]
+        accent_gold = theme["accent_gold"]
+        bg_app = theme["bg_app"]
+        bg_content = theme["bg_content"]
+        bg_elevated = theme["bg_elevated"]
+        bg_input = theme["bg_input"]
+        bg_hover = theme["bg_hover"]
+        text_primary = theme["text_primary"]
+        text_secondary = theme["text_secondary"]
+        text_disabled = theme["text_disabled"]
 
         self.configure(bg=bg_app)
 
@@ -912,6 +985,16 @@ class PuantajApp(tk.Tk):
             tk.Label(logo_container, text="RAINSTAFF", bg="#2A2A2A",
                 fg="#C9A961", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT)
 
+        # Tema değiştirme butonu (Ampul)
+        theme_icons = {"Gece": "🌙", "Sabah": "☀️", "Matrix": "💚"}
+        theme_icon = theme_icons.get(self.current_theme, "💡")
+        theme_btn = tk.Button(header, text=theme_icon, bg="#2A2A2A", fg="#C9A961",
+            font=("Segoe UI", 14), relief="flat", bd=0, cursor="hand2",
+            activebackground="#3A3A3A", activeforeground="#FFD700",
+            command=self._toggle_theme)
+        theme_btn.place(relx=1.0, x=-120, y=16, anchor="ne")
+        self.theme_btn = theme_btn
+        
         user_info = tk.Frame(header, bg="#2A2A2A")
         user_info.place(relx=1.0, x=-32, y=20, anchor="ne")
 

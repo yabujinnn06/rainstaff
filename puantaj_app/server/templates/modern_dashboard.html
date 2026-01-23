@@ -10,6 +10,9 @@
         </h1>
     </div>
     <div class="user-info">
+        <button id="theme-toggle" onclick="toggleTheme()" class="theme-toggle-btn">
+            [ TEMA ]
+        </button>
         <div class="user-badge">
             <span>{{ user['username'] }}</span> | <span>{{ user['region'] }}</span>
         </div>
@@ -788,5 +791,45 @@
         const fileName = `stok_raporu_${new Date().toISOString().slice(0, 10)}.pdf`;
         doc.save(fileName);
     }
+
+    // === TEMA SİSTEMİ ===
+    const themes = ['matrix', 'gece', 'sabah'];
+    const themeLabels = {
+        'matrix': '[ M4TR1X ]',
+        'gece': '[ GECE ]',
+        'sabah': '[ G.NDZ ]'
+    };
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem('rainstaff-theme') || 'matrix';
+        applyTheme(savedTheme);
+    }
+
+    function applyTheme(theme) {
+        document.body.classList.remove('theme-gece', 'theme-sabah');
+        if (theme === 'gece') {
+            document.body.classList.add('theme-gece');
+        } else if (theme === 'sabah') {
+            document.body.classList.add('theme-sabah');
+        }
+        // Matrix varsayılan, class gerekmez
+
+        const btn = document.getElementById('theme-toggle');
+        if (btn) {
+            btn.textContent = themeLabels[theme] || '[ TEMA ]';
+        }
+
+        localStorage.setItem('rainstaff-theme', theme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = localStorage.getItem('rainstaff-theme') || 'matrix';
+        const currentIdx = themes.indexOf(currentTheme);
+        const nextIdx = (currentIdx + 1) % themes.length;
+        applyTheme(themes[nextIdx]);
+    }
+
+    // Sayfa yüklenince tema uygula
+    document.addEventListener('DOMContentLoaded', initTheme);
 </script>
 {% endblock %}

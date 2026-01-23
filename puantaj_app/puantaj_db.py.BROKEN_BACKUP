@@ -1,0 +1,296 @@
+# Eksik olan ensure_db_dir fonksiyonu eklendi
+def ensure_db_dir():
+	if not os.path.isdir(DB_DIR):
+		os.makedirs(DB_DIR, exist_ok=True)
+# staff_db.py_old dosyasından get_conn fonksiyonu eklendi
+# contextmanager dekoratörü eklendi
+from contextlib import contextmanager
+
+@contextmanager
+def get_conn():
+	"""SQLite baglantrsi, otomatik commit ve rollback ile."""
+	ensure_db_dir()
+	conn = sqlite3.connect(DB_PATH, timeout=30.0)
+	try:
+		conn.execute("PRAGMA foreign_keys = ON;")
+		conn.execute("PRAGMA busy_timeout = 30000;")  # 30 saniye
+		yield conn
+		conn.commit()  # Basarili islemler commit edilir
+	except Exception:
+		conn.rollback()  # Hata durumunda geri al
+		raise
+	finally:
+		conn.close()
+# staff_db.py_old dosyasından init_db fonksiyonu eklendi
+def init_db():
+	with get_conn() as conn:
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS employees (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				full_name TEXT NOT NULL,
+				identity_no TEXT,
+				department TEXT,
+				title TEXT
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS timesheets (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				employee_id INTEGER NOT NULL,
+				work_date TEXT NOT NULL,
+				start_time TEXT NOT NULL,
+				end_time TEXT NOT NULL,
+				break_minutes INTEGER NOT NULL DEFAULT 0,
+				is_special INTEGER NOT NULL DEFAULT 0,
+				notes TEXT,
+				FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS settings (
+				key TEXT PRIMARY KEY,
+				value TEXT NOT NULL
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS reports (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				file_path TEXT NOT NULL,
+				created_at TEXT NOT NULL,
+				employee TEXT,
+				start_date TEXT,
+				end_date TEXT
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS shift_templates (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT NOT NULL UNIQUE,
+				start_time TEXT NOT NULL,
+				end_time TEXT NOT NULL,
+				break_minutes INTEGER NOT NULL DEFAULT 0
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS vehicles (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				plate TEXT NOT NULL UNIQUE,
+				brand TEXT,
+				model TEXT,
+				year TEXT,
+				km INTEGER,
+				inspection_date TEXT,
+				insurance_date TEXT,
+				maintenance_date TEXT,
+				oil_change_date TEXT,
+				oil_change_km INTEGER,
+				oil_interval_km INTEGER,
+				notes TEXT
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS drivers (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				full_name TEXT NOT NULL UNIQUE,
+				license_class TEXT,
+				license_expiry TEXT,
+				phone TEXT,
+				notes TEXT
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT NOT NULL UNIQUE,
+				password_hash TEXT NOT NULL,
+				role TEXT NOT NULL,
+				region TEXT NOT NULL
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS vehicle_faults (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				vehicle_id INTEGER NOT NULL,
+				title TEXT NOT NULL,
+				description TEXT,
+				opened_date TEXT,
+				closed_date TEXT,
+				status TEXT DEFAULT 'Acik',
+				FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS vehicle_inspections (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				vehicle_id INTEGER NOT NULL,
+				driver_id INTEGER,
+				inspection_date TEXT NOT NULL,
+				week_start TEXT NOT NULL,
+				km INTEGER,
+				notes TEXT,
+				fault_id INTEGER,
+				fault_status TEXT,
+				service_visit INTEGER DEFAULT 0,
+				FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE,
+				FOREIGN KEY (driver_id) REFERENCES drivers (id) ON DELETE SET NULL,
+				FOREIGN KEY (fault_id) REFERENCES vehicle_faults (id) ON DELETE SET NULL
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS vehicle_service_visits (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				vehicle_id INTEGER NOT NULL,
+				fault_id INTEGER,
+				start_date TEXT NOT NULL,
+				end_date TEXT,
+				reason TEXT,
+				cost REAL,
+				notes TEXT,
+				FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE,
+				FOREIGN KEY (fault_id) REFERENCES vehicle_faults (id) ON DELETE SET NULL
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS vehicle_inspection_results (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				inspection_id INTEGER NOT NULL,
+				item_key TEXT NOT NULL,
+				status TEXT NOT NULL,
+				note TEXT,
+				FOREIGN KEY (inspection_id) REFERENCES vehicle_inspections (id) ON DELETE CASCADE
+			);
+			"""
+		)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS stock_inventory (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				stok_kod TEXT,
+				stok_adi TEXT,
+				seri_no TEXT NOT NULL UNIQUE,
+				durum TEXT,
+				tarih TEXT,
+				girdi_yapan TEXT,
+				bolge TEXT NOT NULL,
+				adet INTEGER,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			);
+			"""
+		)
+		# Delete tracking table for multi-PC sync (23 Ocak 2026)
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS deleted_records (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				table_name TEXT NOT NULL,
+				record_id INTEGER NOT NULL,
+				deleted_at TEXT NOT NULL,
+				deleted_by TEXT
+			);
+			"""
+		)
+		for key, value in DEFAULT_SETTINGS.items():
+			conn.execute(
+				"INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?);",
+				(key, value),
+			)
+		cur = conn.execute("SELECT COUNT(*) FROM shift_templates;")
+		if cur.fetchone()[0] == 0:
+			conn.executemany(
+				"INSERT INTO shift_templates (name, start_time, end_time, break_minutes) VALUES (?, ?, ?, ?);",
+				[
+					("Hafta Ici 09-18", "09:00", "18:00", 60),
+					("Cumartesi 09-14", "09:00", "14:00", 0),
+				],
+			)
+		_ensure_timesheet_columns(conn)
+		_ensure_vehicle_columns(conn)
+		_ensure_region_columns(conn)
+		_ensure_deleted_records_table(conn)
+		_seed_default_users(conn)
+		conn.commit()
+	_backup_db_if_needed()
+import os
+import sqlite3
+import shutil
+import zipfile
+import hashlib
+from datetime import datetime, timedelta
+from contextlib import contextmanager
+
+APP_NAME = "Rainstaff"
+LOCAL_DB_DIR = os.path.join(os.path.dirname(__file__), "data")
+
+if os.name == 'nt':  # Windows
+	APPDATA_DIR = os.path.join(os.environ.get("APPDATA", LOCAL_DB_DIR), APP_NAME, "data")
+	DB_DIR = APPDATA_DIR
+else:  # Linux / Server (Render)
+	# Check for Render persistent disk at /data
+	if os.path.exists("/data"):
+		DB_DIR = "/data"
+	else:
+		# Fallback to /tmp if /data (persistent disk) is not attached
+		# This prevents Read-Only file system errors on Render code directory
+		DB_DIR = "/tmp/rainstaff_data"
+
+if not os.path.exists(DB_DIR):
+	try:
+		os.makedirs(DB_DIR, exist_ok=True)
+	except OSError:
+		# Last resort fallback if we can't write to specified dir
+		import tempfile
+		DB_DIR = os.path.join(tempfile.gettempdir(), "rainstaff_data")
+		os.makedirs(DB_DIR, exist_ok=True)
+
+DB_PATH = os.path.join(DB_DIR, "puantaj.db")
+# Store backups and exports INSIDE the data directory to ensure write permissions
+BACKUP_DIR = os.path.join(DB_DIR, "backups")
+BACKUP_MARKER = os.path.join(BACKUP_DIR, "last_backup.txt")
+EXPORT_DIR = os.path.join(DB_DIR, "exports")
+
+DEFAULT_SETTINGS = {
+	"company_name": "",
+	"report_title": "Rainstaff Puantaj ve Mesai Raporu",
+	"weekday_hours": "9",
+	"saturday_start": "09:00",
+	"saturday_end": "14:00",
+	"logo_path": "",
+	"sync_enabled": "0",
+	"sync_url": "",
+	"sync_token": "",
+	"admin_entry_region": "Ankara",
+}
+
+DEFAULT_USERS = [
+	("ankara1", "060106", "user", "Ankara"),
+	("izmir1", "350235", "user", "Izmir"),
+	("bursa1", "160316", "user", "Bursa"),
+	("istanbul1", "340434", "user", "Istanbul"),
+	("admin", "748774", "admin", "ALL"),
+]
+
+
