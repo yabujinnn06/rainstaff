@@ -39,7 +39,7 @@ def health():
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'database': 'connected',
-            'ver': 'staff-v3-final-fix'
+            'ver': 'staff-v3-verified'
         }), 200
     except Exception as e:
         return jsonify({
