@@ -235,6 +235,77 @@
                     color: var(--matrix-green) !important;
                     font-weight: bold;
                 }
+
+                /* MOBİL İÇİN STOK DETAY GÖSTERİMİ */
+                @media (max-width: 768px) {
+                    .child-row td {
+                        padding: 8px 10px !important;
+                        font-size: 11px !important;
+                        word-break: break-word;
+                        white-space: normal !important;
+                    }
+
+                    .child-row td[colspan] {
+                        display: block;
+                        padding: 10px !important;
+                    }
+
+                    /* Stok butonları mobilde küçült */
+                    .matrix-btn {
+                        padding: 8px 12px;
+                        font-size: 11px;
+                    }
+
+                    #scan-count {
+                        padding: 8px 10px !important;
+                        font-size: 11px !important;
+                    }
+
+                    /* Genişletilmiş satırlar için dikey liste görünümü */
+                    .child-row {
+                        display: none;
+                    }
+
+                    .child-row.show {
+                        display: table-row;
+                    }
+
+                    .child-row.show td {
+                        border-bottom: 1px dashed var(--border-color);
+                    }
+
+                    /* Tablo mobilde daha kompakt */
+                    #stock-table td,
+                    #stock-table th {
+                        padding: 10px 6px !important;
+                        font-size: 11px !important;
+                    }
+
+                    /* Alt satır metni - seri numaraları */
+                    .child-row td:first-child {
+                        display: none;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .matrix-btn {
+                        padding: 6px 10px;
+                        font-size: 10px;
+                        letter-spacing: 0;
+                    }
+
+                    #stock-table td,
+                    #stock-table th {
+                        padding: 8px 4px !important;
+                        font-size: 10px !important;
+                    }
+
+                    /* Çok dar ekranlarda bazı sütunları gizle */
+                    #stock-table th:nth-child(4),
+                    #stock-table td:nth-child(4) {
+                        display: none;
+                    }
+                }
             </style>
 
             <!-- Arama ve Filtre -->
