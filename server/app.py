@@ -83,7 +83,8 @@ def debug_auth():
             'username': username,
             'computed_hash': computed,
             'stored_hash': stored,
-            'region': user['region']
+            'region': user['region'],
+            'db_file': getattr(db, '__file__', 'unknown')
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
