@@ -35,7 +35,7 @@ def health():
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'database': 'connected',
-            'ver': 'staff-v2'
+            'ver': 'puantaj-v3'
         }), 200
     except Exception as e:
         return jsonify({
@@ -86,13 +86,13 @@ def diagnostic_final():
             'stored_hash': stored,
             'region': user['region'],
             'db_file': getattr(db, '__file__', 'unknown'),
-            'ver': 'staff-v2'
+            'ver': 'puantaj-v3'
         })
     except Exception as e:
         return jsonify({
             'error': str(e),
             'db_file': getattr(db, '__file__', 'unknown'),
-            'ver': 'staff-v2'
+            'ver': 'puantaj-v3'
         }), 500
 
 
