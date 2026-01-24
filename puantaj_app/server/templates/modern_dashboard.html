@@ -229,56 +229,65 @@
             </div>
 
             <style>
+
+                /* MODERN ERP STYLES */
                 .matrix-btn {
-                    padding: 10px 20px;
-                    font-family: 'Courier New', monospace;
-                    font-weight: bold;
-                    font-size: 13px;
+                    padding: 8px 16px;
+                    font-family: 'Exo 2', sans-serif;
+                    font-weight: 600;
+                    font-size: 12px; 
                     letter-spacing: 1px;
-                    border: 2px solid var(--matrix-green);
-                    border-radius: 3px;
+                    border: 1px solid var(--matrix-green);
+                    border-radius: 4px;
                     cursor: pointer;
-                    transition: all 0.3s;
+                    transition: all 0.3s ease;
                     text-transform: uppercase;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    background: rgba(0, 0, 0, 0.2);
+                    backdrop-filter: blur(4px);
                 }
 
                 .matrix-btn-primary {
-                    background: transparent;
+                    background: rgba(0, 255, 65, 0.1);
                     color: var(--matrix-green);
+                    box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
                 }
 
                 .matrix-btn-primary:hover {
                     background: var(--matrix-green);
-                    color: var(--matrix-darker);
-                    box-shadow: 0 0 15px var(--matrix-green);
+                    color: black;
+                    box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
                 }
 
                 .matrix-btn-secondary {
-                    background: transparent;
+                    background: rgba(255, 255, 255, 0.05);
                     color: var(--text-secondary);
-                    border-color: var(--text-secondary);
+                    border-color: var(--text-muted);
                 }
 
                 .matrix-btn-secondary:hover {
                     background: var(--text-secondary);
-                    color: var(--matrix-darker);
-                    box-shadow: 0 0 15px var(--text-secondary);
+                    color: black;
+                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
                 }
 
                 .matrix-btn-warning {
-                    background: transparent;
+                    background: rgba(255, 152, 0, 0.1);
                     color: #ff9800;
                     border-color: #ff9800;
                 }
 
                 .matrix-btn-warning:hover {
                     background: #ff9800;
-                    color: var(--matrix-darker);
-                    box-shadow: 0 0 15px #ff9800;
+                    color: black;
+                    box-shadow: 0 0 15px rgba(255, 152, 0, 0.4);
                 }
 
                 .matrix-btn-danger {
-                    background: transparent;
+                    background: rgba(255, 68, 68, 0.1);
                     color: #ff4444;
                     border-color: #ff4444;
                 }
@@ -286,9 +295,9 @@
                 .matrix-btn-danger:hover {
                     background: #ff4444;
                     color: white;
-                    box-shadow: 0 0 15px #ff4444;
+                    box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
                 }
-
+                
                 .scanned-item {
                     background: rgba(0, 255, 65, 0.3) !important;
                     border-left: 3px solid var(--matrix-green) !important;
@@ -299,76 +308,57 @@
                     font-weight: bold;
                 }
 
-                /* MOBİL İÇİN STOK DETAY GÖSTERİMİ */
+                /* Mobile Optimizations */
                 @media (max-width: 768px) {
-                    .child-row td {
-                        padding: 8px 10px !important;
-                        font-size: 11px !important;
-                        word-break: break-word;
-                        white-space: normal !important;
-                    }
-
-                    .child-row td[colspan] {
-                        display: block;
-                        padding: 10px !important;
-                    }
-
-                    /* Stok butonları mobilde küçült */
                     .matrix-btn {
-                        padding: 8px 12px;
+                        padding: 10px 14px; /* Larger touch target */
                         font-size: 11px;
+                        flex: 1;
                     }
 
                     #scan-count {
-                        padding: 8px 10px !important;
+                        padding: 10px !important;
                         font-size: 11px !important;
+                        white-space: nowrap;
+                    }
+                    
+                    /* Table Fixes */
+                    .table-responsive {
+                        border: 1px solid var(--border-color);
+                        border-radius: 4px;
                     }
 
-                    /* Genişletilmiş satırlar için dikey liste görünümü */
-                    .child-row {
-                        display: none;
+                    /* Make text break formatted for mobile */
+                    table td, table th {
+                        font-family: 'Share Tech Mono', monospace; 
+                        font-size: 12px;
                     }
 
+                    /* Ensure child row needs no special hiding that breaks layout */
                     .child-row.show {
                         display: table-row;
+                        animation: slideDown 0.3s ease;
+                    }
+                    
+                    @keyframes slideDown {
+                        from { opacity: 0; transform: translateY(-10px); }
+                        to { opacity: 1; transform: translateY(0); }
                     }
 
-                    .child-row.show td {
-                        border-bottom: 1px dashed var(--border-color);
+                    /* Indent child rows instead of hiding first col if needed */
+                    .child-row td {
+                        background: rgba(255, 255, 255, 0.02);
+                        padding: 10px 5px !important;
+                        border-bottom: 1px dashed var(--border-color) !important;
+                        white-space: normal !important;
                     }
-
-                    /* Tablo mobilde daha kompakt */
-                    #stock-table td,
-                    #stock-table th {
-                        padding: 10px 6px !important;
-                        font-size: 11px !important;
-                    }
-
-                    /* Alt satır metni - seri numaraları */
+                    
+                    /* Hide empty first cell in child row on mobile to save space */
                     .child-row td:first-child {
                         display: none;
                     }
                 }
 
-                @media (max-width: 480px) {
-                    .matrix-btn {
-                        padding: 6px 10px;
-                        font-size: 10px;
-                        letter-spacing: 0;
-                    }
-
-                    #stock-table td,
-                    #stock-table th {
-                        padding: 8px 4px !important;
-                        font-size: 10px !important;
-                    }
-
-                    /* Mobilde child-row daha okunabilir */
-                    .child-row td {
-                        font-size: 9px !important;
-                        padding: 6px 4px !important;
-                    }
-                }
             </style>
 
             <!-- Arama ve Filtre -->
@@ -660,31 +650,31 @@
         const tbody = document.getElementById('stock-table');
 
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Henüz stok verisi yok</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">[ SİSTEMDE STOK KAYDI YOK ]</td></tr>';
             return;
         }
 
         let html = '';
         data.forEach((item, index) => {
-            // Get unique regions for this stock item
+            // Get unique regions
             const regions = [...new Set(item.seri_list.map(s => s.bolge))].join(', ');
 
             // Parent row
             html += `<tr class="parent-row" onclick="toggleStock(${index})">
-                <td><span class="expand-icon" id="icon-${index}">▶</span></td>
-                <td>${item.stok_kod}</td>
+                <td style="text-align: center;"><span class="expand-icon" id="icon-${index}">▶</span></td>
+                <td style="font-weight: bold; color: var(--text-primary);">${item.stok_kod}</td>
                 <td>${item.stok_adi}</td>
-                <td>${item.seri_count} adet</td>
-                <td>${regions}</td>
+                <td><span style="background: rgba(0, 255, 65, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--matrix-green);">${item.seri_count} adet</span></td>
+                <td style="font-size: 0.9em; opacity: 0.8;">${regions}</td>
             </tr>`;
 
-            // Child rows (serial numbers) - mobil dostu basit format
+            // Child rows (serial numbers) - using CLASSES for targeting
             item.seri_list.forEach(seri => {
-                html += `<tr class="child-row" id="child-${index}">
+                html += `<tr class="child-row stock-child-${index}">
                     <td></td>
-                    <td style="color: var(--text-secondary);">${seri.seri_no || '-'}</td>
-                    <td style="color: var(--text-muted); font-size: 10px;">${seri.durum || 'OK'}</td>
-                    <td style="font-size: 10px;">${seri.bolge || '-'}</td>
+                    <td style="color: var(--text-secondary); padding-left: 20px;">└─ ${seri.seri_no || '-'}</td>
+                    <td style="color: var(--text-muted); font-size: 13px;">${seri.durum || 'OK'}</td>
+                    <td style="font-size: 13px; font-family: 'Share Tech Mono';">${seri.bolge || '-'}</td>
                     <td></td>
                 </tr>`;
             });
@@ -694,11 +684,19 @@
     }
 
     function toggleStock(index) {
-        const children = document.querySelectorAll(`#child-${index}`);
+        // Select by CLASS, not ID, to handle multiple rows correctly
+        const children = document.querySelectorAll(`.stock-child-${index}`);
         const icon = document.getElementById(`icon-${index}`);
 
+        // Toggle 'show' class
+        const isClosed = !icon.classList.contains('expanded');
+
         children.forEach(child => {
-            child.classList.toggle('show');
+            if (isClosed) {
+                child.classList.add('show');
+            } else {
+                child.classList.remove('show');
+            }
         });
 
         icon.classList.toggle('expanded');
