@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}Rainstaff ERP - Sürücüler{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div class="logo">
+        <h1 style="font-size: 24px; font-weight: bold; letter-spacing: 3px;">
+            RAIN
+        </h1>
+    </div>
+    <div class="user-info">
+        <div class="user-badge">
+            <span>{{ user['username'] }}</span> | <span>{{ user['region'] }}</span>
+        </div>
+        <div class="control-panel">
+            <button id="theme-toggle" onclick="toggleTheme()" class="ctrl-btn ctrl-theme" title="Tema Değiştir">
+                <span class="ctrl-icon">◐</span>
+                <span class="ctrl-label">TEMA</span>
+            </button>
+            <a href="/dashboard" class="ctrl-btn ctrl-back" title="Dashboard'a Dön">
+                <span class="ctrl-icon">←</span>
+                <span class="ctrl-label">GERİ</span>
+            </a>
+            <a href="/logout" class="ctrl-btn ctrl-logout" title="Sistemden Çık">
+                <span class="ctrl-icon">⏻</span>
+                <span class="ctrl-label">ÇIKIŞ</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="nav-container">
+    <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab">GENEL BAKIŞ</a>
+        <a href="/vehicles" class="nav-tab">ARAÇLAR</a>
+        <a href="/drivers" class="nav-tab active">SÜRÜCÜLER</a>
+        <a href="/vehicle-faults" class="nav-tab">ARIZALAR</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Toplam Sürücü</h3>
+            <div class="value" id="total-drivers">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Ehliyet Süresi Dolacak</h3>
+            <div class="value" id="expiring-licenses" style="color: #ff9800;">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Süresi Geçmiş</h3>
+            <div class="value" id="expired-licenses" style="color: #ff4444;">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Geçerli Ehliyet</h3>
+            <div class="value" id="valid-licenses" style="color: var(--primary-color);">-</div>
+        </div>
+    </div>
+
+    <!-- Drivers Table -->
+    <div class="card">
+        <h2>>>> SÜRÜCÜ LİSTESİ</h2>
+
+        <!-- Filter Controls -->
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="driver-search" placeholder="İsim, telefon veya ehliyet sınıfı ara..."
+                style="flex: 1; min-width: 200px; padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+
+            <select id="region-filter" onchange="filterDrivers()"
+                style="padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+                <option value="">[ TÜM BÖLGELER ]</option>
+                <option value="Ankara">Ankara</option>
+                <option value="Istanbul">İstanbul</option>
+                <option value="Izmir">İzmir</option>
+                <option value="Bursa">Bursa</option>
+            </select>
+
+            <select id="status-filter" onchange="filterDrivers()"
+                style="padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+                <option value="">[ TÜM DURUMLAR ]</option>
+                <option value="expired">Süresi Geçmiş</option>
+                <option value="critical">Kritik (7 gün)</option>
+                <option value="warning">Uyarı (30 gün)</option>
+                <option value="valid">Geçerli</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>AD SOYAD</th>
+                        <th>EHLİYET SINIFI</th>
+                        <th>EHLİYET SÜRESİ</th>
+                        <th>TELEFON</th>
+                        <th>BÖLGE</th>
+                        <th>DURUM</th>
+                    </tr>
+                </thead>
+                <tbody id="drivers-table">
+                    <tr>
+                        <td colspan="7" class="loading">Yükleniyor</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Control Panel Buttons */
+    .control-panel {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .ctrl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        color: var(--primary-color);
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ctrl-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transition: left 0.5s;
+    }
+
+    .ctrl-btn:hover::before {
+        left: 100%;
+    }
+
+    .ctrl-btn:hover {
+        background: var(--primary-color);
+        color: var(--text-inverse);
+        box-shadow: 0 0 20px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .ctrl-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .ctrl-label {
+        font-size: 10px;
+    }
+
+    /* Alert Badges */
+    .alert-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    .alert-expired {
+        background: rgba(139, 0, 0, 0.3);
+        color: #ff0000;
+        border: 1px solid #ff0000;
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+        animation: pulse-red 1.5s infinite;
+    }
+
+    .alert-critical {
+        background: rgba(255, 68, 68, 0.2);
+        color: #ff4444;
+        border: 1px solid #ff4444;
+        box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        animation: pulse-red 2s infinite;
+    }
+
+    .alert-warning {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+        border: 1px solid #ff9800;
+    }
+
+    .alert-valid {
+        background: rgba(0, 255, 65, 0.2);
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    @keyframes pulse-red {
+
+        0%,
+        100% {
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
+        }
+    }
+
+    /* Child Row Details */
+    .child-row {
+        display: none;
+        background: rgba(0, 26, 0, 0.3);
+    }
+
+    .child-row.show {
+        display: table-row !important;
+    }
+
+    .child-row td {
+        padding: 20px 40px !important;
+        border-bottom: 2px solid var(--border-color) !important;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .detail-item {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 2px solid var(--primary-color);
+        border-radius: 3px;
+    }
+
+    .detail-label {
+        color: var(--text-muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* Expand Icon */
+    .expand-icon {
+        display: inline-block;
+        transition: transform 0.3s;
+        cursor: pointer;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+
+    .expand-icon.expanded {
+        transform: rotate(90deg);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .control-panel {
+            gap: 5px;
+        }
+
+        .ctrl-btn {
+            padding: 6px 10px;
+            gap: 4px;
+        }
+
+        .ctrl-icon {
+            font-size: 14px;
+        }
+
+        .ctrl-label {
+            font-size: 9px;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            padding: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+        }
+
+        .stat-card h3 {
+            font-size: 10px;
+        }
+
+        .detail-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .child-row td {
+            padding: 15px 10px !important;
+        }
+
+        /* Hide some columns on mobile */
+        table th:nth-child(3),
+        table td:nth-child(3),
+        table th:nth-child(6),
+        table td:nth-child(6) {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        /* Hide phone column on very small screens */
+        table th:nth-child(5),
+        table td:nth-child(5) {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    let driversData = [];
+    let filteredData = [];
+
+    // Load drivers data
+    function loadDrivers() {
+        const tbody = document.getElementById('drivers-table');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">Yükleniyor</td></tr>';
+
+        fetch('/api/drivers')
+            .then(res => {
+                if (!res.ok) throw new Error('Veri yüklenemedi');
+                return res.json();
+            })
+            .then(data => {
+                driversData = data;
+                filteredData = data;
+                updateStats();
+                filterDrivers();
+            })
+            .catch(err => {
+                console.error('Drivers error:', err);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ff4444;">❌ ' + err.message + '</td></tr>';
+            });
+    }
+
+    // Update statistics
+    function updateStats() {
+        const total = driversData.length;
+        let expired = 0;
+        let expiring = 0;
+        let valid = 0;
+
+        driversData.forEach(d => {
+            if (d.alert) {
+                if (d.alert.status === 'expired') {
+                    expired++;
+                } else if (d.alert.status === 'critical' || d.alert.status === 'warning') {
+                    expiring++;
+                } else {
+                    valid++;
+                }
+            } else {
+                valid++;
+            }
+        });
+
+        document.getElementById('total-drivers').textContent = total;
+        document.getElementById('expiring-licenses').textContent = expiring;
+        document.getElementById('expired-licenses').textContent = expired;
+        document.getElementById('valid-licenses').textContent = valid;
+    }
+
+    // Filter drivers
+    function filterDrivers() {
+        const searchTerm = document.getElementById('driver-search').value.toLowerCase();
+        const regionFilter = document.getElementById('region-filter').value;
+        const statusFilter = document.getElementById('status-filter').value;
+
+        filteredData = driversData.filter(d => {
+            // Search filter
+            const matchesSearch = !searchTerm ||
+                (d.full_name && d.full_name.toLowerCase().includes(searchTerm)) ||
+                (d.phone && d.phone.toLowerCase().includes(searchTerm)) ||
+                (d.license_class && d.license_class.toLowerCase().includes(searchTerm));
+
+            // Region filter
+            const matchesRegion = !regionFilter || d.region === regionFilter;
+
+            // Status filter
+            let matchesStatus = true;
+            if (statusFilter) {
+                if (statusFilter === 'expired') {
+                    matchesStatus = d.alert && d.alert.status === 'expired';
+                } else if (statusFilter === 'critical') {
+                    matchesStatus = d.alert && d.alert.status === 'critical';
+                } else if (statusFilter === 'warning') {
+                    matchesStatus = d.alert && d.alert.status === 'warning';
+                } else if (statusFilter === 'valid') {
+                    matchesStatus = !d.alert || (d.alert.status !== 'expired' && d.alert.status !== 'critical' && d.alert.status !== 'warning');
+                }
+            }
+
+            return matchesSearch && matchesRegion && matchesStatus;
+        });
+
+        renderDriversTable();
+    }
+
+    // Render drivers table
+    function renderDriversTable() {
+        const tbody = document.getElementById('drivers-table');
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Sürücü bulunamadı</td></tr>';
+            return;
+        }
+
+        let html = '';
+        filteredData.forEach((d, index) => {
+            // Determine status badge
+            let statusBadge = '<span class="alert-badge alert-valid">GEÇERLİ</span>';
+            let expiryDisplay = d.license_expiry || '-';
+
+            if (d.alert) {
+                if (d.alert.status === 'expired') {
+                    statusBadge = '<span class="alert-badge alert-expired">SÜRESİ GEÇMİŞ</span>';
+                    expiryDisplay = `${d.license_expiry}<br><span class="alert-badge alert-expired" style="font-size: 9px; padding: 2px 4px;">GEÇMİŞ</span>`;
+                } else if (d.alert.status === 'critical') {
+                    statusBadge = '<span class="alert-badge alert-critical">KRİTİK</span>';
+                    expiryDisplay = `${d.license_expiry}<br><span class="alert-badge alert-critical" style="font-size: 9px; padding: 2px 4px;">${d.alert.days}g</span>`;
+                } else if (d.alert.status === 'warning') {
+                    statusBadge = '<span class="alert-badge alert-warning">UYARI</span>';
+                    expiryDisplay = `${d.license_expiry}<br><span class="alert-badge alert-warning" style="font-size: 9px; padding: 2px 4px;">${d.alert.days}g</span>`;
+                }
+            }
+
+            // Parent row
+            html += `
+                <tr class="parent-row" onclick="toggleDriverDetails(${index})">
+                    <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                    <td style="color: var(--primary-color); font-weight: 700;">${d.full_name || '-'}</td>
+                    <td>${d.license_class || '-'}</td>
+                    <td>${expiryDisplay}</td>
+                    <td>${d.phone || '-'}</td>
+                    <td>${d.region || '-'}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+
+            // Child row (details)
+            html += `
+                <tr class="child-row" id="details-${index}">
+                    <td></td>
+                    <td colspan="6">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Ad Soyad</div>
+                                <div class="detail-value">${d.full_name || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Ehliyet Sınıfı</div>
+                                <div class="detail-value">${d.license_class || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Ehliyet Süresi</div>
+                                <div class="detail-value">${d.license_expiry || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Telefon</div>
+                                <div class="detail-value">${d.phone || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Bölge</div>
+                                <div class="detail-value">${d.region || '-'}</div>
+                            </div>
+                            <div class="detail-item" style="grid-column: 1 / -1;">
+                                <div class="detail-label">Notlar</div>
+                                <div class="detail-value" style="white-space: pre-wrap;">${d.notes || '-'}</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Toggle driver details
+    function toggleDriverDetails(index) {
+        const detailsRow = document.getElementById(`details-${index}`);
+        const icon = document.getElementById(`icon-${index}`);
+
+        detailsRow.classList.toggle('show');
+        icon.classList.toggle('expanded');
+    }
+
+    // Search input listener
+    document.getElementById('driver-search').addEventListener('input', filterDrivers);
+
+    // Theme toggle function
+    function toggleTheme() {
+        const body = document.body;
+        const themes = ['', 'theme-cyber', 'theme-light'];
+        const currentTheme = body.className;
+        const currentIndex = themes.indexOf(currentTheme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        body.className = themes[nextIndex];
+
+        // Save to localStorage
+        localStorage.setItem('theme', themes[nextIndex]);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.body.className = savedTheme;
+    }
+
+    // Load data on page load
+    loadDrivers();
+</script>
+{% endblock %}

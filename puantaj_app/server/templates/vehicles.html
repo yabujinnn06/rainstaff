@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+
+{% block title %}Rainstaff ERP - Araçlar{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div class="logo">
+        <h1 style="font-size: 24px; font-weight: bold; letter-spacing: 3px;">
+            RAIN
+        </h1>
+    </div>
+    <div class="user-info">
+        <div class="user-badge">
+            <span>{{ user['username'] }}</span> | <span>{{ user['region'] }}</span>
+        </div>
+        <div class="control-panel">
+            <button id="theme-toggle" onclick="toggleTheme()" class="ctrl-btn ctrl-theme" title="Tema Değiştir">
+                <span class="ctrl-icon">◐</span>
+                <span class="ctrl-label">TEMA</span>
+            </button>
+            <a href="/dashboard" class="ctrl-btn ctrl-back" title="Dashboard'a Dön">
+                <span class="ctrl-icon">←</span>
+                <span class="ctrl-label">GERİ</span>
+            </a>
+            <a href="/logout" class="ctrl-btn ctrl-logout" title="Sistemden Çık">
+                <span class="ctrl-icon">⏻</span>
+                <span class="ctrl-label">ÇIKIŞ</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="nav-container">
+    <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab">GENEL BAKIŞ</a>
+        <a href="/vehicles" class="nav-tab active">ARAÇLAR</a>
+        <a href="/drivers" class="nav-tab">SÜRÜCÜLER</a>
+        <a href="/vehicle-faults" class="nav-tab">ARIZALAR</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Toplam Araç</h3>
+            <div class="value" id="total-vehicles">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Kritik Uyarı</h3>
+            <div class="value" id="critical-alerts" style="color: #ff4444;">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Yaklaşan İşlemler</h3>
+            <div class="value" id="warning-alerts" style="color: #ff9800;">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Normal Durum</h3>
+            <div class="value" id="normal-vehicles" style="color: var(--primary-color);">-</div>
+        </div>
+    </div>
+
+    <!-- Vehicles Table -->
+    <div class="card">
+        <h2>>>> ARAÇ LİSTESİ</h2>
+
+        <!-- Filter Controls -->
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="vehicle-search" placeholder="Plaka, marka veya model ara..."
+                style="flex: 1; min-width: 200px; padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+
+            <select id="region-filter" onchange="filterVehicles()"
+                style="padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+                <option value="">[ TÜM BÖLGELER ]</option>
+                <option value="Ankara">Ankara</option>
+                <option value="Istanbul">İstanbul</option>
+                <option value="Izmir">İzmir</option>
+                <option value="Bursa">Bursa</option>
+            </select>
+
+            <select id="alert-filter" onchange="filterVehicles()"
+                style="padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+                <option value="">[ TÜM DURUMLAR ]</option>
+                <option value="critical">Kritik Uyarı</option>
+                <option value="warning">Yaklaşan İşlem</option>
+                <option value="normal">Normal</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>PLAKA</th>
+                        <th>MARKA/MODEL</th>
+                        <th>KM</th>
+                        <th>MUAYENE</th>
+                        <th>SİGORTA</th>
+                        <th>BAKIM</th>
+                        <th>BÖLGE</th>
+                        <th>DURUM</th>
+                    </tr>
+                </thead>
+                <tbody id="vehicles-table">
+                    <tr>
+                        <td colspan="9" class="loading">Yükleniyor</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Control Panel Buttons */
+    .control-panel {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .ctrl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        color: var(--primary-color);
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ctrl-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transition: left 0.5s;
+    }
+
+    .ctrl-btn:hover::before {
+        left: 100%;
+    }
+
+    .ctrl-btn:hover {
+        background: var(--primary-color);
+        color: var(--text-inverse);
+        box-shadow: 0 0 20px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .ctrl-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .ctrl-label {
+        font-size: 10px;
+    }
+
+    /* Alert Badges */
+    .alert-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    .alert-critical {
+        background: rgba(255, 68, 68, 0.2);
+        color: #ff4444;
+        border: 1px solid #ff4444;
+        box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        animation: pulse-red 2s infinite;
+    }
+
+    .alert-warning {
+        background: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+        border: 1px solid #ff9800;
+    }
+
+    .alert-normal {
+        background: rgba(0, 255, 65, 0.2);
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .alert-expired {
+        background: rgba(139, 0, 0, 0.3);
+        color: #ff0000;
+        border: 1px solid #ff0000;
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+        animation: pulse-red 1.5s infinite;
+    }
+
+    @keyframes pulse-red {
+
+        0%,
+        100% {
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
+        }
+    }
+
+    /* Child Row Details */
+    .child-row {
+        display: none;
+        background: rgba(0, 26, 0, 0.3);
+    }
+
+    .child-row.show {
+        display: table-row !important;
+    }
+
+    .child-row td {
+        padding: 20px 40px !important;
+        border-bottom: 2px solid var(--border-color) !important;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .detail-item {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 2px solid var(--primary-color);
+        border-radius: 3px;
+    }
+
+    .detail-label {
+        color: var(--text-muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* Expand Icon */
+    .expand-icon {
+        display: inline-block;
+        transition: transform 0.3s;
+        cursor: pointer;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+
+    .expand-icon.expanded {
+        transform: rotate(90deg);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .control-panel {
+            gap: 5px;
+        }
+
+        .ctrl-btn {
+            padding: 6px 10px;
+            gap: 4px;
+        }
+
+        .ctrl-icon {
+            font-size: 14px;
+        }
+
+        .ctrl-label {
+            font-size: 9px;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            padding: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+        }
+
+        .stat-card h3 {
+            font-size: 10px;
+        }
+
+        .detail-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .child-row td {
+            padding: 15px 10px !important;
+        }
+
+        /* Hide some columns on mobile */
+        table th:nth-child(4),
+        table td:nth-child(4),
+        table th:nth-child(8),
+        table td:nth-child(8) {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        /* Hide more columns on very small screens */
+        table th:nth-child(3),
+        table td:nth-child(3) {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    let vehiclesData = [];
+    let filteredData = [];
+
+    // Load vehicles data
+    function loadVehicles() {
+        const tbody = document.getElementById('vehicles-table');
+        tbody.innerHTML = '<tr><td colspan="9" class="loading">Yükleniyor</td></tr>';
+
+        fetch('/api/vehicles')
+            .then(res => {
+                if (!res.ok) throw new Error('Veri yüklenemedi');
+                return res.json();
+            })
+            .then(data => {
+                vehiclesData = data;
+                filteredData = data;
+                updateStats();
+                filterVehicles();
+            })
+            .catch(err => {
+                console.error('Vehicles error:', err);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #ff4444;">❌ ' + err.message + '</td></tr>';
+            });
+    }
+
+    // Update statistics
+    function updateStats() {
+        const total = vehiclesData.length;
+        let critical = 0;
+        let warning = 0;
+        let normal = 0;
+
+        vehiclesData.forEach(v => {
+            const hasExpired = v.alerts.some(a => a.status === 'expired');
+            const hasCritical = v.alerts.some(a => a.status === 'critical');
+            const hasWarning = v.alerts.some(a => a.status === 'warning');
+
+            if (hasExpired || hasCritical) {
+                critical++;
+            } else if (hasWarning) {
+                warning++;
+            } else {
+                normal++;
+            }
+        });
+
+        document.getElementById('total-vehicles').textContent = total;
+        document.getElementById('critical-alerts').textContent = critical;
+        document.getElementById('warning-alerts').textContent = warning;
+        document.getElementById('normal-vehicles').textContent = normal;
+    }
+
+    // Filter vehicles
+    function filterVehicles() {
+        const searchTerm = document.getElementById('vehicle-search').value.toLowerCase();
+        const regionFilter = document.getElementById('region-filter').value;
+        const alertFilter = document.getElementById('alert-filter').value;
+
+        filteredData = vehiclesData.filter(v => {
+            // Search filter
+            const matchesSearch = !searchTerm ||
+                (v.plate && v.plate.toLowerCase().includes(searchTerm)) ||
+                (v.brand && v.brand.toLowerCase().includes(searchTerm)) ||
+                (v.model && v.model.toLowerCase().includes(searchTerm));
+
+            // Region filter
+            const matchesRegion = !regionFilter || v.region === regionFilter;
+
+            // Alert filter
+            let matchesAlert = true;
+            if (alertFilter) {
+                const hasExpired = v.alerts.some(a => a.status === 'expired');
+                const hasCritical = v.alerts.some(a => a.status === 'critical');
+                const hasWarning = v.alerts.some(a => a.status === 'warning');
+
+                if (alertFilter === 'critical') {
+                    matchesAlert = hasExpired || hasCritical;
+                } else if (alertFilter === 'warning') {
+                    matchesAlert = hasWarning && !hasCritical && !hasExpired;
+                } else if (alertFilter === 'normal') {
+                    matchesAlert = !hasExpired && !hasCritical && !hasWarning;
+                }
+            }
+
+            return matchesSearch && matchesRegion && matchesAlert;
+        });
+
+        renderVehiclesTable();
+    }
+
+    // Render vehicles table
+    function renderVehiclesTable() {
+        const tbody = document.getElementById('vehicles-table');
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Araç bulunamadı</td></tr>';
+            return;
+        }
+
+        let html = '';
+        filteredData.forEach((v, index) => {
+            // Determine overall status
+            const hasExpired = v.alerts.some(a => a.status === 'expired');
+            const hasCritical = v.alerts.some(a => a.status === 'critical');
+            const hasWarning = v.alerts.some(a => a.status === 'warning');
+
+            let statusBadge = '';
+            if (hasExpired) {
+                statusBadge = '<span class="alert-badge alert-expired">SÜRESİ GEÇMİŞ</span>';
+            } else if (hasCritical) {
+                statusBadge = '<span class="alert-badge alert-critical">KRİTİK</span>';
+            } else if (hasWarning) {
+                statusBadge = '<span class="alert-badge alert-warning">UYARI</span>';
+            } else {
+                statusBadge = '<span class="alert-badge alert-normal">NORMAL</span>';
+            }
+
+            // Format dates with alerts
+            const formatDate = (date, type) => {
+                if (!date) return '<span style="color: var(--text-muted);">-</span>';
+
+                const alert = v.alerts.find(a => a.type === type);
+                if (!alert) return date;
+
+                let badgeClass = 'alert-normal';
+                let badgeText = '';
+                if (alert.status === 'expired') {
+                    badgeClass = 'alert-expired';
+                    badgeText = `GEÇMİŞ`;
+                } else if (alert.status === 'critical') {
+                    badgeClass = 'alert-critical';
+                    badgeText = `${alert.days}g`;
+                } else if (alert.status === 'warning') {
+                    badgeClass = 'alert-warning';
+                    badgeText = `${alert.days}g`;
+                }
+
+                return `${date}<br><span class="alert-badge ${badgeClass}" style="font-size: 9px; padding: 2px 4px;">${badgeText}</span>`;
+            };
+
+            // Parent row
+            html += `
+                <tr class="parent-row" onclick="toggleVehicleDetails(${index})">
+                    <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                    <td style="color: var(--primary-color); font-weight: 700;">${v.plate || '-'}</td>
+                    <td>${v.brand || '-'} ${v.model || ''}</td>
+                    <td>${v.km ? v.km.toLocaleString() : '-'}</td>
+                    <td>${formatDate(v.inspection_date, 'inspection')}</td>
+                    <td>${formatDate(v.insurance_date, 'insurance')}</td>
+                    <td>${formatDate(v.maintenance_date, 'maintenance')}</td>
+                    <td>${v.region || '-'}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+
+            // Child row (details)
+            html += `
+                <tr class="child-row" id="details-${index}">
+                    <td></td>
+                    <td colspan="8">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Plaka</div>
+                                <div class="detail-value">${v.plate || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Marka/Model</div>
+                                <div class="detail-value">${v.brand || '-'} ${v.model || ''}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Yıl</div>
+                                <div class="detail-value">${v.year || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Kilometre</div>
+                                <div class="detail-value">${v.km ? v.km.toLocaleString() + ' km' : '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Muayene Tarihi</div>
+                                <div class="detail-value">${v.inspection_date || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Sigorta Tarihi</div>
+                                <div class="detail-value">${v.insurance_date || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Bakım Tarihi</div>
+                                <div class="detail-value">${v.maintenance_date || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Yağ Değişim Tarihi</div>
+                                <div class="detail-value">${v.oil_change_date || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Yağ Değişim KM</div>
+                                <div class="detail-value">${v.oil_change_km ? v.oil_change_km.toLocaleString() + ' km' : '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Yağ Aralığı</div>
+                                <div class="detail-value">${v.oil_interval_km ? v.oil_interval_km.toLocaleString() + ' km' : '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Bölge</div>
+                                <div class="detail-value">${v.region || '-'}</div>
+                            </div>
+                            <div class="detail-item" style="grid-column: 1 / -1;">
+                                <div class="detail-label">Notlar</div>
+                                <div class="detail-value" style="white-space: pre-wrap;">${v.notes || '-'}</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Toggle vehicle details
+    function toggleVehicleDetails(index) {
+        const detailsRow = document.getElementById(`details-${index}`);
+        const icon = document.getElementById(`icon-${index}`);
+
+        detailsRow.classList.toggle('show');
+        icon.classList.toggle('expanded');
+    }
+
+    // Search input listener
+    document.getElementById('vehicle-search').addEventListener('input', filterVehicles);
+
+    // Theme toggle function
+    function toggleTheme() {
+        const body = document.body;
+        const themes = ['', 'theme-cyber', 'theme-light'];
+        const currentTheme = body.className;
+        const currentIndex = themes.indexOf(currentTheme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        body.className = themes[nextIndex];
+
+        // Save to localStorage
+        localStorage.setItem('theme', themes[nextIndex]);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.body.className = savedTheme;
+    }
+
+    // Load data on page load
+    loadVehicles();
+</script>
+{% endblock %}

@@ -504,6 +504,49 @@ def stock():
         return render_template('error.html', error=str(e)), 500
 
 
+# ============================================================================
+# VEHICLE MANAGEMENT ROUTES
+# ============================================================================
+
+@app.route('/vehicles')
+def vehicles():
+    """Vehicle management page"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        user = db.get_user(session['user_id'])
+        return render_template('vehicles.html', user=user)
+    except Exception as e:
+        return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/drivers')
+def drivers():
+    """Driver management page"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        user = db.get_user(session['user_id'])
+        return render_template('drivers.html', user=user)
+    except Exception as e:
+        return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/vehicle-faults')
+def vehicle_faults():
+    """Vehicle faults management page"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        user = db.get_user(session['user_id'])
+        return render_template('vehicle_faults.html', user=user)
+    except Exception as e:
+        return render_template('error.html', error=str(e)), 500
+
+
 @app.route('/api/employee-timesheets/<int:emp_id>')
 def api_employee_timesheets(emp_id):
     """Get timesheet details for a specific employee with calculations"""
@@ -676,6 +719,188 @@ def api_employee_overtime():
                 'overtime': round(total_overtime, 2)
             })
             
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# VEHICLE MANAGEMENT API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/vehicles')
+def api_vehicles():
+    """Get all vehicles with alert status"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        user = db.get_user(session['user_id'])
+        region = None if user['region'] == 'ALL' else user['region']
+        
+        vehicles = db.list_vehicles(region=region)
+        result = []
+        
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        
+        for v in vehicles:
+            # v: (id, plate, brand, model, year, km, inspection_date, insurance_date,
+            #     maintenance_date, oil_change_date, oil_change_km, oil_interval_km, notes, region)
+            
+            # Calculate alerts
+            alerts = []
+            
+            # Inspection alert
+            if v[6]:  # inspection_date
+                try:
+                    inspection_date = datetime.strptime(v[6], '%Y-%m-%d').date()
+                    days_until = (inspection_date - today).days
+                    if days_until < 0:
+                        alerts.append({'type': 'inspection', 'status': 'expired', 'days': days_until})
+                    elif days_until <= 7:
+                        alerts.append({'type': 'inspection', 'status': 'critical', 'days': days_until})
+                    elif days_until <= 30:
+                        alerts.append({'type': 'inspection', 'status': 'warning', 'days': days_until})
+                except:
+                    pass
+            
+            # Insurance alert
+            if v[7]:  # insurance_date
+                try:
+                    insurance_date = datetime.strptime(v[7], '%Y-%m-%d').date()
+                    days_until = (insurance_date - today).days
+                    if days_until < 0:
+                        alerts.append({'type': 'insurance', 'status': 'expired', 'days': days_until})
+                    elif days_until <= 7:
+                        alerts.append({'type': 'insurance', 'status': 'critical', 'days': days_until})
+                    elif days_until <= 30:
+                        alerts.append({'type': 'insurance', 'status': 'warning', 'days': days_until})
+                except:
+                    pass
+            
+            # Maintenance alert
+            if v[8]:  # maintenance_date
+                try:
+                    maintenance_date = datetime.strptime(v[8], '%Y-%m-%d').date()
+                    days_until = (maintenance_date - today).days
+                    if days_until < 0:
+                        alerts.append({'type': 'maintenance', 'status': 'expired', 'days': days_until})
+                    elif days_until <= 7:
+                        alerts.append({'type': 'maintenance', 'status': 'critical', 'days': days_until})
+                    elif days_until <= 30:
+                        alerts.append({'type': 'maintenance', 'status': 'warning', 'days': days_until})
+                except:
+                    pass
+            
+            result.append({
+                'id': v[0],
+                'plate': v[1],
+                'brand': v[2],
+                'model': v[3],
+                'year': v[4],
+                'km': v[5],
+                'inspection_date': v[6],
+                'insurance_date': v[7],
+                'maintenance_date': v[8],
+                'oil_change_date': v[9],
+                'oil_change_km': v[10],
+                'oil_interval_km': v[11],
+                'notes': v[12],
+                'region': v[13],
+                'alerts': alerts
+            })
+        
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/drivers')
+def api_drivers():
+    """Get all drivers"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        user = db.get_user(session['user_id'])
+        region = None if user['region'] == 'ALL' else user['region']
+        
+        drivers = db.list_drivers(region=region)
+        result = []
+        
+        from datetime import datetime
+        today = datetime.now().date()
+        
+        for d in drivers:
+            # d: (id, full_name, license_class, license_expiry, phone, notes, region)
+            
+            # Calculate license expiry alert
+            alert = None
+            if d[3]:  # license_expiry
+                try:
+                    expiry_date = datetime.strptime(d[3], '%Y-%m-%d').date()
+                    days_until = (expiry_date - today).days
+                    if days_until < 0:
+                        alert = {'status': 'expired', 'days': days_until}
+                    elif days_until <= 7:
+                        alert = {'status': 'critical', 'days': days_until}
+                    elif days_until <= 30:
+                        alert = {'status': 'warning', 'days': days_until}
+                except:
+                    pass
+            
+            result.append({
+                'id': d[0],
+                'full_name': d[1],
+                'license_class': d[2],
+                'license_expiry': d[3],
+                'phone': d[4],
+                'notes': d[5],
+                'region': d[6],
+                'alert': alert
+            })
+        
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/vehicle-faults')
+def api_vehicle_faults():
+    """Get vehicle faults"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        user = db.get_user(session['user_id'])
+        region = None if user['region'] == 'ALL' else user['region']
+        
+        # Get filter parameters
+        status_filter = request.args.get('status', 'open')  # 'open', 'closed', 'all'
+        
+        if status_filter == 'open':
+            faults = db.list_open_vehicle_faults(region=region)
+        else:
+            faults = db.list_vehicle_faults(region=region)
+            if status_filter == 'closed':
+                faults = [f for f in faults if f[7] == 'Kapali']
+        
+        result = []
+        for f in faults:
+            # f: (id, vehicle_id, plate, title, description, opened_date, closed_date, status, region)
+            result.append({
+                'id': f[0],
+                'vehicle_id': f[1],
+                'plate': f[2],
+                'title': f[3],
+                'description': f[4],
+                'opened_date': f[5],
+                'closed_date': f[6],
+                'status': f[7],
+                'region': f[8]
+            })
+        
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Rainstaff ERP - Araç Arızaları{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div class="logo">
+        <h1 style="font-size: 24px; font-weight: bold; letter-spacing: 3px;">
+            RAIN
+        </h1>
+    </div>
+    <div class="user-info">
+        <div class="user-badge">
+            <span>{{ user['username'] }}</span> | <span>{{ user['region'] }}</span>
+        </div>
+        <div class="control-panel">
+            <button id="theme-toggle" onclick="toggleTheme()" class="ctrl-btn ctrl-theme" title="Tema Değiştir">
+                <span class="ctrl-icon">◐</span>
+                <span class="ctrl-label">TEMA</span>
+            </button>
+            <a href="/dashboard" class="ctrl-btn ctrl-back" title="Dashboard'a Dön">
+                <span class="ctrl-icon">←</span>
+                <span class="ctrl-label">GERİ</span>
+            </a>
+            <a href="/logout" class="ctrl-btn ctrl-logout" title="Sistemden Çık">
+                <span class="ctrl-icon">⏻</span>
+                <span class="ctrl-label">ÇIKIŞ</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="nav-container">
+    <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab">GENEL BAKIŞ</a>
+        <a href="/vehicles" class="nav-tab">ARAÇLAR</a>
+        <a href="/drivers" class="nav-tab">SÜRÜCÜLER</a>
+        <a href="/vehicle-faults" class="nav-tab active">ARIZALAR</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Toplam Arıza</h3>
+            <div class="value" id="total-faults">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Açık Arızalar</h3>
+            <div class="value" id="open-faults" style="color: #ff4444;">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Kapalı Arızalar</h3>
+            <div class="value" id="closed-faults" style="color: var(--primary-color);">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Etkilenen Araç</h3>
+            <div class="value" id="affected-vehicles">-</div>
+        </div>
+    </div>
+
+    <!-- Faults Table -->
+    <div class="card">
+        <h2>>>> ARAÇ ARIZA KAYITLARI</h2>
+
+        <!-- Filter Controls -->
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="fault-search" placeholder="Plaka, başlık veya açıklama ara..."
+                style="flex: 1; min-width: 200px; padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+
+            <select id="status-filter" onchange="loadFaults()"
+                style="padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+                <option value="open">Açık Arızalar</option>
+                <option value="closed">Kapalı Arızalar</option>
+                <option value="all">Tüm Arızalar</option>
+            </select>
+
+            <select id="region-filter" onchange="filterFaults()"
+                style="padding: 10px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 4px;">
+                <option value="">[ TÜM BÖLGELER ]</option>
+                <option value="Ankara">Ankara</option>
+                <option value="Istanbul">İstanbul</option>
+                <option value="Izmir">İzmir</option>
+                <option value="Bursa">Bursa</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>PLAKA</th>
+                        <th>BAŞLIK</th>
+                        <th>AÇILIŞ TARİHİ</th>
+                        <th>KAPANIŞ TARİHİ</th>
+                        <th>BÖLGE</th>
+                        <th>DURUM</th>
+                    </tr>
+                </thead>
+                <tbody id="faults-table">
+                    <tr>
+                        <td colspan="7" class="loading">Yükleniyor</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Control Panel Buttons */
+    .control-panel {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .ctrl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        color: var(--primary-color);
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ctrl-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transition: left 0.5s;
+    }
+
+    .ctrl-btn:hover::before {
+        left: 100%;
+    }
+
+    .ctrl-btn:hover {
+        background: var(--primary-color);
+        color: var(--text-inverse);
+        box-shadow: 0 0 20px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .ctrl-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .ctrl-label {
+        font-size: 10px;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    .status-open {
+        background: rgba(255, 68, 68, 0.2);
+        color: #ff4444;
+        border: 1px solid #ff4444;
+        box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        animation: pulse-red 2s infinite;
+    }
+
+    .status-closed {
+        background: rgba(0, 255, 65, 0.2);
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    @keyframes pulse-red {
+
+        0%,
+        100% {
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
+        }
+    }
+
+    /* Child Row Details */
+    .child-row {
+        display: none;
+        background: rgba(0, 26, 0, 0.3);
+    }
+
+    .child-row.show {
+        display: table-row !important;
+    }
+
+    .child-row td {
+        padding: 20px 40px !important;
+        border-bottom: 2px solid var(--border-color) !important;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .detail-item {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 2px solid var(--primary-color);
+        border-radius: 3px;
+    }
+
+    .detail-label {
+        color: var(--text-muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    .detail-description {
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+        font-family: 'Exo 2', sans-serif;
+        line-height: 1.6;
+    }
+
+    /* Expand Icon */
+    .expand-icon {
+        display: inline-block;
+        transition: transform 0.3s;
+        cursor: pointer;
+        color: var(--primary-color);
+        font-size: 14px;
+    }
+
+    .expand-icon.expanded {
+        transform: rotate(90deg);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .control-panel {
+            gap: 5px;
+        }
+
+        .ctrl-btn {
+            padding: 6px 10px;
+            gap: 4px;
+        }
+
+        .ctrl-icon {
+            font-size: 14px;
+        }
+
+        .ctrl-label {
+            font-size: 9px;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            padding: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+        }
+
+        .stat-card h3 {
+            font-size: 10px;
+        }
+
+        .detail-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .child-row td {
+            padding: 15px 10px !important;
+        }
+
+        /* Hide some columns on mobile */
+        table th:nth-child(5),
+        table td:nth-child(5),
+        table th:nth-child(6),
+        table td:nth-child(6) {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        /* Hide opened date column on very small screens */
+        table th:nth-child(4),
+        table td:nth-child(4) {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    let faultsData = [];
+    let filteredData = [];
+
+    // Load faults data
+    function loadFaults() {
+        const tbody = document.getElementById('faults-table');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">Yükleniyor</td></tr>';
+
+        const statusFilter = document.getElementById('status-filter').value;
+        const url = `/api/vehicle-faults?status=${statusFilter}`;
+
+        fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error('Veri yüklenemedi');
+                return res.json();
+            })
+            .then(data => {
+                faultsData = data;
+                filteredData = data;
+                updateStats();
+                filterFaults();
+            })
+            .catch(err => {
+                console.error('Faults error:', err);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ff4444;">❌ ' + err.message + '</td></tr>';
+            });
+    }
+
+    // Update statistics
+    function updateStats() {
+        // Get all faults for stats (not just filtered)
+        fetch('/api/vehicle-faults?status=all')
+            .then(res => res.json())
+            .then(allFaults => {
+                const total = allFaults.length;
+                const open = allFaults.filter(f => f.status === 'Acik').length;
+                const closed = allFaults.filter(f => f.status === 'Kapali').length;
+                const uniqueVehicles = new Set(allFaults.map(f => f.vehicle_id)).size;
+
+                document.getElementById('total-faults').textContent = total;
+                document.getElementById('open-faults').textContent = open;
+                document.getElementById('closed-faults').textContent = closed;
+                document.getElementById('affected-vehicles').textContent = uniqueVehicles;
+            })
+            .catch(err => {
+                console.error('Stats error:', err);
+            });
+    }
+
+    // Filter faults
+    function filterFaults() {
+        const searchTerm = document.getElementById('fault-search').value.toLowerCase();
+        const regionFilter = document.getElementById('region-filter').value;
+
+        filteredData = faultsData.filter(f => {
+            // Search filter
+            const matchesSearch = !searchTerm ||
+                (f.plate && f.plate.toLowerCase().includes(searchTerm)) ||
+                (f.title && f.title.toLowerCase().includes(searchTerm)) ||
+                (f.description && f.description.toLowerCase().includes(searchTerm));
+
+            // Region filter
+            const matchesRegion = !regionFilter || f.region === regionFilter;
+
+            return matchesSearch && matchesRegion;
+        });
+
+        renderFaultsTable();
+    }
+
+    // Render faults table
+    function renderFaultsTable() {
+        const tbody = document.getElementById('faults-table');
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Arıza kaydı bulunamadı</td></tr>';
+            return;
+        }
+
+        let html = '';
+        filteredData.forEach((f, index) => {
+            // Determine status badge
+            const statusBadge = f.status === 'Acik'
+                ? '<span class="status-badge status-open">AÇIK</span>'
+                : '<span class="status-badge status-closed">KAPALI</span>';
+
+            // Format dates
+            const openedDate = f.opened_date || '-';
+            const closedDate = f.closed_date || '-';
+
+            // Calculate duration if closed
+            let duration = '';
+            if (f.opened_date && f.closed_date) {
+                try {
+                    const opened = new Date(f.opened_date);
+                    const closed = new Date(f.closed_date);
+                    const days = Math.floor((closed - opened) / (1000 * 60 * 60 * 24));
+                    duration = `${days} gün`;
+                } catch (e) {
+                    duration = '-';
+                }
+            }
+
+            // Parent row
+            html += `
+                <tr class="parent-row" onclick="toggleFaultDetails(${index})">
+                    <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                    <td style="color: var(--primary-color); font-weight: 700;">${f.plate || '-'}</td>
+                    <td>${f.title || '-'}</td>
+                    <td>${openedDate}</td>
+                    <td>${closedDate}</td>
+                    <td>${f.region || '-'}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+
+            // Child row (details)
+            html += `
+                <tr class="child-row" id="details-${index}">
+                    <td></td>
+                    <td colspan="6">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Plaka</div>
+                                <div class="detail-value">${f.plate || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Başlık</div>
+                                <div class="detail-value">${f.title || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Açılış Tarihi</div>
+                                <div class="detail-value">${openedDate}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Kapanış Tarihi</div>
+                                <div class="detail-value">${closedDate}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Süre</div>
+                                <div class="detail-value">${duration || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Bölge</div>
+                                <div class="detail-value">${f.region || '-'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Durum</div>
+                                <div class="detail-value">${f.status === 'Acik' ? 'AÇIK' : 'KAPALI'}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <div class="detail-label" style="margin-bottom: 10px;">AÇIKLAMA</div>
+                            <div class="detail-description">${f.description || 'Açıklama girilmemiş'}</div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Toggle fault details
+    function toggleFaultDetails(index) {
+        const detailsRow = document.getElementById(`details-${index}`);
+        const icon = document.getElementById(`icon-${index}`);
+
+        detailsRow.classList.toggle('show');
+        icon.classList.toggle('expanded');
+    }
+
+    // Search input listener
+    document.getElementById('fault-search').addEventListener('input', filterFaults);
+
+    // Theme toggle function
+    function toggleTheme() {
+        const body = document.body;
+        const themes = ['', 'theme-cyber', 'theme-light'];
+        const currentTheme = body.className;
+        const currentIndex = themes.indexOf(currentTheme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        body.className = themes[nextIndex];
+
+        // Save to localStorage
+        localStorage.setItem('theme', themes[nextIndex]);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.body.className = savedTheme;
+    }
+
+    // Load data on page load
+    loadFaults();
+</script>
+{% endblock %}
