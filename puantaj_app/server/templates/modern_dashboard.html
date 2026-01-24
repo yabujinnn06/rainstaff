@@ -819,10 +819,19 @@
         });
 
         tbody.innerHTML = html;
-        // Event listeners are now handled by delegation (see DOMContentLoaded)
-    }
 
-    // REMOVED: attachEmployeeListeners() - now using event delegation instead
+        // Simple event listener attachment (no cloning, no complexity)
+        setTimeout(() => {
+            document.querySelectorAll('.employee-toggle').forEach(row => {
+                row.addEventListener('click', function () {
+                    const index = parseInt(this.dataset.empIndex);
+                    if (!isNaN(index)) {
+                        toggleEmployee(index);
+                    }
+                });
+            });
+        }, 100); // Small delay to ensure DOM is ready
+    }
 
     function toggleEmployee(index) {
         const childRow = document.getElementById(`emp-child-${index}`);
