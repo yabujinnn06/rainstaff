@@ -856,6 +856,10 @@
         if (childRow.classList.contains('show')) {
             childRow.classList.remove('show');
             icon.classList.remove('expanded');
+
+            // Clean up inline styles to allow closing
+            childRow.style.display = 'none';
+            // Optional: reset TD styles if needed, but row hiding should be enough
         } else {
             childRow.classList.add('show');
             icon.classList.add('expanded');
