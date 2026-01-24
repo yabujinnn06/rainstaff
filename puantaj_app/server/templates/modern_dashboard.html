@@ -613,14 +613,18 @@
                 html += '<th>TARİH</th><th>GİRİŞ</th><th>ÇIKIŞ</th><th>MOLA (dk)</th><th>ÇALIŞILAN</th><th>FAZLA MESAİ</th><th>GECE</th></tr></thead><tbody>';
 
                 data.forEach(ts => {
-                    html += `<tr>
+                    // Highlight row if there's overtime
+                    const hasOvertime = ts.overtime > 0;
+                    const rowStyle = hasOvertime ? 'background: rgba(0, 255, 65, 0.15); border-left: 3px solid var(--primary-color);' : '';
+
+                    html += `<tr style="${rowStyle}">
                         <td>${ts.work_date}</td>
                         <td>${ts.start_time}</td>
                         <td>${ts.end_time}</td>
                         <td>${ts.break_minutes}</td>
                         <td>${ts.worked_hours.toFixed(1)} saat</td>
-                        <td style="color: ${ts.overtime > 0 ? 'var(--matrix-green)' : 'var(--text-muted)'};">${ts.overtime.toFixed(1)} saat</td>
-                        <td style="color: ${ts.night_hours > 0 ? 'var(--matrix-green)' : 'var(--text-muted)'};">${ts.night_hours.toFixed(1)} saat</td>
+                        <td style="color: ${ts.overtime > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${ts.overtime > 0 ? 'bold' : 'normal'};">${ts.overtime.toFixed(1)} saat</td>
+                        <td style="color: ${ts.night_hours > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${ts.night_hours > 0 ? 'bold' : 'normal'};">${ts.night_hours.toFixed(1)} saat</td>
                     </tr>`;
                 });
 
