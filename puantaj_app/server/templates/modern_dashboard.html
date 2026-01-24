@@ -229,13 +229,12 @@
             </div>
 
             <style>
-
                 /* MODERN ERP STYLES */
                 .matrix-btn {
                     padding: 8px 16px;
                     font-family: 'Exo 2', sans-serif;
                     font-weight: 600;
-                    font-size: 12px; 
+                    font-size: 12px;
                     letter-spacing: 1px;
                     border: 1px solid var(--matrix-green);
                     border-radius: 4px;
@@ -297,7 +296,7 @@
                     color: white;
                     box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
                 }
-                
+
                 .scanned-item {
                     background: rgba(0, 255, 65, 0.3) !important;
                     border-left: 3px solid var(--matrix-green) !important;
@@ -311,7 +310,8 @@
                 /* Mobile Optimizations */
                 @media (max-width: 768px) {
                     .matrix-btn {
-                        padding: 10px 14px; /* Larger touch target */
+                        padding: 10px 14px;
+                        /* Larger touch target */
                         font-size: 11px;
                         flex: 1;
                     }
@@ -321,7 +321,7 @@
                         font-size: 11px !important;
                         white-space: nowrap;
                     }
-                    
+
                     /* Table Fixes */
                     .table-responsive {
                         border: 1px solid var(--border-color);
@@ -329,8 +329,9 @@
                     }
 
                     /* Make text break formatted for mobile */
-                    table td, table th {
-                        font-family: 'Share Tech Mono', monospace; 
+                    table td,
+                    table th {
+                        font-family: 'Share Tech Mono', monospace;
                         font-size: 12px;
                     }
 
@@ -339,10 +340,17 @@
                         display: table-row;
                         animation: slideDown 0.3s ease;
                     }
-                    
+
                     @keyframes slideDown {
-                        from { opacity: 0; transform: translateY(-10px); }
-                        to { opacity: 1; transform: translateY(0); }
+                        from {
+                            opacity: 0;
+                            transform: translateY(-10px);
+                        }
+
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
                     }
 
                     /* Indent child rows instead of hiding first col if needed */
@@ -352,13 +360,12 @@
                         border-bottom: 1px dashed var(--border-color) !important;
                         white-space: normal !important;
                     }
-                    
+
                     /* Hide empty first cell in child row on mobile to save space */
                     .child-row td:first-child {
                         display: none;
                     }
                 }
-
             </style>
 
             <!-- Arama ve Filtre -->
@@ -939,11 +946,11 @@
     }
 
     // === TEMA SİSTEMİ ===
-    const themes = ['matrix', 'gece', 'sabah'];
+    const themes = ['matrix', 'cyber', 'light'];
     const themeLabels = {
-        'matrix': '[ M4TR1X ]',
-        'gece': '[ GECE ]',
-        'sabah': '[ G.NDZ ]'
+        'matrix': '[ MATRIX ]',
+        'cyber': '[ CYBER ]',
+        'light': '[ LIGHT ]'
     };
 
     function initTheme() {
@@ -952,13 +959,13 @@
     }
 
     function applyTheme(theme) {
-        document.body.classList.remove('theme-gece', 'theme-sabah');
-        if (theme === 'gece') {
-            document.body.classList.add('theme-gece');
-        } else if (theme === 'sabah') {
-            document.body.classList.add('theme-sabah');
+        document.body.classList.remove('theme-cyber', 'theme-light');
+        if (theme === 'cyber') {
+            document.body.classList.add('theme-cyber');
+        } else if (theme === 'light') {
+            document.body.classList.add('theme-light');
         }
-        // Matrix varsayılan, class gerekmez
+        // Matrix is default, no class needed
 
         const btn = document.getElementById('theme-toggle');
         if (btn) {
