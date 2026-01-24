@@ -830,14 +830,14 @@
                     }
                 });
 
-                // Touch event for mobile
-                row.addEventListener('touchstart', function (e) {
+                // Touch event for mobile (use touchend like stock dropdowns)
+                row.addEventListener('touchend', function (e) {
                     const index = parseInt(this.dataset.empIndex);
                     if (!isNaN(index)) {
                         toggleEmployee(index);
                         e.preventDefault();
                     }
-                }, { passive: false });
+                });
             });
         }, 100); // Small delay to ensure DOM is ready
     }
