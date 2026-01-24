@@ -914,13 +914,13 @@
                     const rowStyle = hasOvertime ? 'background: var(--active-bg); border-left: 3px solid var(--primary-color);' : 'background: var(--hover-bg);';
 
                     html += `<tr style="${rowStyle}">
-                        <td>${ts.work_date}</td>
-                        <td>${ts.start_time}</td>
-                        <td>${ts.end_time}</td>
-                        <td>${ts.break_minutes}</td>
-                        <td>${ts.worked_hours.toFixed(1)} saat</td>
-                        <td style="color: ${ts.overtime > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${ts.overtime > 0 ? 'bold' : 'normal'};">${ts.overtime.toFixed(1)} saat</td>
-                        <td style="color: ${ts.night_hours > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${ts.night_hours > 0 ? 'bold' : 'normal'};">${ts.night_hours.toFixed(1)} saat</td>
+                        <td style="display: table-cell; min-width: 85px;">${ts.work_date}</td>
+                        <td style="display: table-cell;">${ts.start_time}</td>
+                        <td style="display: table-cell;">${ts.end_time}</td>
+                        <td style="display: table-cell;">${ts.break_minutes}</td>
+                        <td style="display: table-cell;">${ts.worked_hours.toFixed(1)} saat</td>
+                        <td style="display: table-cell; color: ${ts.overtime > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${ts.overtime > 0 ? 'bold' : 'normal'};">${ts.overtime.toFixed(1)} saat</td>
+                        <td style="display: table-cell; color: ${ts.night_hours > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${ts.night_hours > 0 ? 'bold' : 'normal'};">${ts.night_hours.toFixed(1)} saat</td>
                     </tr>`;
                 });
 
