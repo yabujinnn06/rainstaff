@@ -788,6 +788,9 @@
     function renderEmployeeTable(data) {
         const tbody = document.getElementById('employees-table');
 
+        // Update global array so toggleEmployee uses correct filtered data
+        employeeData = data;
+
         if (data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Henüz çalışan verisi yok</td></tr>';
             return;
