@@ -539,6 +539,10 @@ def api_employee_timesheets(emp_id):
         # Get settings
         settings = db.get_all_settings()
         
+        # Get filter parameters
+        month = request.args.get('month')
+        year = request.args.get('year')
+        
         # Get timesheets
         timesheets = db.list_timesheets(employee_id=emp_id)
         result = []
@@ -546,6 +550,12 @@ def api_employee_timesheets(emp_id):
         for ts in timesheets:
             try:
                 work_date, start_time, end_time, break_minutes, is_special = ts[3], ts[4], ts[5], ts[6], ts[7]
+                
+                # Apply date filters
+                if month and work_date[5:7] != month:
+                    continue
+                if year and work_date[0:4] != year:
+                    continue
                 
                 # Calculate hours
                 worked, regular, overtime, night, overnight, special_day, special_night, special_overnight = calc.calc_day_hours(
