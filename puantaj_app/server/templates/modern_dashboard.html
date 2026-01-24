@@ -630,8 +630,8 @@
                         <tr>
                             <th style="width: 50px;"></th>
                             <th>STOK KODU</th>
-                            <th>ÜRÜN ADI</th>
                             <th>SERİ SAYISI</th>
+                            <th>ÜRÜN ADI</th>
                             <th>BÖLGE</th>
                         </tr>
                     </thead>
@@ -885,7 +885,7 @@
                 data.forEach(ts => {
                     // Highlight row if there's overtime
                     const hasOvertime = ts.overtime > 0;
-                    const rowStyle = hasOvertime ? 'background: rgba(0, 255, 65, 0.15); border-left: 3px solid var(--primary-color);' : '';
+                    const rowStyle = hasOvertime ? 'background: var(--active-bg); border-left: 3px solid var(--primary-color);' : 'background: var(--hover-bg);';
 
                     html += `<tr style="${rowStyle}">
                         <td>${ts.work_date}</td>
@@ -940,22 +940,22 @@
             // Get unique regions
             const regions = [...new Set(item.seri_list.map(s => s.bolge))].join(', ');
 
-            // Parent row - using data attribute for mobile support
+            // Parent row - NEW COLUMN ORDER: Stok Kodu, Seri Sayısı, Ürün Adı, Bölge
             html += `<tr class="parent-row stock-toggle" data-stock-index="${index}" style="cursor: pointer; touch-action: manipulation;">
                 <td style="text-align: center;"><span class="expand-icon" id="icon-${index}">▶</span></td>
                 <td style="font-weight: bold; color: var(--text-primary);">${item.stok_kod}</td>
+                <td><span style="background: var(--hover-bg); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--primary-color); color: var(--primary-color);">${item.seri_count} adet</span></td>
                 <td>${item.stok_adi}</td>
-                <td><span style="background: rgba(0, 255, 65, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--matrix-green);">${item.seri_count} adet</span></td>
                 <td style="font-size: 0.9em; opacity: 0.8;">${regions}</td>
             </tr>`;
 
-            // Child rows (serial numbers) - using CLASSES for targeting
+            // Child rows - THEME COLORS
             item.seri_list.forEach(seri => {
-                html += `<tr class="child-row stock-child-${index}">
+                html += `<tr class="child-row stock-child-${index}" style="background: var(--hover-bg);">
                     <td></td>
                     <td style="color: var(--text-secondary); padding-left: 20px;">└─ ${seri.seri_no || '-'}</td>
                     <td style="color: var(--text-muted); font-size: 13px;">${seri.durum || 'OK'}</td>
-                    <td style="font-size: 13px; font-family: 'Share Tech Mono';">${seri.bolge || '-'}</td>
+                    <td style="font-size: 13px; font-family: 'Share Tech Mono'; color: var(--text-secondary);">${seri.bolge || '-'}</td>
                     <td></td>
                 </tr>`;
             });
