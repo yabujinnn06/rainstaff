@@ -845,9 +845,11 @@
                 toggleEmployee(index);
             });
         });
+        console.log(`✅ Attached listeners to ${rows.length} employee rows`);
     }
 
     function toggleEmployee(index) {
+        console.log('toggleEmployee called:', index);
         const childRow = document.getElementById(`emp-child-${index}`);
         const icon = document.getElementById(`emp-icon-${index}`);
         const detailsDiv = document.getElementById(`emp-details-${index}`);
