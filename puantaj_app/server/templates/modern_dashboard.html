@@ -819,35 +819,10 @@
         });
 
         tbody.innerHTML = html;
-
-        // Add event listeners for mobile touch support
-        attachEmployeeListeners();
+        // Event listeners are now handled by delegation (see DOMContentLoaded)
     }
 
-    function attachEmployeeListeners() {
-        const rows = document.querySelectorAll('.employee-toggle');
-        rows.forEach(row => {
-            // Remove old listeners if any
-            row.replaceWith(row.cloneNode(true));
-        });
-
-        // Re-select after clone
-        document.querySelectorAll('.employee-toggle').forEach(row => {
-            row.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const index = parseInt(this.dataset.empIndex);
-                toggleEmployee(index);
-            });
-
-            // Add touch support
-            row.addEventListener('touchend', function (e) {
-                e.preventDefault();
-                const index = parseInt(this.dataset.empIndex);
-                toggleEmployee(index);
-            });
-        });
-    }
+    // REMOVED: attachEmployeeListeners() - now using event delegation instead
 
     function toggleEmployee(index) {
         const childRow = document.getElementById(`emp-child-${index}`);
@@ -1303,6 +1278,22 @@
     document.addEventListener('DOMContentLoaded', () => {
         initTheme();
         initFilters();
+
+        // === EVENT DELEGATION for Employee Dropdowns ===
+        // Attach ONE listener to tbody, handles all rows (current and future)
+        const empTbody = document.getElementById('employee-table');
+        if (empTbody) {
+            empTbody.addEventListener('click', function (e) {
+                // Find the clicked row (or parent row if clicked on child element)
+                const row = e.target.closest('.employee-toggle');
+                if (row) {
+                    const index = parseInt(row.dataset.empIndex);
+                    if (!isNaN(index)) {
+                        toggleEmployee(index);
+                    }
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
