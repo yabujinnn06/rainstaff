@@ -869,7 +869,18 @@
     function loadEmployeeTimesheets(index, empId) {
         const detailsDiv = document.getElementById(`emp-details-${index}`);
 
-        fetch(`/api/employee-timesheets/${empId}`)
+        // Get current filter values
+        const month = document.getElementById('emp-month-filter').value;
+        const year = document.getElementById('emp-year-filter').value;
+
+        // Build URL with filters
+        let url = `/api/employee-timesheets/${empId}`;
+        const params = new URLSearchParams();
+        if (month) params.append('month', month);
+        if (year) params.append('year', year);
+        if (params.toString()) url += '?' + params.toString();
+
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 if (data.length === 0) {
