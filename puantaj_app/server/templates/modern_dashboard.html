@@ -819,27 +819,29 @@
         });
 
         tbody.innerHTML = html;
+        attachEmployeeListeners();
+    }
 
-        // Simple event listener attachment (no cloning, no complexity)
-        setTimeout(() => {
-            document.querySelectorAll('.employee-toggle').forEach(row => {
-                row.addEventListener('click', function () {
-                    const index = parseInt(this.dataset.empIndex);
-                    if (!isNaN(index)) {
-                        toggleEmployee(index);
-                    }
-                });
+    function attachEmployeeListeners() {
+        const rows = document.querySelectorAll('.employee-toggle');
+        rows.forEach(row => {
+            row.replaceWith(row.cloneNode(true));
+        });
 
-                // Touch event for mobile (use touchend like stock dropdowns)
-                row.addEventListener('touchend', function (e) {
-                    const index = parseInt(this.dataset.empIndex);
-                    if (!isNaN(index)) {
-                        toggleEmployee(index);
-                        e.preventDefault();
-                    }
-                });
+        document.querySelectorAll('.employee-toggle').forEach(row => {
+            row.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const index = parseInt(this.dataset.empIndex);
+                toggleEmployee(index);
             });
-        }, 100); // Small delay to ensure DOM is ready
+
+            row.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                const index = parseInt(this.dataset.empIndex);
+                toggleEmployee(index);
+            });
+        });
     }
 
     function toggleEmployee(index) {
