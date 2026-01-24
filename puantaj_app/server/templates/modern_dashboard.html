@@ -849,30 +849,31 @@
     }
 
     function toggleEmployee(index) {
-        console.log('toggleEmployee called:', index);
         const childRow = document.getElementById(`emp-child-${index}`);
         const icon = document.getElementById(`emp-icon-${index}`);
         const detailsDiv = document.getElementById(`emp-details-${index}`);
 
-        console.log('🔍 Elements:', { childRow, icon, detailsDiv });
-        console.log('🔍 Has show class?', childRow?.classList.contains('show'));
-
         if (childRow.classList.contains('show')) {
-            console.log('➖ Closing...');
             childRow.classList.remove('show');
             icon.classList.remove('expanded');
         } else {
-            console.log('➕ Opening...');
             childRow.classList.add('show');
             icon.classList.add('expanded');
 
-            // Force rendering on mobile
+            // Force rendering on mobile (CRITICAL FIX)
             childRow.style.display = 'table-row';
             childRow.style.height = 'auto';
 
+            // Also force TD style as some mobile browsers need this
+            const td = childRow.querySelector('td');
+            if (td) {
+                td.style.display = 'table-cell';
+                td.style.height = 'auto';
+                td.style.padding = '15px';
+            }
+
             // Load timesheet details if not already loaded
             if (detailsDiv.innerHTML.includes('loading')) {
-                console.log('📥 Loading timesheets...');
                 loadEmployeeTimesheets(index, employeeData[index].id);
             }
         }
