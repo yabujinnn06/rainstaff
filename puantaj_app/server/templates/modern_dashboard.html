@@ -553,8 +553,8 @@
 
         let html = '';
         data.forEach((emp, index) => {
-            // Parent row
-            html += `<tr class="parent-row" onclick="toggleEmployee(${index})">
+            // Parent row - using data attribute instead of onclick for better mobile support
+            html += `<tr class="parent-row employee-toggle" data-emp-index="${index}" style="cursor: pointer; touch-action: manipulation;">
                 <td><span class="expand-icon" id="emp-icon-${index}">▶</span></td>
                 <td>${emp.id}</td>
                 <td>${emp.name}</td>
@@ -577,6 +577,34 @@
         });
 
         tbody.innerHTML = html;
+
+        // Add event listeners for mobile touch support
+        attachEmployeeListeners();
+    }
+
+    function attachEmployeeListeners() {
+        const rows = document.querySelectorAll('.employee-toggle');
+        rows.forEach(row => {
+            // Remove old listeners if any
+            row.replaceWith(row.cloneNode(true));
+        });
+
+        // Re-select after clone
+        document.querySelectorAll('.employee-toggle').forEach(row => {
+            row.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const index = parseInt(this.dataset.empIndex);
+                toggleEmployee(index);
+            });
+
+            // Add touch support
+            row.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                const index = parseInt(this.dataset.empIndex);
+                toggleEmployee(index);
+            });
+        });
     }
 
     function toggleEmployee(index) {
@@ -670,8 +698,8 @@
             // Get unique regions
             const regions = [...new Set(item.seri_list.map(s => s.bolge))].join(', ');
 
-            // Parent row
-            html += `<tr class="parent-row" onclick="toggleStock(${index})">
+            // Parent row - using data attribute for mobile support
+            html += `<tr class="parent-row stock-toggle" data-stock-index="${index}" style="cursor: pointer; touch-action: manipulation;">
                 <td style="text-align: center;"><span class="expand-icon" id="icon-${index}">▶</span></td>
                 <td style="font-weight: bold; color: var(--text-primary);">${item.stok_kod}</td>
                 <td>${item.stok_adi}</td>
@@ -692,6 +720,31 @@
         });
 
         tbody.innerHTML = html;
+
+        // Add event listeners for mobile touch support
+        attachStockListeners();
+    }
+
+    function attachStockListeners() {
+        const rows = document.querySelectorAll('.stock-toggle');
+        rows.forEach(row => {
+            row.replaceWith(row.cloneNode(true));
+        });
+
+        document.querySelectorAll('.stock-toggle').forEach(row => {
+            row.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const index = parseInt(this.dataset.stockIndex);
+                toggleStock(index);
+            });
+
+            row.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                const index = parseInt(this.dataset.stockIndex);
+                toggleStock(index);
+            });
+        });
     }
 
     function toggleStock(index) {
