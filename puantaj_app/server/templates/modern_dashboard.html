@@ -866,6 +866,10 @@
             childRow.classList.add('show');
             icon.classList.add('expanded');
 
+            // Force rendering on mobile
+            childRow.style.display = 'table-row';
+            childRow.style.height = 'auto';
+
             // Load timesheet details if not already loaded
             if (detailsDiv.innerHTML.includes('loading')) {
                 console.log('📥 Loading timesheets...');
