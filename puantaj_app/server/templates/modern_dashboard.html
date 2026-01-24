@@ -905,7 +905,7 @@
                     return;
                 }
 
-                let html = '<table style="width: 100%; margin-top: 10px;"><thead><tr>';
+                let html = '<div class="table-responsive"><table style="width: 100%; margin-top: 10px;"><thead><tr>';
                 html += '<th>TARİH</th><th>GİRİŞ</th><th>ÇIKIŞ</th><th>MOLA (dk)</th><th>ÇALIŞILAN</th><th>FAZLA MESAİ</th><th>GECE</th></tr></thead><tbody>';
 
                 data.forEach(ts => {
@@ -924,7 +924,7 @@
                     </tr>`;
                 });
 
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
                 detailsDiv.innerHTML = html;
             })
             .catch(err => {
