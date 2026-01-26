@@ -618,7 +618,7 @@
 
                     /* Ensure child row needs no special hiding that breaks layout */
                     .child-row.show {
-                        display: table-row;
+                        display: table-row !important;
                         animation: slideDown 0.3s ease;
                     }
 
@@ -1227,25 +1227,9 @@
         if (childRow.classList.contains('show')) {
             childRow.classList.remove('show');
             icon.classList.remove('expanded');
-
-            // Clean up inline styles to allow closing
-            childRow.style.display = 'none';
-            // Optional: reset TD styles if needed, but row hiding should be enough
         } else {
             childRow.classList.add('show');
             icon.classList.add('expanded');
-
-            // Force rendering on mobile (CRITICAL FIX)
-            childRow.style.display = 'table-row';
-            childRow.style.height = 'auto';
-
-            // Also force TD style as some mobile browsers need this
-            const td = childRow.querySelector('td');
-            if (td) {
-                td.style.display = 'table-cell';
-                td.style.height = 'auto';
-                td.style.padding = '15px';
-            }
 
             // Load timesheet details if not already loaded
             if (detailsDiv.innerHTML.includes('loading')) {
