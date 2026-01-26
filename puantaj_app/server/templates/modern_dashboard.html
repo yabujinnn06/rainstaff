@@ -226,20 +226,35 @@
 
             <!-- Barkod Tarayıcı Modal - MATRIX TEMASI -->
             <div id="scanner-modal"
-                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center;">
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
                 <div
-                    style="background: var(--card-bg); padding: 25px; border: 2px solid var(--matrix-green); border-radius: 5px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);">
+                    style="background: var(--card-bg); padding: 20px; border: 2px solid var(--matrix-green); border-radius: 5px; max-width: 500px; width: 95%; text-align: center; box-shadow: 0 0 30px rgba(0, 255, 65, 0.3); max-height: 90vh; display: flex; flex-direction: column;">
                     <h3
-                        style="color: var(--matrix-green); margin-bottom: 20px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--matrix-green);">
+                        style="color: var(--matrix-green); margin-bottom: 15px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--matrix-green); font-size: 18px;">
                         &gt;&gt;&gt; BARKOD TARAYICI &lt;&lt;&lt;
                     </h3>
+
+                    <!-- Kamera Alanı -->
                     <div id="scanner-container"
-                        style="width: 100%; margin-bottom: 15px; border: 1px solid var(--border-color);"></div>
+                        style="width: 100%; height: 250px; margin-bottom: 15px; border: 1px solid var(--border-color); background: #000; overflow: hidden;">
+                    </div>
+
                     <p id="scan-result"
-                        style="color: var(--matrix-green); margin-bottom: 20px; font-size: 16px; font-family: 'Courier New', monospace;">
-                        Barkodu kameraya gosterin_
+                        style="color: var(--matrix-green); margin-bottom: 10px; font-size: 14px; font-family: 'Courier New', monospace; min-height: 20px;">
+                        Barkodu kameraya gösterin_
                     </p>
-                    <button onclick="stopScanner()" class="matrix-btn matrix-btn-danger">
+
+                    <!-- Tarananlar Listesi -->
+                    <div style="text-align: left; margin-bottom: 5px; color: var(--text-muted); font-size: 11px;">SON
+                        TARANANLAR:</div>
+                    <div id="scanner-list"
+                        style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 10px; margin-bottom: 15px; min-height: 100px;">
+                        <!-- Tarananlar buraya eklenecek -->
+                        <div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama
+                            yapılmadı</div>
+                    </div>
+
+                    <button onclick="stopScanner()" class="matrix-btn matrix-btn-danger" style="width: 100%;">
                         [ KAPAT ]
                     </button>
                 </div>
@@ -608,6 +623,58 @@
                     /* Hide empty first cell in child row on mobile to save space */
                     .child-row td:first-child {
                         display: none;
+                    }
+
+                    #scanner-modal {
+                        justify-content: flex-start !important;
+                        padding-top: 20px;
+                        overflow-y: auto;
+                    }
+                }
+
+                .scanner-entry {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px;
+                    border-bottom: 1px solid #333;
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 12px;
+                    animation: slideIn 0.3s ease;
+                }
+
+                .scanner-entry:last-child {
+                    border-bottom: none;
+                }
+
+                .scanner-entry .code {
+                    color: var(--matrix-green);
+                    font-weight: bold;
+                }
+
+                .scanner-entry .name {
+                    color: #aaa;
+                    margin-left: 10px;
+                    flex: 1;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .scanner-entry .time {
+                    color: #555;
+                    font-size: 10px;
+                }
+
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(-10px);
+                        opacity: 0;
+                    }
+
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
                     }
                 }
             </style>
@@ -1072,39 +1139,106 @@
     // BARKOD TARAYICI ve PDF EXPORT
     // ==============================================
 
-    let scannedItems = new Set(); // Taranan seri numaraları
+    let scannedItems = new Map(); // Map kullanarak tekrarları önle (Key: Unique ID/Serial)
     let html5QrCode = null;
+    let isScanLocked = false; // Tarama kilidi (hızlı ardışık taramayı önlemek için)
 
-    // Taranan öğeyi Matrix yeşil rengiyle vurgula
-    function highlightScannedItem(seriNo) {
-        const rows = document.querySelectorAll('#stock-table tr');
-        let found = false;
+    // Normalize string for fuzzy matching (remove spaces, lowercase)
+    function normalizeCode(str) {
+        if (!str) return '';
+        return str.toString().replace(/[\s\-\_]/g, '').toLowerCase();
+    }
 
-        rows.forEach(row => {
-            if (row.textContent.includes(seriNo)) {
-                row.classList.add('scanned-item');
-                found = true;
+    // Akıllı Eşleştirme (Bidirectional Substring Match)
+    function findStockItem(scanCode) {
+        const normalizedScan = normalizeCode(scanCode);
+
+        for (const item of stockData) {
+            // Check Stock Code first
+            const normStockKod = normalizeCode(item.stok_kod);
+
+            // 1. Exact or Substring Match on Stock Code
+            if (normStockKod === normalizedScan || normStockKod.includes(normalizedScan) || normalizedScan.includes(normStockKod)) {
+                return {
+                    type: 'stock_code',
+                    item: item,
+                    seri: null,
+                    matchCode: item.stok_kod
+                };
             }
+
+            // 2. Check Serials
+            for (const seri of item.seri_list) {
+                const normSeri = normalizeCode(seri.seri_no);
+                if (normSeri === normalizedScan || normSeri.includes(normalizedScan) || normalizedScan.includes(normSeri)) {
+                    return {
+                        type: 'serial',
+                        item: item,
+                        seri: seri,
+                        matchCode: seri.seri_no
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    // Taranan öğeyi Matrix yeşil rengiyle vurgula ve listeye ekle
+    function processScannedItem(foundData) {
+        const item = foundData.item;
+        const seri = foundData.seri;
+        const uniqueKey = seri ? seri.seri_no : item.stok_kod; // Unique ID
+
+        // Duplicate Check
+        if (scannedItems.has(uniqueKey)) {
+            return { status: 'duplicate', msg: 'Zaten Tarandi!' };
+        }
+
+        // Add to scanned map
+        scannedItems.set(uniqueKey, {
+            stok_kod: item.stok_kod,
+            stok_adi: item.stok_adi,
+            seri_no: seri ? seri.seri_no : '-',
+            bolge: seri ? seri.bolge : '-',
+            durum: seri ? seri.durum : 'OK'
         });
 
-        // Alt satırları da kontrol et
-        stockData.forEach((item, idx) => {
-            item.seri_list.forEach(seri => {
-                if (seri.seri_no === seriNo || item.stok_kod === seriNo) {
-                    scannedItems.add({
-                        stok_kod: item.stok_kod,
-                        stok_adi: item.stok_adi,
-                        seri_no: seri.seri_no,
-                        bolge: seri.bolge,
-                        durum: seri.durum || 'OK'
-                    });
-                    found = true;
-                }
-            });
-        });
+        // UI Highlight
+        highlightRowInTable(uniqueKey);
+
+        // Add to Scanner Modal List
+        addToScannerList(item.stok_kod, item.stok_adi);
 
         updateScanCount();
-        return found;
+        return { status: 'success', msg: `Eslesti: ${item.stok_adi}` };
+    }
+
+    function highlightRowInTable(code) {
+        const rows = document.querySelectorAll('#stock-table tr');
+        rows.forEach(row => {
+            if (row.textContent.includes(code)) {
+                row.classList.add('scanned-item');
+            }
+        });
+    }
+
+    function addToScannerList(code, name) {
+        const list = document.getElementById('scanner-list');
+        // Clear "empty" message if exists
+        if (list.querySelector('.scanner-entry') === null && list.innerText.includes('Henüz')) {
+            list.innerHTML = '';
+        }
+
+        const div = document.createElement('div');
+        div.className = 'scanner-entry';
+        div.innerHTML = `
+            <div>
+                <span class="code">${code}</span>
+                <div class="name">${name || ''}</div>
+            </div>
+            <div class="time">${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+        `;
+        list.prepend(div); // Add to top
     }
 
     function updateScanCount() {
@@ -1113,11 +1247,15 @@
 
     function clearScannedItems() {
         scannedItems.clear();
-        // Renkleri temizle
         document.querySelectorAll('.scanned-item').forEach(row => {
             row.classList.remove('scanned-item');
         });
         updateScanCount();
+
+        // Clear modal list too
+        const list = document.getElementById('scanner-list');
+        if (list) list.innerHTML = '<div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama yapılmadı</div>';
+
         alert('>> Taranan ogeler sifirlandi!');
     }
 
@@ -1125,6 +1263,12 @@
     function startScanner() {
         const modal = document.getElementById('scanner-modal');
         modal.style.display = 'flex';
+
+        // Reset list UI if empty
+        const list = document.getElementById('scanner-list');
+        if (scannedItems.size === 0 && list) {
+            list.innerHTML = '<div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama yapılmadı</div>';
+        }
 
         // html5-qrcode yükle
         if (!window.Html5Qrcode) {
@@ -1141,46 +1285,69 @@
         html5QrCode = new Html5Qrcode("scanner-container");
 
         html5QrCode.start(
-            { facingMode: "environment" }, // Arka kamera
+            { facingMode: "environment" },
             {
                 fps: 10,
                 qrbox: { width: 250, height: 100 }
             },
             (decodedText) => {
-                // Barkod okundu!
-                document.getElementById('scan-result').innerHTML =
-                    `<span style="color: #FFD700;">✓ ${decodedText}</span>`;
+                // LOCK CHECK
+                if (isScanLocked) return;
 
-                // Vibration feedback (mobil)
-                if (navigator.vibrate) navigator.vibrate(200);
+                // Lock for 2 seconds
+                isScanLocked = true;
+                setTimeout(() => { isScanLocked = false; }, 2000);
 
-                // Tabloda bul ve sarıya boya
-                const found = highlightScannedItem(decodedText);
+                const resultEl = document.getElementById('scan-result');
 
-                if (found) {
-                    // Kısa bir bip sesi (opsiyonel)
-                    try {
-                        const audio = new AudioContext();
-                        const oscillator = audio.createOscillator();
-                        oscillator.connect(audio.destination);
-                        oscillator.frequency.value = 800;
-                        oscillator.start();
-                        setTimeout(() => oscillator.stop(), 100);
-                    } catch (e) { }
+                // Find Item
+                const match = findStockItem(decodedText);
+
+                if (match) {
+                    // Process (Duplicate check & add)
+                    const res = processScannedItem(match);
+
+                    if (res.status === 'success') {
+                        resultEl.innerHTML = `<span style="color: #00FF41; font-weight:bold;">✓ ${res.msg}</span>`;
+                        // Success Sound
+                        playBeep(800);
+                    } else if (res.status === 'duplicate') {
+                        resultEl.innerHTML = `<span style="color: #FFD700;">⚠ ${res.msg}</span>`;
+                        // Warning Sound
+                        playBeep(400);
+                    }
+                } else {
+                    // Not found
+                    resultEl.innerHTML = `<span style="color: #ff4444;">✗ Bulunamadı: ${decodedText}</span>`;
+                    playBeep(200);
                 }
 
+                // Reset text after 1.5s
                 setTimeout(() => {
-                    document.getElementById('scan-result').textContent = 'Sonraki barkodu gösterin...';
+                    if (!isScanLocked) // Only reset if not locked (actually lock is 2s, so this runs while locked)
+                        document.getElementById('scan-result').innerHTML = 'Hazır...';
                 }, 1500);
             },
             (error) => {
-                // Tarama hatası (sürekli oluyor, görmezden gel)
+                // Ignore frame errors
             }
         ).catch((err) => {
-            document.getElementById('scan-result').textContent =
-                'Kamera erişimi reddedildi veya desteklenmiyor.';
-            console.error('Scanner error:', err);
+            document.getElementById('scan-result').textContent = 'Kamera Hatası: ' + err;
         });
+    }
+
+    function playBeep(freq) {
+        try {
+            const audio = new AudioContext();
+            const oscillator = audio.createOscillator();
+            const gain = audio.createGain();
+            oscillator.connect(gain);
+            gain.connect(audio.destination);
+            oscillator.frequency.value = freq;
+            oscillator.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audio.currentTime + 0.1);
+            setTimeout(() => oscillator.stop(), 100);
+        } catch (e) { }
     }
 
     function stopScanner() {
@@ -1190,6 +1357,7 @@
             }).catch(err => console.log(err));
         }
         document.getElementById('scanner-modal').style.display = 'none';
+        isScanLocked = false;
     }
 
     // PDF İndir
@@ -1231,7 +1399,8 @@
         doc.text(`Taranan Öğe: ${scannedItems.size} adet`, 14, 34);
 
         // Tablo verisi
-        const tableData = Array.from(scannedItems).map(item => [
+        // scannedItems is now a Map, convert to array
+        const tableData = Array.from(scannedItems.values()).map(item => [
             item.stok_kod,
             item.stok_adi,
             item.seri_no,
