@@ -1484,22 +1484,35 @@
     }
 
     function initScanner() {
-        // Use Native BarcodeDetector if supported (System Level Optimization)
-        // Html5Qrcode handles the check internally with 'useBarCodeDetectorIfSupported: true'
+        // Use Native BarcodeDetector if supported
+        // Explicitly define formats including ITF for logistics
+        const formats = [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.ITF
+        ];
 
         html5QrCode = new Html5Qrcode("scanner-container", {
             experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            formatsToSupport: formats,
             verbose: false
         });
 
+        // OPTIMIZED FOR MOTION / HAND TREMOR
         const config = {
-            fps: 15, // Increased FPS for faster scanning
-            qrbox: { width: 250, height: 150 }, // Larger scan area
+            fps: 25, // High FPS to catch clear frames during shake
+            qrbox: { width: 300, height: 200 }, // Larger forgiveness area
             aspectRatio: 1.0,
             videoConstraints: {
                 facingMode: "environment",
-                focusMode: "continuous", // System optimal focus
-                width: { min: 640, ideal: 1280, max: 1920 }, // High Res
+                focusMode: "continuous",
+                width: { min: 640, ideal: 1280, max: 1920 },
                 height: { min: 480, ideal: 720, max: 1080 }
             }
         };
@@ -1510,12 +1523,9 @@
             onScanSuccess,
             onScanFailure
         ).then(() => {
-            // Setup Torch & Zoom after start
             setupCameraControls();
-
-            // Debug info
             const nativeStatus = document.getElementById('native-api-status');
-            if (nativeStatus) nativeStatus.textContent = "Active";
+            if (nativeStatus) nativeStatus.textContent = "Active (Multi-Format)";
         }).catch((err) => {
             document.getElementById('scan-result').textContent = 'Kamera Başlatılamadı: ' + err;
         });
@@ -1524,30 +1534,36 @@
     function onScanSuccess(decodedText, decodedResult) {
         if (isScanLocked) return;
 
-        // Lock
         isScanLocked = true;
         setTimeout(() => { isScanLocked = false; }, 2000);
 
         const resultEl = document.getElementById('scan-result');
+        const formatName = decodedResult ? decodedResult.result.format.formatName : 'UNKNOWN';
+
+        // Debug Log in Console
+        console.log(`Scanned: ${decodedText} [${formatName}]`);
+
+        // Find Item
         const match = findStockItem(decodedText);
 
         if (match) {
             const res = processScannedItem(match);
             if (res.status === 'success') {
-                resultEl.innerHTML = `<span style="color: #00FF41; font-weight:bold;">✓ ${res.msg}</span>`;
+                resultEl.innerHTML = `<span style="color: #00FF41; font-weight:bold;">✓ ${res.msg}</span> <span style="font-size:9px; color:#555;">[${formatName}]</span>`;
                 playBeep(800);
             } else if (res.status === 'duplicate') {
                 resultEl.innerHTML = `<span style="color: #FFD700;">⚠ ${res.msg}</span>`;
                 playBeep(400);
             }
         } else {
-            resultEl.innerHTML = `<span style="color: #ff4444;">✗ Bulunamadı: ${decodedText}</span>`;
+            // Show what was scanned even if not found, to help user debug
+            resultEl.innerHTML = `<span style="color: #ff4444;">✗ Bulunamadı: ${decodedText}</span> <div style="font-size:10px; color:#888;">Format: ${formatName}</div>`;
             playBeep(200);
         }
 
         setTimeout(() => {
             if (!isScanLocked) document.getElementById('scan-result').innerHTML = 'Hazır...';
-        }, 1500);
+        }, 3000); // Increased output display time for readability
     }
 
     function onScanFailure(error) {
