@@ -236,9 +236,12 @@
                             <button onclick="toggleTorch()" id="torch-btn" class="matrix-btn-small"
                                 style="display: none; font-family: 'Courier New', monospace; font-size: 9px; padding: 3px 8px;">FLASH</button>
                             <span id="zoom-controls" style="display: none; align-items: center; gap: 5px;">
-                                <button onclick="zoomOut()" class="matrix-btn-small" style="font-family: 'Courier New', monospace; padding: 3px 6px; font-size: 11px;">-</button>
-                                <span style="font-size: 9px; color: var(--text-muted); font-family: 'Courier New', monospace; min-width: 35px; text-align: center;" id="zoom-level">1.0x</span>
-                                <button onclick="zoomIn()" class="matrix-btn-small" style="font-family: 'Courier New', monospace; padding: 3px 6px; font-size: 11px;">+</button>
+                                <span style="font-size: 9px; font-family: 'Courier New', monospace; color: var(--text-muted);">-</span>
+                                <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1"
+                                    oninput="updateZoom(this.value)"
+                                    style="width: 60px; height: 3px; background: #333; border: 1px solid var(--matrix-green); border-radius: 0; outline: none; -webkit-appearance: none; appearance: none;">
+                                <span style="font-size: 9px; font-family: 'Courier New', monospace; color: var(--text-muted);">+</span>
+                                <span style="font-size: 8px; color: var(--matrix-green); font-family: 'Courier New', monospace; min-width: 30px; text-align: center;" id="zoom-level">1.0x</span>
                             </span>
                         </div>
                     </h3>
@@ -782,6 +785,40 @@
                 .matrix-btn-small:hover {
                     background: var(--matrix-green);
                     color: black;
+                }
+
+                /* Matrix Slider Styling */
+                #zoom-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 12px;
+                    height: 12px;
+                    background: var(--matrix-green);
+                    border: 1px solid var(--matrix-green);
+                    cursor: pointer;
+                    box-shadow: 0 0 5px var(--matrix-green);
+                }
+
+                #zoom-slider::-moz-range-thumb {
+                    width: 12px;
+                    height: 12px;
+                    background: var(--matrix-green);
+                    border: 1px solid var(--matrix-green);
+                    cursor: pointer;
+                    box-shadow: 0 0 5px var(--matrix-green);
+                    border-radius: 0;
+                }
+
+                #zoom-slider::-webkit-slider-track {
+                    background: #333;
+                    border: 1px solid var(--matrix-green);
+                    height: 3px;
+                }
+
+                #zoom-slider::-moz-range-track {
+                    background: #333;
+                    border: 1px solid var(--matrix-green);
+                    height: 3px;
                 }
 
                 /* PRO SCANNER STYLES */
@@ -1788,35 +1825,16 @@
         }
     }
 
-    function zoomIn() {
+    function updateZoom(value) {
         if (cameraTrack) {
-            const caps = cameraTrack.getCapabilities();
-            const settings = cameraTrack.getSettings();
-            if (caps.zoom) {
-                const currentZoom = settings.zoom || 1;
-                const newZoom = Math.min(currentZoom + 0.5, caps.zoom.max);
-                cameraTrack.applyConstraints({
-                    advanced: [{ zoom: newZoom }]
-                }).then(() => {
-                    document.getElementById('zoom-level').textContent = newZoom.toFixed(1) + 'x';
-                });
-            }
-        }
-    }
-
-    function zoomOut() {
-        if (cameraTrack) {
-            const caps = cameraTrack.getCapabilities();
-            const settings = cameraTrack.getSettings();
-            if (caps.zoom) {
-                const currentZoom = settings.zoom || 1;
-                const newZoom = Math.max(currentZoom - 0.5, caps.zoom.min);
-                cameraTrack.applyConstraints({
-                    advanced: [{ zoom: newZoom }]
-                }).then(() => {
-                    document.getElementById('zoom-level').textContent = newZoom.toFixed(1) + 'x';
-                });
-            }
+            const zoomValue = parseFloat(value);
+            cameraTrack.applyConstraints({
+                advanced: [{ zoom: zoomValue }]
+            }).then(() => {
+                document.getElementById('zoom-level').textContent = zoomValue.toFixed(1) + 'x';
+            }).catch(err => {
+                console.log('Zoom error:', err);
+            });
         }
     }
 
