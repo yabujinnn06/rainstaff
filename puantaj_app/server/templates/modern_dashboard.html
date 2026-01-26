@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+78906o{% extends "base.html" %}
 
 {% block title %}Rainstaff ERP - Dashboard{% endblock %}
 
@@ -232,14 +232,13 @@
                     <h3
                         style="color: var(--matrix-green); margin-bottom: 10px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--matrix-green); font-size: 16px; display: flex; justify-content: space-between; align-items: center;">
                         <span>&gt;&gt; SCANNER PRO &lt;&lt;</span>
-                        <div style="display: flex; gap: 5px;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             <button onclick="toggleTorch()" id="torch-btn" class="matrix-btn-small"
-                                style="display: none;">[ ⚡ ]</button>
+                                style="display: none; font-family: 'Courier New', monospace; font-size: 9px; padding: 3px 8px;">FLASH</button>
                             <span id="zoom-controls" style="display: none; align-items: center; gap: 5px;">
-                                <span style="font-size: 10px; font-family: 'Courier New', monospace;">[ + ]</span>
-                                <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1"
-                                    style="width: 60px; accent-color: var(--matrix-green);">
-                                <span style="font-size: 10px; font-family: 'Courier New', monospace;">[ - ]</span>
+                                <button onclick="zoomOut()" class="matrix-btn-small" style="font-family: 'Courier New', monospace; padding: 3px 6px; font-size: 11px;">-</button>
+                                <span style="font-size: 9px; color: var(--text-muted); font-family: 'Courier New', monospace; min-width: 35px; text-align: center;" id="zoom-level">1.0x</span>
+                                <button onclick="zoomIn()" class="matrix-btn-small" style="font-family: 'Courier New', monospace; padding: 3px 6px; font-size: 11px;">+</button>
                             </span>
                         </div>
                     </h3>
@@ -1786,6 +1785,38 @@
                     btn.style.borderColor = !current ? '#FFD700' : 'var(--matrix-green)';
                 }
             });
+        }
+    }
+
+    function zoomIn() {
+        if (cameraTrack) {
+            const caps = cameraTrack.getCapabilities();
+            const settings = cameraTrack.getSettings();
+            if (caps.zoom) {
+                const currentZoom = settings.zoom || 1;
+                const newZoom = Math.min(currentZoom + 0.5, caps.zoom.max);
+                cameraTrack.applyConstraints({
+                    advanced: [{ zoom: newZoom }]
+                }).then(() => {
+                    document.getElementById('zoom-level').textContent = newZoom.toFixed(1) + 'x';
+                });
+            }
+        }
+    }
+
+    function zoomOut() {
+        if (cameraTrack) {
+            const caps = cameraTrack.getCapabilities();
+            const settings = cameraTrack.getSettings();
+            if (caps.zoom) {
+                const currentZoom = settings.zoom || 1;
+                const newZoom = Math.max(currentZoom - 0.5, caps.zoom.min);
+                cameraTrack.applyConstraints({
+                    advanced: [{ zoom: newZoom }]
+                }).then(() => {
+                    document.getElementById('zoom-level').textContent = newZoom.toFixed(1) + 'x';
+                });
+            }
         }
     }
 
