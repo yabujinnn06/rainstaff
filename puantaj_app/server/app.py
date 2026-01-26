@@ -292,8 +292,13 @@ def _merge_databases(incoming_path, master_path):
         except sqlite3.OperationalError as e:
             logs.append(f"Error merging employees: {e}")
         
-        # 6. Merge stock_inventory from incoming (skip deleted)
+        # 6. OVERWRITE stock_inventory from incoming (Full Replace)
+        # User accepted to fully replace stock data on sync to handle deletions
         try:
+            # First, wipe existing stock data
+            master_conn.execute("DELETE FROM stock_inventory")
+            logs.append("Cleared all existing stock_inventory records (Full Replace Mode)")
+
             cursor = incoming_conn.execute(
                 "SELECT id, stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet FROM stock_inventory"
             )
