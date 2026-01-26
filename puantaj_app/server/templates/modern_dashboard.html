@@ -1533,37 +1533,47 @@
 
     function onScanSuccess(decodedText, decodedResult) {
         if (isScanLocked) return;
-
         isScanLocked = true;
-        setTimeout(() => { isScanLocked = false; }, 2000);
+
+        // 1. "Şak" Diye Durdur (Freeze the camera to give instant feedback)
+        try {
+            html5QrCode.pause(true);
+        } catch (e) { console.log("Pause failed", e); }
+
+        // 2. Feedback (Sound + Vibrate)
+        playBeep(800);
+        if (navigator.vibrate) navigator.vibrate(200);
 
         const resultEl = document.getElementById('scan-result');
-        const formatName = decodedResult ? decodedResult.result.format.formatName : 'UNKNOWN';
+        const formatName = decodedResult ? decodedResult.result.format.formatName : 'RAW';
 
-        // Debug Log in Console
-        console.log(`Scanned: ${decodedText} [${formatName}]`);
+        console.log(`SCANNED: ${decodedText} [${formatName}]`);
 
-        // Find Item
+        // 3. Process
         const match = findStockItem(decodedText);
 
         if (match) {
             const res = processScannedItem(match);
             if (res.status === 'success') {
-                resultEl.innerHTML = `<span style="color: #00FF41; font-weight:bold;">✓ ${res.msg}</span> <span style="font-size:9px; color:#555;">[${formatName}]</span>`;
-                playBeep(800);
+                resultEl.innerHTML = `<span style="color: #00FF41; font-size: 16px; font-weight:bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; border: 1px solid #00FF41;">✓ ${res.msg}</span>`;
             } else if (res.status === 'duplicate') {
-                resultEl.innerHTML = `<span style="color: #FFD700;">⚠ ${res.msg}</span>`;
-                playBeep(400);
+                resultEl.innerHTML = `<span style="color: #FFD700; font-size: 16px; font-weight:bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; border: 1px solid #FFD700;">⚠ ${res.msg}</span>`;
+                playBeep(400); // Error beep
             }
         } else {
-            // Show what was scanned even if not found, to help user debug
-            resultEl.innerHTML = `<span style="color: #ff4444;">✗ Bulunamadı: ${decodedText}</span> <div style="font-size:10px; color:#888;">Format: ${formatName}</div>`;
-            playBeep(200);
+            resultEl.innerHTML = `<span style="color: #ff4444; font-size: 16px; font-weight:bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; border: 1px solid #ff4444;">✗ BULUNAMADI: ${decodedText}</span>`;
+            playBeep(200); // Error beep
         }
 
+        // 4. Auto Resume after 1.2s (Rapid scanning)
         setTimeout(() => {
-            if (!isScanLocked) document.getElementById('scan-result').innerHTML = 'Hazır...';
-        }, 3000); // Increased output display time for readability
+            try {
+                html5QrCode.resume();
+            } catch (e) { console.log("Resume failed", e); }
+
+            isScanLocked = false;
+            document.getElementById('scan-result').innerHTML = 'Hazır...';
+        }, 1200);
     }
 
     function onScanFailure(error) {
