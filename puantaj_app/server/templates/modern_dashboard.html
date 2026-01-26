@@ -2217,7 +2217,7 @@
         cameraTrack = null;
     }
 
-    // PDF İndir
+    // PDF İndir (UPDATED: Eco-Pro Design & Watermark Fix)
     function downloadPDF() {
         if (scannedItems.size === 0) {
             alert('Önce barkod tarayarak ürün seçin!');
@@ -2259,61 +2259,80 @@
     }
 
     function createPDF(doc, logoImg) {
-        // Helper for Turkish Characters (Standard Fonts wrapper)
-        // Standard PDF fonts (Courier, Helvetica) don't support full UTF-8. 
-        // We map chars to ensure they are readable if the font fails, or rely on browser support.
+        // Helper for Turkish Characters
         function tr(text) {
             if (!text) return '';
             return text.toString()
                 .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
                 .replace(/ş/g, 's').replace(/Ş/g, 'S')
-                .replace(/ı/g, 'i').replace(/İ/g, 'I') // 'I' is better than nothing
+                .replace(/ı/g, 'i').replace(/İ/g, 'I')
                 .replace(/ç/g, 'c').replace(/Ç/g, 'C')
                 .replace(/ö/g, 'o').replace(/Ö/g, 'O')
                 .replace(/ü/g, 'u').replace(/Ü/g, 'U');
         }
 
-        // --- MATRIX VIBE (Eco-Friendly) ---
-        // Font: Courier (Monospaced)
-        // Colors: Black text, minimal gray fills (save ink)
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
 
-        doc.setFont("courier", "bold");
-        doc.setFontSize(18);
-        doc.setTextColor(0, 0, 0); // Black
-        doc.text(tr('RAINSTAFF - STOK ENVANTER RAPORU'), 105, 15, { align: 'center' });
-
-        doc.setFont("courier", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(50);
-        doc.text(tr(`Tarih: ${new Date().toLocaleString('tr-TR')}`), 14, 25);
-        doc.text(tr(`Taranan Oge: ${scannedItems.size} adet`), 14, 30);
-        doc.line(14, 33, 196, 33); // Thin line
-
-        // Watermark - Bottom Center (Eco-friendly: Low opacity/Greyscale if possible)
-        // Since jsPDF doesn't do transparency easily on images without advanced modes, 
-        // we place it at the bottom.
+        // --- ECO-PRO DESIGN (Ink Saving) ---
+        // 1. WATERMARK (Faint / Low Opacity)
         if (logoImg) {
-            const pageWidth = doc.internal.pageSize.width;
-            const pageHeight = doc.internal.pageSize.height;
-            const imgWidth = 40; // mm
-            const imgHeight = 40; // mm
+            const imgWidth = 80;
+            const imgHeight = 80;
             const x = (pageWidth - imgWidth) / 2;
-            const y = pageHeight - imgHeight - 10;
+            const y = (pageHeight - imgHeight) / 2;
 
+            // Low opacity logic (Requires recent jsPDF, 2.5.1 should support it)
             try {
-                // Add image
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.1 })); // 10% Opacity (Very faint)
                 doc.addImage(logoImg, 'PNG', x, y, imgWidth, imgHeight);
-
-                // Add text below
-                doc.setFontSize(8);
-                doc.setTextColor(150);
-                doc.text("Y A B U J I N   C O R P", pageWidth / 2, y + imgHeight + 5, { align: 'center' });
+                doc.restoreGraphicsState();
             } catch (e) {
-                console.error("Logo error:", e);
+                console.warn("Transparency not supported, showing image normally but smaller");
+                doc.addImage(logoImg, 'PNG', x, y, 40, 40); // Fallback to smaller image if opacity fails
             }
+        } else {
+            // Fallback Text Watermark
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.1 })); // Faint text
+            doc.setFont("courier", "bold");
+            doc.setFontSize(60);
+            doc.setTextColor(50, 50, 50);
+            const text = "RAINSTAFF";
+            const textWidth = doc.getStringUnitWidth(text) * 60 / doc.internal.scaleFactor;
+            const x = (pageWidth - textWidth) / 2;
+            const y = pageHeight / 2;
+
+            // Simple centered text instead of rotation to avoid complexity if context saving fails
+            doc.text(text, pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+            doc.restoreGraphicsState();
         }
 
-        // Table Data
+        // 2. HEADER (Clean Lines)
+        doc.setFont("courier", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(0, 0, 0); // Black
+        doc.text("RAINSTAFF", 14, 20);
+
+        doc.setFontSize(12);
+        doc.setFont("courier", "normal");
+        doc.text("YABUJIN CORP STOCK SYSTEM", 14, 27);
+
+        // Date Right Aligned
+        const dateStr = new Date().toLocaleDateString('tr-TR');
+        doc.setFontSize(10);
+        doc.text(`Tarih: ${dateStr}`, pageWidth - 14, 20, { align: 'right' });
+        doc.text(`Kayit: ${scannedItems.size} adet`, pageWidth - 14, 27, { align: 'right' });
+
+        // Double Line Separator
+        doc.setLineWidth(0.5);
+        doc.line(14, 32, pageWidth - 14, 32);
+        doc.setLineWidth(0.1);
+        doc.line(14, 33, pageWidth - 14, 33);
+
+
+        // 3. TABLE (Grid Theme - Ink Saving)
         const tableData = Array.from(scannedItems.values()).map(item => [
             tr(item.stok_kod),
             tr(item.stok_adi),
@@ -2322,32 +2341,44 @@
             tr(item.durum)
         ]);
 
-        // Table Style - Eco Friendly Matrix
         doc.autoTable({
             head: [[tr('Stok Kodu'), tr('Urun Adi'), tr('Seri No'), tr('Bolge'), tr('Durum')]],
             body: tableData,
             startY: 40,
-            theme: 'plain', // Save ink! No colored headers
+            theme: 'grid', // Grid instead of striped to save ink on fills
             styles: {
                 font: 'courier',
-                fontSize: 9,
+                fontSize: 10,
                 cellPadding: 3,
                 lineColor: [0, 0, 0], // Black lines
                 lineWidth: 0.1,
-                textColor: [0, 0, 0] // Black text
+                textColor: [0, 0, 0], // Black text
+                fillColor: false // No background fill for body cells
             },
             headStyles: {
-                fillColor: null, // No fill
+                fillColor: false, // No background fill for header
                 textColor: [0, 0, 0],
                 fontStyle: 'bold',
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0] // Bottom border for header
-            },
-            alternateRowStyles: {
-                fillColor: null // No zebra striping to save ink
+                lineWidth: 0.2, // Slightly thicker border for header
+                lineColor: [0, 0, 0]
             },
             columnStyles: {
-                0: { fontStyle: 'bold' } // Stock code bold
+                0: { fontStyle: 'bold' }
+            },
+            didDrawPage: function (data) {
+                // Footer
+                doc.setFontSize(8);
+                doc.text(
+                    `Sayfa ${doc.internal.getNumberOfPages()}`,
+                    pageWidth - 14,
+                    pageHeight - 10,
+                    { align: 'right' }
+                );
+                doc.text(
+                    `Rainstaff v2.0 - Generated by Antigravity`,
+                    14,
+                    pageHeight - 10
+                );
             }
         });
 
