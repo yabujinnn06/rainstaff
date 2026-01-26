@@ -1231,6 +1231,12 @@
             childRow.classList.add('show');
             icon.classList.add('expanded');
 
+            // MOBILE FIX: Force visibility on some browsers
+            const td = childRow.querySelector('td');
+            if (td) {
+                td.style.display = 'table-cell';
+            }
+
             // Load timesheet details if not already loaded
             if (detailsDiv.innerHTML.includes('loading')) {
                 loadEmployeeTimesheets(index, employeeData[index].id);
