@@ -117,30 +117,62 @@ def init_stock_routes(app):
             cursor.execute("DELETE FROM stock_inventory WHERE bolge = ?", (bolge,))
             
             imported = 0
-            for row in rows[1:]:
-                try:
-                    stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
-                    stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) else ''
-                    seri_no = str(row[seri_no_idx]).strip() if seri_no_idx < len(row) else ''
-                    
-                    if not seri_no:  # Skip if no seri_no (required unique key)
-                        continue
-                    
-                    durum = str(row[durum_idx]).strip() if durum_idx and durum_idx < len(row) else None
-                    tarih = str(row[tarih_idx]).strip() if tarih_idx and tarih_idx < len(row) else None
-                    girdi_yapan = str(row[girdi_yapan_idx]).strip() if girdi_yapan_idx and girdi_yapan_idx < len(row) else None
+            i = 1  # Start after headers
+            
+            while i < len(rows):
+                row = rows[i]
+                stok_kod_value = row[stok_kod_idx] if stok_kod_idx < len(row) else None
+                
+                # Check if this is a main product row (has stok_kod)
+                if stok_kod_value:
+                    # Main product row
+                    stok_kod = str(stok_kod_value).strip()
+                    stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) and row[stok_adi_idx] else ''
                     adet = int(row[adet_idx]) if adet_idx and adet_idx < len(row) and row[adet_idx] else None
                     
-                    cursor.execute(
-                        """INSERT INTO stock_inventory 
-                           (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, datetime.now().isoformat())
-                    )
-                    imported += 1
-                
-                except Exception as e:
-                    continue
+                    i += 1
+                    
+                    # Collect child rows (serial numbers)
+                    while i < len(rows):
+                        child_row = rows[i]
+                        child_stok_kod = child_row[stok_kod_idx] if stok_kod_idx < len(child_row) else None
+                        
+                        # If next row has stok_kod, it's a new product
+                        if child_stok_kod:
+                            break
+                        
+                        # This is a serial row
+                        try:
+                            serial_value = str(child_row[stok_adi_idx]).strip() if stok_adi_idx < len(child_row) and child_row[stok_adi_idx] else ''
+                            
+                            if serial_value:
+                                # Extract actual serial number (remove numbering like "1 ST87088")
+                                parts = serial_value.split(maxsplit=1)
+                                if len(parts) == 2 and parts[0].isdigit():
+                                    seri_no = parts[1]  # "ST87088"
+                                else:
+                                    seri_no = serial_value  # Use as-is
+                                
+                                # Get optional fields
+                                durum = str(child_row[durum_idx]).strip() if durum_idx and durum_idx < len(child_row) and child_row[durum_idx] else 'OK'
+                                tarih = str(child_row[tarih_idx]).strip() if tarih_idx and tarih_idx < len(child_row) and child_row[tarih_idx] else datetime.now().strftime('%Y-%m-%d')
+                                girdi_yapan = str(child_row[girdi_yapan_idx]).strip() if girdi_yapan_idx and girdi_yapan_idx < len(child_row) and child_row[girdi_yapan_idx] else 'system'
+                                
+                                cursor.execute(
+                                    """INSERT INTO stock_inventory 
+                                       (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                    (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, datetime.now().isoformat())
+                                )
+                                imported += 1
+                        
+                        except Exception as e:
+                            pass  # Skip problematic rows
+                        
+                        i += 1
+                else:
+                    # Orphan row without parent, skip
+                    i += 1
             
             conn.commit()
             conn.close()

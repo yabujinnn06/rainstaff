@@ -235,12 +235,16 @@
                             <button onclick="toggleTorch()" id="torch-btn" class="matrix-btn-small"
                                 style="display: none; font-family: 'Courier New', monospace; font-size: 9px; padding: 3px 8px;">FLASH</button>
                             <span id="zoom-controls" style="display: none; align-items: center; gap: 5px;">
-                                <span style="font-size: 9px; font-family: 'Courier New', monospace; color: var(--text-muted);">-</span>
+                                <span
+                                    style="font-size: 9px; font-family: 'Courier New', monospace; color: var(--text-muted);">-</span>
                                 <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1"
                                     oninput="updateZoom(this.value)"
                                     style="width: 60px; height: 3px; background: #333; border: 1px solid var(--matrix-green); border-radius: 0; outline: none; -webkit-appearance: none; appearance: none;">
-                                <span style="font-size: 9px; font-family: 'Courier New', monospace; color: var(--text-muted);">+</span>
-                                <span style="font-size: 8px; color: var(--matrix-green); font-family: 'Courier New', monospace; min-width: 30px; text-align: center;" id="zoom-level">1.0x</span>
+                                <span
+                                    style="font-size: 9px; font-family: 'Courier New', monospace; color: var(--text-muted);">+</span>
+                                <span
+                                    style="font-size: 8px; color: var(--matrix-green); font-family: 'Courier New', monospace; min-width: 30px; text-align: center;"
+                                    id="zoom-level">1.0x</span>
                             </span>
                         </div>
                     </h3>
@@ -1110,9 +1114,12 @@
                 }
 
                 @keyframes matrix-pulse {
-                    0%, 100% {
+
+                    0%,
+                    100% {
                         opacity: 1;
                     }
+
                     50% {
                         opacity: 0.7;
                     }
@@ -1164,6 +1171,7 @@
                     0% {
                         transform: translateX(-100%);
                     }
+
                     100% {
                         transform: translateX(100%);
                     }
@@ -1462,7 +1470,7 @@
                 const touchEndY = e.touches[0].clientY;
                 const deltaX = Math.abs(touchEndX - touchStartX);
                 const deltaY = Math.abs(touchEndY - touchStartY);
-                
+
                 // If scroll is more than 10px, mark as scroll
                 if (deltaX > 10 || deltaY > 10) {
                     isTouchMove = true;
@@ -1645,7 +1653,7 @@
                 const touchEndY = e.touches[0].clientY;
                 const deltaX = Math.abs(touchEndX - touchStartX);
                 const deltaY = Math.abs(touchEndY - touchStartY);
-                
+
                 // If horizontal scroll is more than 10px, mark as scroll
                 if (deltaX > 10 || deltaY > 10) {
                     isTouchMove = true;
@@ -1866,10 +1874,10 @@
 
         // Try configurations in order
         let configIndex = 0;
-        
+
         function tryStart() {
             const config = configs[configIndex];
-            
+
             html5QrCode.start(
                 { facingMode: "environment" },
                 config,
@@ -1883,12 +1891,12 @@
                 if (nativeStatus) {
                     nativeStatus.innerHTML = `<span style="color:#00FF41">${config.name} Mode</span>`;
                 }
-                
+
                 document.getElementById('scan-result').innerHTML = 'Kamera hazır - Barkodu gösterin_';
             }).catch((err) => {
                 console.error(`Failed to start with ${config.name}:`, err);
                 configIndex++;
-                
+
                 if (configIndex < configs.length) {
                     // Try next config
                     console.log(`Trying ${configs[configIndex].name}...`);
@@ -1897,7 +1905,7 @@
                     // All configs failed
                     const resultEl = document.getElementById('scan-result');
                     resultEl.innerHTML = `<span style="color:#ff4444;">Kamera Hatası</span>`;
-                    
+
                     // Show user-friendly error
                     let errorMsg = 'Kamera başlatılamadı. ';
                     if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -1909,13 +1917,13 @@
                     } else {
                         errorMsg += err.message || 'Bilinmeyen hata.';
                     }
-                    
+
                     alert(errorMsg);
                     stopScanner();
                 }
             });
         }
-        
+
         tryStart();
     }
 
@@ -2073,12 +2081,12 @@
 
     function processScannedItem(match) {
         const key = match.seri ? match.seri.seri_no : match.item.stok_kod;
-        
+
         // Duplicate check
         if (scannedItems.has(key)) {
-            return { 
-                status: 'duplicate', 
-                msg: `${match.matchCode} zaten tarandı!` 
+            return {
+                status: 'duplicate',
+                msg: `${match.matchCode} zaten tarandı!`
             };
         }
 
@@ -2091,7 +2099,7 @@
             durum: match.seri ? match.seri.durum : 'OK',
             timestamp: new Date().toLocaleTimeString('tr-TR')
         };
-        
+
         scannedItems.set(key, itemData);
 
         // Update UI list
@@ -2103,9 +2111,9 @@
         // Highlight in main table if visible
         highlightScannedRow(match.item.stok_kod);
 
-        return { 
-            status: 'success', 
-            msg: `${match.item.stok_kod} - ${match.item.stok_adi}` 
+        return {
+            status: 'success',
+            msg: `${match.item.stok_kod} - ${match.item.stok_adi}`
         };
     }
 
@@ -2141,7 +2149,7 @@
         if (confirm(`${scannedItems.size} taranan öğeyi temizlemek istediğinizden emin misiniz?`)) {
             scannedItems.clear();
             document.getElementById('scan-count').textContent = '0';
-            
+
             // Reset list UI
             const list = document.getElementById('scanner-list');
             if (list) {
@@ -2236,56 +2244,114 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Başlık
-        doc.setFontSize(20);
-        doc.setTextColor(0, 100, 0);
-        doc.text('RAINSTAFF - Stok Envanter Raporu', 14, 20);
+        // Load Watermark Image
+        const img = new Image();
+        img.src = '/static/img/yabujin.png';
 
-        // Tarih
+        img.onload = function () {
+            createPDF(doc, img);
+        };
+
+        img.onerror = function () {
+            console.warn('Logo yuklenemedi, logosuz devam ediliyor.');
+            createPDF(doc, null);
+        };
+    }
+
+    function createPDF(doc, logoImg) {
+        // Helper for Turkish Characters (Standard Fonts wrapper)
+        // Standard PDF fonts (Courier, Helvetica) don't support full UTF-8. 
+        // We map chars to ensure they are readable if the font fails, or rely on browser support.
+        function tr(text) {
+            if (!text) return '';
+            return text.toString()
+                .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+                .replace(/ş/g, 's').replace(/Ş/g, 'S')
+                .replace(/ı/g, 'i').replace(/İ/g, 'I') // 'I' is better than nothing
+                .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+                .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+                .replace(/ü/g, 'u').replace(/Ü/g, 'U');
+        }
+
+        // --- MATRIX VIBE (Eco-Friendly) ---
+        // Font: Courier (Monospaced)
+        // Colors: Black text, minimal gray fills (save ink)
+
+        doc.setFont("courier", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(0, 0, 0); // Black
+        doc.text(tr('RAINSTAFF - STOK ENVANTER RAPORU'), 105, 15, { align: 'center' });
+
+        doc.setFont("courier", "normal");
         doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Tarih: ${new Date().toLocaleString('tr-TR')}`, 14, 28);
-        doc.text(`Taranan Öğe: ${scannedItems.size} adet`, 14, 34);
+        doc.setTextColor(50);
+        doc.text(tr(`Tarih: ${new Date().toLocaleString('tr-TR')}`), 14, 25);
+        doc.text(tr(`Taranan Oge: ${scannedItems.size} adet`), 14, 30);
+        doc.line(14, 33, 196, 33); // Thin line
 
-        // Tablo verisi
-        // scannedItems is now a Map, convert to array
+        // Watermark - Bottom Center (Eco-friendly: Low opacity/Greyscale if possible)
+        // Since jsPDF doesn't do transparency easily on images without advanced modes, 
+        // we place it at the bottom.
+        if (logoImg) {
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const imgWidth = 40; // mm
+            const imgHeight = 40; // mm
+            const x = (pageWidth - imgWidth) / 2;
+            const y = pageHeight - imgHeight - 10;
+
+            try {
+                // Add image
+                doc.addImage(logoImg, 'PNG', x, y, imgWidth, imgHeight);
+
+                // Add text below
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text("Y A B U J I N   C O R P", pageWidth / 2, y + imgHeight + 5, { align: 'center' });
+            } catch (e) {
+                console.error("Logo error:", e);
+            }
+        }
+
+        // Table Data
         const tableData = Array.from(scannedItems.values()).map(item => [
-            item.stok_kod,
-            item.stok_adi,
-            item.seri_no,
-            item.bolge,
-            item.durum
+            tr(item.stok_kod),
+            tr(item.stok_adi),
+            tr(item.seri_no),
+            tr(item.bolge),
+            tr(item.durum)
         ]);
 
-        // Tablo çiz
+        // Table Style - Eco Friendly Matrix
         doc.autoTable({
-            head: [['Stok Kodu', 'Ürün Adı', 'Seri No', 'Bölge', 'Durum']],
+            head: [[tr('Stok Kodu'), tr('Urun Adi'), tr('Seri No'), tr('Bolge'), tr('Durum')]],
             body: tableData,
             startY: 40,
-            theme: 'grid',
+            theme: 'plain', // Save ink! No colored headers
             styles: {
+                font: 'courier',
                 fontSize: 9,
-                cellPadding: 3
+                cellPadding: 3,
+                lineColor: [0, 0, 0], // Black lines
+                lineWidth: 0.1,
+                textColor: [0, 0, 0] // Black text
             },
             headStyles: {
-                fillColor: [0, 100, 0],
-                textColor: 255
+                fillColor: null, // No fill
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0] // Bottom border for header
             },
             alternateRowStyles: {
-                fillColor: [240, 240, 240]
+                fillColor: null // No zebra striping to save ink
+            },
+            columnStyles: {
+                0: { fontStyle: 'bold' } // Stock code bold
             }
         });
 
-        // Footer
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`Sayfa ${i} / ${pageCount}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10);
-        }
-
-        // İndir
+        // Save
         const fileName = `stok_raporu_${new Date().toISOString().slice(0, 10)}.pdf`;
         doc.save(fileName);
     }
@@ -2330,7 +2396,7 @@
     // ==============================================
     // ARAÇLAR MODÜLÜ
     // ==============================================
-    
+
     let vehiclesData = [];
 
     function loadVehiclesData() {
@@ -2370,15 +2436,15 @@
 
     function getVehicleStatus(vehicle) {
         if (!vehicle.alerts || vehicle.alerts.length === 0) return 'normal';
-        
+
         const hasExpired = vehicle.alerts.some(a => a.status === 'expired');
         const hasCritical = vehicle.alerts.some(a => a.status === 'critical');
-        
+
         if (hasExpired || hasCritical) return 'critical';
-        
+
         const hasWarning = vehicle.alerts.some(a => a.status === 'warning');
         if (hasWarning) return 'warning';
-        
+
         return 'normal';
     }
 
@@ -2448,11 +2514,11 @@
         const current = vehicle.km - vehicle.oil_change_km;
         const max = vehicle.oil_interval_km;
         const percent = Math.min((current / max) * 100, 100);
-        
+
         let color = 'var(--matrix-green)';
         if (percent >= 90) color = '#ff4444';
         else if (percent >= 70) color = '#FFD700';
-        
+
         return { current, max, percent, color };
     }
 
@@ -2468,7 +2534,7 @@
             const icon = alert.status === 'expired' ? '⚠' : alert.status === 'critical' ? '⚠' : '⚡';
             const label = alertTypes[alert.type] || alert.type.toUpperCase();
             const daysText = alert.days < 0 ? `${Math.abs(alert.days)} GÜN GEÇTİ` : `${alert.days} GÜN KALDI`;
-            
+
             return `
                 <div class="alert-item" style="color: ${color}; border-color: ${color};">
                     <span class="alert-icon">${icon}</span>

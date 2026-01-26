@@ -5421,13 +5421,32 @@ class PuantajApp(tk.Tk):
                 messagebox.showwarning("Uyari", "Dosyada veri bulunamadi.")
                 return
 
-            # Parse headers (flexible)
-            headers = [str(h).strip().lower() if h else '' for h in rows[0]]
+            # Check if first row is empty or has no valid headers
+            first_row_empty = all(cell is None or str(cell).strip() == '' for cell in rows[0])
             
-            stok_kod_idx = next((i for i, h in enumerate(headers) if 'stok' in h and 'kod' in h), 0)
-            stok_adi_idx = next((i for i, h in enumerate(headers) if 'stok' in h and ('adi' in h or 'ad' in h)), 1)
-            seri_no_idx = next((i for i, h in enumerate(headers) if 'seri' in h and 'no' in h), 2)
-            seri_sayi_idx = next((i for i, h in enumerate(headers) if 'seri' in h and 'say' in h), 3)
+            # Also check if headers are valid (contain 'stok' or 'seri' keywords)
+            headers = [str(h).strip().lower() if h else '' for h in rows[0]]
+            has_valid_headers = any('stok' in h or 'seri' in h for h in headers)
+            
+            if first_row_empty or not has_valid_headers:
+                # No headers - use default column indices and start from row 0
+                if self.logger:
+                    self.logger.info("Stock upload: No header row detected, using default indices, starting from row 0")
+                stok_kod_idx = 0
+                stok_adi_idx = 1
+                seri_no_idx = 2
+                seri_sayi_idx = 3
+                start_row = 0  # NO HEADERS - start from row 0 (data starts immediately)
+            else:
+                # Parse headers (flexible)
+                if self.logger:
+                    self.logger.info("Stock upload: Valid headers found, parsing headers")
+                
+                stok_kod_idx = next((i for i, h in enumerate(headers) if 'stok' in h and 'kod' in h), 0)
+                stok_adi_idx = next((i for i, h in enumerate(headers) if 'stok' in h and ('adi' in h or 'ad' in h)), 1)
+                seri_no_idx = next((i for i, h in enumerate(headers) if 'seri' in h and 'no' in h), 2)
+                seri_sayi_idx = next((i for i, h in enumerate(headers) if 'seri' in h and 'say' in h), 3)
+                start_row = 1  # Skip header row
 
             # Parse nested Excel structure
             # Format: Stok header row followed by seri_no child rows (with empty stok_kod)
@@ -5435,47 +5454,58 @@ class PuantajApp(tk.Tk):
             with db.get_conn() as conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM stock_inventory WHERE bolge = ?", (bolge,))
-                
-                i = 1
+
+                i = start_row
                 while i < len(rows):
                     row = rows[i]
-                    
+
                     # Check if this is a product header (stok_kod not empty)
-                    stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) else ''
-                    
-                    if stok_kod and stok_kod not in ['', 'nan', 'None', None]:
+                    stok_kod = str(row[stok_kod_idx]).strip() if stok_kod_idx < len(row) and row[stok_kod_idx] else ''
+
+                    if stok_kod and stok_kod not in ['', 'nan', 'None', 'None']:
                         # This is a product header
-                        stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) else ''
+                        stok_adi = str(row[stok_adi_idx]).strip() if stok_adi_idx < len(row) and row[stok_adi_idx] else ''
                         seri_sayi = 0
                         try:
                             seri_sayi = int(row[seri_sayi_idx]) if seri_sayi_idx < len(row) and row[seri_sayi_idx] else 0
                         except (ValueError, TypeError):
                             pass
-                        
+
                         # Collect all following seri_no rows (child rows where stok_kod is empty)
                         i += 1
                         seri_count = 0
                         while i < len(rows):
                             child_row = rows[i]
-                            child_stok_kod = str(child_row[stok_kod_idx]).strip() if stok_kod_idx < len(child_row) else ''
+                            child_stok_kod = str(child_row[stok_kod_idx]).strip() if stok_kod_idx < len(child_row) and child_row[stok_kod_idx] else ''
+
+                            # If stok_kod is empty/None, this is a seri_no row
+                            child_stok_kod_value = child_row[stok_kod_idx] if stok_kod_idx < len(child_row) else None
                             
-                            # If stok_kod is empty/nan, this is a seri_no row
-                            if not child_stok_kod or child_stok_kod in ['', 'nan', 'None', None]:
+                            if child_stok_kod_value is None or not child_stok_kod or child_stok_kod in ['', 'nan', 'None']:
                                 try:
-                                    seri_no = str(child_row[seri_no_idx]).strip() if seri_no_idx < len(child_row) else ''
+                                    # Seri no is in seri_no column (column 2) for child rows
+                                    seri_no_value = child_row[seri_no_idx] if seri_no_idx < len(child_row) else None
+                                    seri_no = str(seri_no_value).strip() if seri_no_value is not None else ''
+
+                                    # Extract actual serial number (remove numbering like "1 ST87088" or "1. ST87088")
+                                    if seri_no:
+                                        parts = seri_no.split(maxsplit=1)
+                                        # Fix: Handle both "1" and "1." prefixes
+                                        if len(parts) == 2 and parts[0].replace('.', '', 1).isdigit():
+                                            seri_no = parts[1]
                                     
-                                    # Skip if seri_no is empty or just a number (serial position)
-                                    if seri_no and seri_no not in ['', 'nan', 'None', None]:
+                                    # Skip if seri_no is empty (but allow pure numbers as valid serials)
+                                    if seri_no and seri_no not in ['', 'nan', 'None', 'None']:
                                         cursor.execute(
-                                            """INSERT INTO stock_inventory 
-                                               (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at) 
+                                            """INSERT INTO stock_inventory
+                                               (stok_kod, stok_adi, seri_no, durum, tarih, girdi_yapan, bolge, adet, updated_at)
                                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                                            (stok_kod, stok_adi, seri_no, "OK", datetime.now().strftime("%Y-%m-%d"), 
+                                            (stok_kod, stok_adi, seri_no, "OK", datetime.now().strftime("%Y-%m-%d"),
                                              "system", bolge, 1, datetime.now().isoformat())
                                         )
                                         imported += 1
                                         seri_count += 1
-                                    
+
                                     i += 1
                                 except Exception as e:
                                     if self.logger:
