@@ -1485,17 +1485,19 @@
 
     function initScanner() {
         // Use Native BarcodeDetector if supported
-        // Explicitly define formats including ITF for logistics
+        // Full Industrial Format Support
         const formats = [
             Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.ITF,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
             Html5QrcodeSupportedFormats.CODABAR,
-            Html5QrcodeSupportedFormats.ITF
+            Html5QrcodeSupportedFormats.DATA_MATRIX
         ];
 
         html5QrCode = new Html5Qrcode("scanner-container", {
@@ -1504,17 +1506,27 @@
             verbose: false
         });
 
-        // OPTIMIZED FOR MOTION / HAND TREMOR
+        // INDUSTRIAL CONFIGURATION
         const config = {
-            fps: 25, // High FPS to catch clear frames during shake
-            qrbox: { width: 300, height: 200 }, // Larger forgiveness area
+            fps: 25, // High FPS for motion tolerance
+            // Dynamic QR Box: Function to calculate size based on stream
+            qrbox: function (viewfinderWidth, viewfinderHeight) {
+                // For mobile (portrait): use 85% of width for long barcodes
+                // For desktop (landscape): use 60% of width
+                const minEdgePercentage = 0.85;
+                const qrboxWidth = Math.floor(viewfinderWidth * minEdgePercentage);
+                const qrboxHeight = Math.floor(viewfinderHeight * 0.4); // Taller for stacking
+                return { width: qrboxWidth, height: qrboxHeight };
+            },
             aspectRatio: 1.0,
             videoConstraints: {
                 facingMode: "environment",
                 focusMode: "continuous",
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 }
-            }
+                // Request 4K if available, fallback to 1080p/720p
+                width: { min: 1024, ideal: 3840, max: 4096 },
+                height: { min: 768, ideal: 2160, max: 2160 }
+            },
+            disableFlip: false // Ensure no mirroring issues
         };
 
         html5QrCode.start(
@@ -1524,23 +1536,25 @@
             onScanFailure
         ).then(() => {
             setupCameraControls();
+
+            // Visual Config Feedback
             const nativeStatus = document.getElementById('native-api-status');
-            if (nativeStatus) nativeStatus.textContent = "Active (Multi-Format)";
+            if (nativeStatus) {
+                // Check if we actually got native support
+                const isNative = html5QrCode.getState() === Html5QrcodeScannerState.SCANNING; // Approximate check
+                nativeStatus.innerHTML = `<span style="color:#00FF41">Industrial Mode Active</span> | 4K Ready`;
+            }
         }).catch((err) => {
-            document.getElementById('scan-result').textContent = 'Kamera Başlatılamadı: ' + err;
+            document.getElementById('scan-result').innerHTML = `<span style="color:red">Init Error: ${err}</span>`;
         });
     }
 
     function onScanSuccess(decodedText, decodedResult) {
+        // 1. Logic Lock (Prevent multiple triggers)
         if (isScanLocked) return;
         isScanLocked = true;
 
-        // 1. "Şak" Diye Durdur (Freeze the camera to give instant feedback)
-        try {
-            html5QrCode.pause(true);
-        } catch (e) { console.log("Pause failed", e); }
-
-        // 2. Feedback (Sound + Vibrate)
+        // 2. Visual & Haptic Feedback (No Camera Pause)
         playBeep(800);
         if (navigator.vibrate) navigator.vibrate(200);
 
@@ -1549,31 +1563,66 @@
 
         console.log(`SCANNED: ${decodedText} [${formatName}]`);
 
-        // 3. Process
+        // 3. Process Result
         const match = findStockItem(decodedText);
+        let resultHTML = '';
 
         if (match) {
             const res = processScannedItem(match);
             if (res.status === 'success') {
-                resultEl.innerHTML = `<span style="color: #00FF41; font-size: 16px; font-weight:bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; border: 1px solid #00FF41;">✓ ${res.msg}</span>`;
+                resultHTML = `<div style="background: rgba(0, 255, 65, 0.9); color: #000; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,255,65,0.5);">
+                    <div style="font-size: 24px; font-weight: bold;">✓ EŞLEŞTİ</div>
+                    <div style="font-size: 14px; margin-top: 5px;">${res.msg}</div>
+                    <div style="font-size: 10px; opacity: 0.7; margin-top: 5px;">${formatName}</div>
+                </div>`;
             } else if (res.status === 'duplicate') {
-                resultEl.innerHTML = `<span style="color: #FFD700; font-size: 16px; font-weight:bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; border: 1px solid #FFD700;">⚠ ${res.msg}</span>`;
-                playBeep(400); // Error beep
+                resultHTML = `<div style="background: rgba(255, 215, 0, 0.9); color: #000; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 24px; font-weight: bold;">⚠ ZATEN OKUNDU</div>
+                    <div style="font-size: 14px; margin-top: 5px;">${res.msg}</div>
+                </div>`;
+                playBeep(400); // Warning
             }
         } else {
-            resultEl.innerHTML = `<span style="color: #ff4444; font-size: 16px; font-weight:bold; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; border: 1px solid #ff4444;">✗ BULUNAMADI: ${decodedText}</span>`;
-            playBeep(200); // Error beep
+            resultHTML = `<div style="background: rgba(255, 68, 68, 0.9); color: #fff; padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold;">✗ BULUNAMADI</div>
+                <div style="font-size: 14px; margin-top: 5px; font-family: monospace;">${decodedText}</div>
+                <div style="font-size: 10px; opacity: 0.7; margin-top: 5px;">Format: ${formatName}</div>
+                <div style="margin-top: 10px; font-size: 11px; background: rgba(0,0,0,0.2); padding: 5px;">DB'de bu kod yok.</div>
+            </div>`;
+            playBeep(200); // Error
         }
 
-        // 4. Auto Resume after 1.2s (Rapid scanning)
-        setTimeout(() => {
-            try {
-                html5QrCode.resume();
-            } catch (e) { console.log("Resume failed", e); }
+        // 4. Show Freeze Overlay (UI Trick instead of stopping camera)
+        // We inject a div OVER the video to hide the moving feed and show result
+        const container = document.getElementById('scanner-container');
+        let freezeOverlay = document.getElementById('scan-freeze-overlay');
 
-            isScanLocked = false;
-            document.getElementById('scan-result').innerHTML = 'Hazır...';
-        }, 1200);
+        if (!freezeOverlay) {
+            freezeOverlay = document.createElement('div');
+            freezeOverlay.id = 'scan-freeze-overlay';
+            freezeOverlay.style.cssText = "position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 10; backdrop-filter: blur(5px); transition: opacity 0.2s;";
+            container.appendChild(freezeOverlay);
+            // Ensure container is relative
+            container.style.position = 'relative';
+        }
+
+        freezeOverlay.innerHTML = resultHTML;
+        freezeOverlay.style.display = 'flex';
+        freezeOverlay.style.opacity = '1';
+
+        // Update text result too for history context
+        resultEl.innerHTML = "...";
+
+        // 5. Auto Resume Logic (Robust Timeout)
+        setTimeout(() => {
+            // Fade out overlay
+            freezeOverlay.style.opacity = '0';
+            setTimeout(() => {
+                freezeOverlay.style.display = 'none';
+                isScanLocked = false;
+                resultEl.innerHTML = 'Hazır...';
+            }, 200); // Wait for fade out
+        }, 1500); // Display result for 1.5s
     }
 
     function onScanFailure(error) {
