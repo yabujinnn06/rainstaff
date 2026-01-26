@@ -1506,47 +1506,107 @@
             verbose: false
         });
 
-        // INDUSTRIAL CONFIGURATION
-        const config = {
-            fps: 25, // High FPS for motion tolerance
-            // Dynamic QR Box: Function to calculate size based on stream
-            qrbox: function (viewfinderWidth, viewfinderHeight) {
-                // For mobile (portrait): use 85% of width for long barcodes
-                // For desktop (landscape): use 60% of width
-                const minEdgePercentage = 0.85;
-                const qrboxWidth = Math.floor(viewfinderWidth * minEdgePercentage);
-                const qrboxHeight = Math.floor(viewfinderHeight * 0.4); // Taller for stacking
-                return { width: qrboxWidth, height: qrboxHeight };
+        // PROGRESSIVE FALLBACK CONFIGURATION
+        // Try 4K first, then fallback to lower resolutions
+        const configs = [
+            {
+                name: '4K',
+                fps: 25,
+                qrbox: function (w, h) {
+                    return { width: Math.floor(w * 0.85), height: Math.floor(h * 0.4) };
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: "environment",
+                    focusMode: "continuous",
+                    width: { min: 1024, ideal: 3840, max: 4096 },
+                    height: { min: 768, ideal: 2160, max: 2160 }
+                },
+                disableFlip: false
             },
-            aspectRatio: 1.0,
-            videoConstraints: {
-                facingMode: "environment",
-                focusMode: "continuous",
-                // Request 4K if available, fallback to 1080p/720p
-                width: { min: 1024, ideal: 3840, max: 4096 },
-                height: { min: 768, ideal: 2160, max: 2160 }
+            {
+                name: '1080p',
+                fps: 20,
+                qrbox: function (w, h) {
+                    return { width: Math.floor(w * 0.8), height: Math.floor(h * 0.35) };
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                disableFlip: false
             },
-            disableFlip: false // Ensure no mirroring issues
-        };
-
-        html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            onScanSuccess,
-            onScanFailure
-        ).then(() => {
-            setupCameraControls();
-
-            // Visual Config Feedback
-            const nativeStatus = document.getElementById('native-api-status');
-            if (nativeStatus) {
-                // Check if we actually got native support
-                const isNative = html5QrCode.getState() === Html5QrcodeScannerState.SCANNING; // Approximate check
-                nativeStatus.innerHTML = `<span style="color:#00FF41">Industrial Mode Active</span> | 4K Ready`;
+            {
+                name: '720p',
+                fps: 15,
+                qrbox: function (w, h) {
+                    return { width: Math.floor(w * 0.75), height: Math.floor(h * 0.3) };
+                },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                disableFlip: false
             }
-        }).catch((err) => {
-            document.getElementById('scan-result').innerHTML = `<span style="color:red">Init Error: ${err}</span>`;
-        });
+        ];
+
+        // Try configurations in order
+        let configIndex = 0;
+        
+        function tryStart() {
+            const config = configs[configIndex];
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).then(() => {
+                setupCameraControls();
+
+                // Visual Config Feedback
+                const nativeStatus = document.getElementById('native-api-status');
+                if (nativeStatus) {
+                    nativeStatus.innerHTML = `<span style="color:#00FF41">${config.name} Mode</span>`;
+                }
+                
+                document.getElementById('scan-result').innerHTML = 'Kamera hazır - Barkodu gösterin_';
+            }).catch((err) => {
+                console.error(`Failed to start with ${config.name}:`, err);
+                configIndex++;
+                
+                if (configIndex < configs.length) {
+                    // Try next config
+                    console.log(`Trying ${configs[configIndex].name}...`);
+                    tryStart();
+                } else {
+                    // All configs failed
+                    const resultEl = document.getElementById('scan-result');
+                    resultEl.innerHTML = `<span style="color:#ff4444;">Kamera Hatası</span>`;
+                    
+                    // Show user-friendly error
+                    let errorMsg = 'Kamera başlatılamadı. ';
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        errorMsg += 'Lütfen kamera iznini verin.';
+                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                        errorMsg += 'Kamera bulunamadı.';
+                    } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                        errorMsg += 'Kamera başka bir uygulama tarafından kullanılıyor.';
+                    } else {
+                        errorMsg += err.message || 'Bilinmeyen hata.';
+                    }
+                    
+                    alert(errorMsg);
+                    stopScanner();
+                }
+            });
+        }
+        
+        tryStart();
     }
 
     function onScanSuccess(decodedText, decodedResult) {
@@ -1687,7 +1747,124 @@
         }
     }
 
-    // ... (playBeep normal) ...
+    function processScannedItem(match) {
+        const key = match.seri ? match.seri.seri_no : match.item.stok_kod;
+        
+        // Duplicate check
+        if (scannedItems.has(key)) {
+            return { 
+                status: 'duplicate', 
+                msg: `${match.matchCode} zaten tarandı!` 
+            };
+        }
+
+        // Add to scanned items
+        const itemData = {
+            stok_kod: match.item.stok_kod,
+            stok_adi: match.item.stok_adi,
+            seri_no: match.seri ? match.seri.seri_no : '-',
+            bolge: match.seri ? match.seri.bolge : '-',
+            durum: match.seri ? match.seri.durum : 'OK',
+            timestamp: new Date().toLocaleTimeString('tr-TR')
+        };
+        
+        scannedItems.set(key, itemData);
+
+        // Update UI list
+        updateScannerList();
+
+        // Update scan count
+        document.getElementById('scan-count').textContent = scannedItems.size;
+
+        // Highlight in main table if visible
+        highlightScannedRow(match.item.stok_kod);
+
+        return { 
+            status: 'success', 
+            msg: `${match.item.stok_kod} - ${match.item.stok_adi}` 
+        };
+    }
+
+    function playBeep(frequency = 800, duration = 200) {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        } catch (e) {
+            console.log('Beep error:', e);
+        }
+    }
+
+    function clearScannedItems() {
+        if (scannedItems.size === 0) {
+            alert('Taranan öğe yok!');
+            return;
+        }
+
+        if (confirm(`${scannedItems.size} taranan öğeyi temizlemek istediğinizden emin misiniz?`)) {
+            scannedItems.clear();
+            document.getElementById('scan-count').textContent = '0';
+            
+            // Reset list UI
+            const list = document.getElementById('scanner-list');
+            if (list) {
+                list.innerHTML = '<div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama yapılmadı</div>';
+            }
+
+            // Remove highlights from table
+            document.querySelectorAll('.scanned-item').forEach(row => {
+                row.classList.remove('scanned-item');
+            });
+
+            alert('Taramalar temizlendi!');
+        }
+    }
+
+    function updateScannerList() {
+        const list = document.getElementById('scanner-list');
+        if (!list) return;
+
+        if (scannedItems.size === 0) {
+            list.innerHTML = '<div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama yapılmadı</div>';
+            return;
+        }
+
+        let html = '';
+        // Show latest first
+        const items = Array.from(scannedItems.values()).reverse();
+        items.forEach(item => {
+            html += `<div class="scanner-entry">
+                <span class="code">${item.stok_kod}</span>
+                <span class="name">${item.stok_adi}</span>
+                <span class="time">${item.timestamp}</span>
+            </div>`;
+        });
+
+        list.innerHTML = html;
+    }
+
+    function highlightScannedRow(stokKod) {
+        // Find and highlight the row in main stock table
+        const rows = document.querySelectorAll('#stock-table tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 1 && cells[1].textContent.trim() === stokKod) {
+                row.classList.add('scanned-item');
+            }
+        });
+    }
 
     function stopScanner() {
         if (html5QrCode) {
