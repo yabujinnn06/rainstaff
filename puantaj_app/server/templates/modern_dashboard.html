@@ -230,13 +230,30 @@
                 <div
                     style="background: var(--card-bg); padding: 20px; border: 2px solid var(--matrix-green); border-radius: 5px; max-width: 500px; width: 95%; text-align: center; box-shadow: 0 0 30px rgba(0, 255, 65, 0.3); max-height: 90vh; display: flex; flex-direction: column;">
                     <h3
-                        style="color: var(--matrix-green); margin-bottom: 15px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--matrix-green); font-size: 18px;">
-                        &gt;&gt;&gt; BARKOD TARAYICI &lt;&lt;&lt;
+                        style="color: var(--matrix-green); margin-bottom: 10px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--matrix-green); font-size: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>&gt;&gt; SCANNER PRO &lt;&lt;</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="toggleTorch()" id="torch-btn" class="matrix-btn-small"
+                                style="display: none;">⚡</button>
+                            <span id="zoom-controls" style="display: none; align-items: center; gap: 5px;">
+                                <span style="font-size: 10px;">🔍</span>
+                                <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1"
+                                    style="width: 60px;">
+                            </span>
+                        </div>
                     </h3>
 
                     <!-- Kamera Alanı -->
-                    <div id="scanner-container"
-                        style="width: 100%; height: 250px; margin-bottom: 15px; border: 1px solid var(--border-color); background: #000; overflow: hidden;">
+                    <!-- Kamera Alanı (Viewfinder) -->
+                    <div
+                        style="position: relative; width: 100%; height: 280px; margin-bottom: 10px; border: 1px solid var(--border-color); background: #000; overflow: hidden;">
+                        <div id="scanner-container" style="width: 100%; height: 100%;"></div>
+
+                        <!-- Nişangah / Viewfinder Overlay -->
+                        <div class="scanner-overlay" style="pointer-events: none;">
+                            <div class="scanner-box"></div>
+                            <div class="scanner-line"></div>
+                        </div>
                     </div>
 
                     <p id="scan-result"
@@ -257,6 +274,10 @@
                     <button onclick="stopScanner()" class="matrix-btn matrix-btn-danger" style="width: 100%;">
                         [ KAPAT ]
                     </button>
+
+                    <div style="font-size: 9px; color: #444; margin-top: 5px;">
+                        Native API: <span id="native-api-status">Checking...</span> | Cam: <span id="cam-res">-</span>
+                    </div>
                 </div>
             </div>
 
@@ -676,6 +697,261 @@
                         transform: translateX(0);
                         opacity: 1;
                     }
+                }
+
+                /* PRO SCANNER STYLES */
+                .scanner-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                .scanner-box {
+                    width: 70%;
+                    height: 120px;
+                    border: 2px solid rgba(0, 255, 65, 0.5);
+                    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+                    /* Dim outside */
+                    border-radius: 10px;
+                    position: relative;
+                }
+
+                .scanner-box::before,
+                .scanner-box::after {
+                    content: '';
+                    position: absolute;
+                    width: 20px;
+                    height: 20px;
+                    border-color: var(--matrix-green);
+                    border-style: solid;
+                }
+
+                .scanner-box::before {
+                    top: -2px;
+                    left: -2px;
+                    border-width: 3px 0 0 3px;
+                }
+
+                .scanner-box::after {
+                    bottom: -2px;
+                    right: -2px;
+                    border-width: 0 3px 3px 0;
+                }
+
+                .scanner-line {
+                    position: absolute;
+                    width: 90%;
+                    height: 2px;
+                    background: #ff4444;
+                    top: 50%;
+                    left: 5%;
+                    box-shadow: 0 0 4px #ff0000;
+                    animation: scanMove 2s infinite ease-in-out;
+                }
+
+                @keyframes scanMove {
+
+                    0%,
+                    100% {
+                        top: 40%;
+                        opacity: 0.5;
+                    }
+
+                    50% {
+                        top: 60%;
+                        opacity: 1;
+                    }
+                }
+
+                .matrix-btn-small {
+                    background: rgba(0, 0, 0, 0.5);
+                    color: var(--matrix-green);
+                    border: 1px solid var(--matrix-green);
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 12px;
+                    cursor: pointer;
+                }
+
+                .matrix-btn-small:hover {
+                    background: var(--matrix-green);
+                    color: black;
+                }
+
+                /* PRO SCANNER STYLES */
+                .scanner-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                .scanner-box {
+                    width: 70%;
+                    height: 120px;
+                    border: 2px solid rgba(0, 255, 65, 0.5);
+                    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+                    /* Dim outside */
+                    border-radius: 10px;
+                    position: relative;
+                }
+
+                .scanner-box::before,
+                .scanner-box::after {
+                    content: '';
+                    position: absolute;
+                    width: 20px;
+                    height: 20px;
+                    border-color: var(--matrix-green);
+                    border-style: solid;
+                }
+
+                .scanner-box::before {
+                    top: -2px;
+                    left: -2px;
+                    border-width: 3px 0 0 3px;
+                }
+
+                .scanner-box::after {
+                    bottom: -2px;
+                    right: -2px;
+                    border-width: 0 3px 3px 0;
+                }
+
+                .scanner-line {
+                    position: absolute;
+                    width: 90%;
+                    height: 2px;
+                    background: #ff4444;
+                    top: 50%;
+                    left: 5%;
+                    box-shadow: 0 0 4px #ff0000;
+                    animation: scanMove 2s infinite ease-in-out;
+                }
+
+                @keyframes scanMove {
+
+                    0%,
+                    100% {
+                        top: 40%;
+                        opacity: 0.5;
+                    }
+
+                    50% {
+                        top: 60%;
+                        opacity: 1;
+                    }
+                }
+
+                .matrix-btn-small {
+                    background: rgba(0, 0, 0, 0.5);
+                    color: var(--matrix-green);
+                    border: 1px solid var(--matrix-green);
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 12px;
+                    cursor: pointer;
+                }
+
+                .matrix-btn-small:hover {
+                    background: var(--matrix-green);
+                    color: black;
+                }
+
+                /* PRO SCANNER STYLES */
+                .scanner-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                .scanner-box {
+                    width: 70%;
+                    height: 120px;
+                    border: 2px solid rgba(0, 255, 65, 0.5);
+                    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+                    /* Dim outside */
+                    border-radius: 10px;
+                    position: relative;
+                }
+
+                .scanner-box::before,
+                .scanner-box::after {
+                    content: '';
+                    position: absolute;
+                    width: 20px;
+                    height: 20px;
+                    border-color: var(--matrix-green);
+                    border-style: solid;
+                }
+
+                .scanner-box::before {
+                    top: -2px;
+                    left: -2px;
+                    border-width: 3px 0 0 3px;
+                }
+
+                .scanner-box::after {
+                    bottom: -2px;
+                    right: -2px;
+                    border-width: 0 3px 3px 0;
+                }
+
+                .scanner-line {
+                    position: absolute;
+                    width: 90%;
+                    height: 2px;
+                    background: #ff4444;
+                    top: 50%;
+                    left: 5%;
+                    box-shadow: 0 0 4px #ff0000;
+                    animation: scanMove 2s infinite ease-in-out;
+                }
+
+                @keyframes scanMove {
+
+                    0%,
+                    100% {
+                        top: 40%;
+                        opacity: 0.5;
+                    }
+
+                    50% {
+                        top: 60%;
+                        opacity: 1;
+                    }
+                }
+
+                .matrix-btn-small {
+                    background: rgba(0, 0, 0, 0.5);
+                    color: var(--matrix-green);
+                    border: 1px solid var(--matrix-green);
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 12px;
+                    cursor: pointer;
+                }
+
+                .matrix-btn-small:hover {
+                    background: var(--matrix-green);
+                    color: black;
                 }
             </style>
 
@@ -1141,8 +1417,11 @@
 
     let scannedItems = new Map(); // Map kullanarak tekrarları önle (Key: Unique ID/Serial)
     let html5QrCode = null;
-    let isScanLocked = false; // Tarama kilidi (hızlı ardışık taramayı önlemek için)
+    let isScanLocked = false;
+    let cameraTrack = null;
+    let zoomCapability = null;
 
+    // ... (normalizeCode and findStockItem unchanged) ...
     // Normalize string for fuzzy matching (remove spaces, lowercase)
     function normalizeCode(str) {
         if (!str) return '';
@@ -1183,83 +1462,7 @@
         return null;
     }
 
-    // Taranan öğeyi Matrix yeşil rengiyle vurgula ve listeye ekle
-    function processScannedItem(foundData) {
-        const item = foundData.item;
-        const seri = foundData.seri;
-        const uniqueKey = seri ? seri.seri_no : item.stok_kod; // Unique ID
-
-        // Duplicate Check
-        if (scannedItems.has(uniqueKey)) {
-            return { status: 'duplicate', msg: 'Zaten Tarandi!' };
-        }
-
-        // Add to scanned map
-        scannedItems.set(uniqueKey, {
-            stok_kod: item.stok_kod,
-            stok_adi: item.stok_adi,
-            seri_no: seri ? seri.seri_no : '-',
-            bolge: seri ? seri.bolge : '-',
-            durum: seri ? seri.durum : 'OK'
-        });
-
-        // UI Highlight
-        highlightRowInTable(uniqueKey);
-
-        // Add to Scanner Modal List
-        addToScannerList(item.stok_kod, item.stok_adi);
-
-        updateScanCount();
-        return { status: 'success', msg: `Eslesti: ${item.stok_adi}` };
-    }
-
-    function highlightRowInTable(code) {
-        const rows = document.querySelectorAll('#stock-table tr');
-        rows.forEach(row => {
-            if (row.textContent.includes(code)) {
-                row.classList.add('scanned-item');
-            }
-        });
-    }
-
-    function addToScannerList(code, name) {
-        const list = document.getElementById('scanner-list');
-        // Clear "empty" message if exists
-        if (list.querySelector('.scanner-entry') === null && list.innerText.includes('Henüz')) {
-            list.innerHTML = '';
-        }
-
-        const div = document.createElement('div');
-        div.className = 'scanner-entry';
-        div.innerHTML = `
-            <div>
-                <span class="code">${code}</span>
-                <div class="name">${name || ''}</div>
-            </div>
-            <div class="time">${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
-        `;
-        list.prepend(div); // Add to top
-    }
-
-    function updateScanCount() {
-        document.getElementById('scan-count').textContent = scannedItems.size;
-    }
-
-    function clearScannedItems() {
-        scannedItems.clear();
-        document.querySelectorAll('.scanned-item').forEach(row => {
-            row.classList.remove('scanned-item');
-        });
-        updateScanCount();
-
-        // Clear modal list too
-        const list = document.getElementById('scanner-list');
-        if (list) list.innerHTML = '<div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama yapılmadı</div>';
-
-        alert('>> Taranan ogeler sifirlandi!');
-    }
-
-    // Barkod Tarayıcı Başlat
+    // Barkod Tarayıcı Başlat (PRO MODE)
     function startScanner() {
         const modal = document.getElementById('scanner-modal');
         modal.style.display = 'flex';
@@ -1270,7 +1473,6 @@
             list.innerHTML = '<div style="text-align: center; color: #555; font-size: 11px; padding-top: 20px;">Henüz tarama yapılmadı</div>';
         }
 
-        // html5-qrcode yükle
         if (!window.Html5Qrcode) {
             const script = document.createElement('script');
             script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
@@ -1282,82 +1484,152 @@
     }
 
     function initScanner() {
-        html5QrCode = new Html5Qrcode("scanner-container");
+        // Use Native BarcodeDetector if supported (System Level Optimization)
+        // Html5Qrcode handles the check internally with 'useBarCodeDetectorIfSupported: true'
+
+        html5QrCode = new Html5Qrcode("scanner-container", {
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            verbose: false
+        });
+
+        const config = {
+            fps: 15, // Increased FPS for faster scanning
+            qrbox: { width: 250, height: 150 }, // Larger scan area
+            aspectRatio: 1.0,
+            videoConstraints: {
+                facingMode: "environment",
+                focusMode: "continuous", // System optimal focus
+                width: { min: 640, ideal: 1280, max: 1920 }, // High Res
+                height: { min: 480, ideal: 720, max: 1080 }
+            }
+        };
 
         html5QrCode.start(
             { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 100 }
-            },
-            (decodedText) => {
-                // LOCK CHECK
-                if (isScanLocked) return;
+            config,
+            onScanSuccess,
+            onScanFailure
+        ).then(() => {
+            // Setup Torch & Zoom after start
+            setupCameraControls();
 
-                // Lock for 2 seconds
-                isScanLocked = true;
-                setTimeout(() => { isScanLocked = false; }, 2000);
-
-                const resultEl = document.getElementById('scan-result');
-
-                // Find Item
-                const match = findStockItem(decodedText);
-
-                if (match) {
-                    // Process (Duplicate check & add)
-                    const res = processScannedItem(match);
-
-                    if (res.status === 'success') {
-                        resultEl.innerHTML = `<span style="color: #00FF41; font-weight:bold;">✓ ${res.msg}</span>`;
-                        // Success Sound
-                        playBeep(800);
-                    } else if (res.status === 'duplicate') {
-                        resultEl.innerHTML = `<span style="color: #FFD700;">⚠ ${res.msg}</span>`;
-                        // Warning Sound
-                        playBeep(400);
-                    }
-                } else {
-                    // Not found
-                    resultEl.innerHTML = `<span style="color: #ff4444;">✗ Bulunamadı: ${decodedText}</span>`;
-                    playBeep(200);
-                }
-
-                // Reset text after 1.5s
-                setTimeout(() => {
-                    if (!isScanLocked) // Only reset if not locked (actually lock is 2s, so this runs while locked)
-                        document.getElementById('scan-result').innerHTML = 'Hazır...';
-                }, 1500);
-            },
-            (error) => {
-                // Ignore frame errors
-            }
-        ).catch((err) => {
-            document.getElementById('scan-result').textContent = 'Kamera Hatası: ' + err;
+            // Debug info
+            const nativeStatus = document.getElementById('native-api-status');
+            if (nativeStatus) nativeStatus.textContent = "Active";
+        }).catch((err) => {
+            document.getElementById('scan-result').textContent = 'Kamera Başlatılamadı: ' + err;
         });
     }
 
-    function playBeep(freq) {
-        try {
-            const audio = new AudioContext();
-            const oscillator = audio.createOscillator();
-            const gain = audio.createGain();
-            oscillator.connect(gain);
-            gain.connect(audio.destination);
-            oscillator.frequency.value = freq;
-            oscillator.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, audio.currentTime + 0.1);
-            setTimeout(() => oscillator.stop(), 100);
-        } catch (e) { }
+    function onScanSuccess(decodedText, decodedResult) {
+        if (isScanLocked) return;
+
+        // Lock
+        isScanLocked = true;
+        setTimeout(() => { isScanLocked = false; }, 2000);
+
+        const resultEl = document.getElementById('scan-result');
+        const match = findStockItem(decodedText);
+
+        if (match) {
+            const res = processScannedItem(match);
+            if (res.status === 'success') {
+                resultEl.innerHTML = `<span style="color: #00FF41; font-weight:bold;">✓ ${res.msg}</span>`;
+                playBeep(800);
+            } else if (res.status === 'duplicate') {
+                resultEl.innerHTML = `<span style="color: #FFD700;">⚠ ${res.msg}</span>`;
+                playBeep(400);
+            }
+        } else {
+            resultEl.innerHTML = `<span style="color: #ff4444;">✗ Bulunamadı: ${decodedText}</span>`;
+            playBeep(200);
+        }
+
+        setTimeout(() => {
+            if (!isScanLocked) document.getElementById('scan-result').innerHTML = 'Hazır...';
+        }, 1500);
     }
+
+    function onScanFailure(error) {
+        // Ignore errors
+    }
+
+    function setupCameraControls() {
+        const videoElement = document.querySelector("#scanner-container video");
+        if (!videoElement) return;
+
+        // Get Track
+        try {
+            const stream = videoElement.srcObject;
+            const track = stream.getVideoTracks()[0];
+            cameraTrack = track;
+
+            const caps = track.getCapabilities();
+            const settings = track.getSettings();
+
+            // Resolution Info
+            const camRes = document.getElementById('cam-res');
+            if (camRes) camRes.textContent = `${settings.width}x${settings.height}`;
+
+            // Torch Control
+            const torchBtn = document.getElementById('torch-btn');
+            if (torchBtn && caps.torch) {
+                torchBtn.style.display = 'inline-block';
+            }
+
+            // Zoom Control
+            const zoomControls = document.getElementById('zoom-controls');
+            const zoomSlider = document.getElementById('zoom-slider');
+            if (zoomControls && zoomSlider && caps.zoom) {
+                zoomControls.style.display = 'inline-flex';
+                zoomSlider.min = caps.zoom.min;
+                zoomSlider.max = caps.zoom.max;
+                zoomSlider.step = caps.zoom.step;
+                zoomSlider.value = settings.zoom || 1;
+                zoomCapability = true;
+
+                zoomSlider.oninput = function () {
+                    track.applyConstraints({
+                        advanced: [{ zoom: parseFloat(this.value) }]
+                    });
+                }
+            }
+        } catch (e) { console.log("Camera controls setup error", e); }
+    }
+
+    function toggleTorch() {
+        if (cameraTrack) {
+            const current = cameraTrack.getSettings().torch || false;
+            cameraTrack.applyConstraints({
+                advanced: [{ torch: !current }]
+            }).then(() => {
+                const btn = document.getElementById('torch-btn');
+                if (btn) {
+                    btn.style.color = !current ? '#FFD700' : 'var(--matrix-green)';
+                    btn.style.borderColor = !current ? '#FFD700' : 'var(--matrix-green)';
+                }
+            });
+        }
+    }
+
+    // ... (playBeep normal) ...
 
     function stopScanner() {
         if (html5QrCode) {
+            // Turn off torch if on
+            if (cameraTrack) {
+                try {
+                    cameraTrack.applyConstraints({ advanced: [{ torch: false }] });
+                } catch (e) { }
+            }
+
             html5QrCode.stop().then(() => {
                 html5QrCode.clear();
             }).catch(err => console.log(err));
         }
         document.getElementById('scanner-modal').style.display = 'none';
         isScanLocked = false;
+        cameraTrack = null;
     }
 
     // PDF İndir
