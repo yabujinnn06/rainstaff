@@ -234,11 +234,12 @@
                         <span>&gt;&gt; SCANNER PRO &lt;&lt;</span>
                         <div style="display: flex; gap: 5px;">
                             <button onclick="toggleTorch()" id="torch-btn" class="matrix-btn-small"
-                                style="display: none;">⚡</button>
+                                style="display: none;">[ ⚡ ]</button>
                             <span id="zoom-controls" style="display: none; align-items: center; gap: 5px;">
-                                <span style="font-size: 10px;">🔍</span>
+                                <span style="font-size: 10px; font-family: 'Courier New', monospace;">[ + ]</span>
                                 <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1"
-                                    style="width: 60px;">
+                                    style="width: 60px; accent-color: var(--matrix-green);">
+                                <span style="font-size: 10px; font-family: 'Courier New', monospace;">[ - ]</span>
                             </span>
                         </div>
                     </h3>
@@ -1177,15 +1178,40 @@
         });
 
         document.querySelectorAll('.employee-toggle').forEach(row => {
-            row.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const index = parseInt(this.dataset.empIndex);
-                toggleEmployee(index);
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isTouchMove = false;
+
+            row.addEventListener('touchstart', function (e) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isTouchMove = false;
+            });
+
+            row.addEventListener('touchmove', function (e) {
+                const touchEndX = e.touches[0].clientX;
+                const touchEndY = e.touches[0].clientY;
+                const deltaX = Math.abs(touchEndX - touchStartX);
+                const deltaY = Math.abs(touchEndY - touchStartY);
+                
+                // If scroll is more than 10px, mark as scroll
+                if (deltaX > 10 || deltaY > 10) {
+                    isTouchMove = true;
+                }
             });
 
             row.addEventListener('touchend', function (e) {
+                // Only toggle if it wasn't a scroll
+                if (!isTouchMove) {
+                    e.preventDefault();
+                    const index = parseInt(this.dataset.empIndex);
+                    toggleEmployee(index);
+                }
+            });
+
+            row.addEventListener('click', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const index = parseInt(this.dataset.empIndex);
                 toggleEmployee(index);
             });
@@ -1345,15 +1371,40 @@
         });
 
         document.querySelectorAll('.stock-toggle').forEach(row => {
-            row.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const index = parseInt(this.dataset.stockIndex);
-                toggleStock(index);
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isTouchMove = false;
+
+            row.addEventListener('touchstart', function (e) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isTouchMove = false;
+            });
+
+            row.addEventListener('touchmove', function (e) {
+                const touchEndX = e.touches[0].clientX;
+                const touchEndY = e.touches[0].clientY;
+                const deltaX = Math.abs(touchEndX - touchStartX);
+                const deltaY = Math.abs(touchEndY - touchStartY);
+                
+                // If horizontal scroll is more than 10px, mark as scroll
+                if (deltaX > 10 || deltaY > 10) {
+                    isTouchMove = true;
+                }
             });
 
             row.addEventListener('touchend', function (e) {
+                // Only toggle if it wasn't a scroll
+                if (!isTouchMove) {
+                    e.preventDefault();
+                    const index = parseInt(this.dataset.stockIndex);
+                    toggleStock(index);
+                }
+            });
+
+            row.addEventListener('click', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const index = parseInt(this.dataset.stockIndex);
                 toggleStock(index);
             });
@@ -1615,7 +1666,7 @@
         isScanLocked = true;
 
         // 2. Visual & Haptic Feedback (No Camera Pause)
-        playBeep(800);
+        playBeep(1000, 250); // Success beep - higher pitch, longer
         if (navigator.vibrate) navigator.vibrate(200);
 
         const resultEl = document.getElementById('scan-result');
@@ -1630,26 +1681,27 @@
         if (match) {
             const res = processScannedItem(match);
             if (res.status === 'success') {
-                resultHTML = `<div style="background: rgba(0, 255, 65, 0.9); color: #000; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,255,65,0.5);">
-                    <div style="font-size: 24px; font-weight: bold;">✓ EŞLEŞTİ</div>
-                    <div style="font-size: 14px; margin-top: 5px;">${res.msg}</div>
-                    <div style="font-size: 10px; opacity: 0.7; margin-top: 5px;">${formatName}</div>
+                resultHTML = `<div style="background: #000; color: var(--matrix-green); padding: 20px; border: 2px solid var(--matrix-green); border-radius: 0; box-shadow: 0 0 30px rgba(0,255,65,0.8); font-family: 'Courier New', monospace;">
+                    <div style="font-size: 28px; font-weight: bold; text-shadow: 0 0 10px var(--matrix-green);">>> BAŞARILI <<</div>
+                    <div style="font-size: 16px; margin-top: 10px; letter-spacing: 1px;">${res.msg}</div>
+                    <div style="font-size: 11px; opacity: 0.7; margin-top: 8px; color: #0f0;">[${formatName}]</div>
                 </div>`;
             } else if (res.status === 'duplicate') {
-                resultHTML = `<div style="background: rgba(255, 215, 0, 0.9); color: #000; padding: 15px; border-radius: 8px;">
-                    <div style="font-size: 24px; font-weight: bold;">⚠ ZATEN OKUNDU</div>
-                    <div style="font-size: 14px; margin-top: 5px;">${res.msg}</div>
+                resultHTML = `<div style="background: #000; color: #FFD700; padding: 20px; border: 2px solid #FFD700; border-radius: 0; box-shadow: 0 0 30px rgba(255,215,0,0.6); font-family: 'Courier New', monospace;">
+                    <div style="font-size: 28px; font-weight: bold; text-shadow: 0 0 10px #FFD700;">>> UYARI <<</div>
+                    <div style="font-size: 16px; margin-top: 10px; letter-spacing: 1px;">${res.msg}</div>
+                    <div style="font-size: 11px; opacity: 0.7; margin-top: 8px;">[TEKRAR]</div>
                 </div>`;
-                playBeep(400); // Warning
+                playBeep(600, 150); // Warning - lower pitch
             }
         } else {
-            resultHTML = `<div style="background: rgba(255, 68, 68, 0.9); color: #fff; padding: 15px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: bold;">✗ BULUNAMADI</div>
-                <div style="font-size: 14px; margin-top: 5px; font-family: monospace;">${decodedText}</div>
-                <div style="font-size: 10px; opacity: 0.7; margin-top: 5px;">Format: ${formatName}</div>
-                <div style="margin-top: 10px; font-size: 11px; background: rgba(0,0,0,0.2); padding: 5px;">DB'de bu kod yok.</div>
+            resultHTML = `<div style="background: #000; color: #ff4444; padding: 20px; border: 2px solid #ff4444; border-radius: 0; box-shadow: 0 0 30px rgba(255,68,68,0.6); font-family: 'Courier New', monospace;">
+                <div style="font-size: 28px; font-weight: bold; text-shadow: 0 0 10px #ff4444;">>> HATA <<</div>
+                <div style="font-size: 16px; margin-top: 10px; letter-spacing: 1px; word-break: break-all;">${decodedText}</div>
+                <div style="font-size: 11px; opacity: 0.7; margin-top: 8px; color: #f44;">[${formatName}]</div>
+                <div style="margin-top: 12px; font-size: 12px; background: rgba(255,0,0,0.1); padding: 8px; border: 1px solid #f44;">STOK LİSTESİNDE YOK</div>
             </div>`;
-            playBeep(200); // Error
+            playBeep(300, 250); // Error - even lower pitch, longer
         }
 
         // 4. Show Freeze Overlay (UI Trick instead of stopping camera)
@@ -1785,7 +1837,7 @@
         };
     }
 
-    function playBeep(frequency = 800, duration = 200) {
+    function playBeep(frequency = 1000, duration = 250) {
         try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
@@ -1795,9 +1847,10 @@
             gainNode.connect(audioContext.destination);
 
             oscillator.frequency.value = frequency;
-            oscillator.type = 'sine';
+            oscillator.type = 'square'; // Matrix-style square wave
 
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            // Louder volume: 0.5 instead of 0.3
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
 
             oscillator.start(audioContext.currentTime);
