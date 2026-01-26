@@ -103,7 +103,7 @@ git push -u origin main
 ### 3.1 Site URL'niz
 Deploy tamamlandığında URL'niz:
 ```
-https://rainstaff-erp.onrender.com
+https://rainstaff.onrender.com
 ```
 (veya seçtiğiniz isim)
 
