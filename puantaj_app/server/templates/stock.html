@@ -344,11 +344,35 @@
       let filteredData = allStockData;
 
       if (searchTerm) {
-        filteredData = allStockData.filter(item =>
-          item.stok_kod.toLowerCase().includes(searchTerm) ||
-          (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm)) ||
-          item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(searchTerm))
-        );
+        let codeSearch = searchTerm;
+        let serialSearch = null;
+
+        // Composite barcode check: Code + 'x' + Serial (e.g. 1256xW020814)
+        if (searchTerm.includes('x')) {
+          const parts = searchTerm.split('x');
+          if (parts.length >= 2 && parts[0].length > 0 && parts[1].length > 0) {
+            codeSearch = parts[0];
+            serialSearch = parts[1];
+            console.log('Composite scan detected:', codeSearch, serialSearch);
+          }
+        }
+
+        filteredData = allStockData.filter(item => {
+          // Standard search
+          const textMatch = item.stok_kod.toLowerCase().includes(searchTerm) ||
+            (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm)) ||
+            item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(searchTerm));
+
+          if (textMatch) return true;
+
+          // Composite search
+          if (serialSearch) {
+            const codeMatch = item.stok_kod.toLowerCase().includes(codeSearch);
+            const serialMatch = item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(serialSearch));
+            return codeMatch && serialMatch;
+          }
+          return false;
+        });
       }
 
       if (filteredData.length === 0) {

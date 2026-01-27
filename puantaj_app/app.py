@@ -3919,6 +3919,8 @@ class PuantajApp(tk.Tk):
 
     # Kullanım rehberi kaldırıldı - Modern ERP tasarımına geçildi
 
+
+
     def _build_logs_tab(self):
         frame = ttk.LabelFrame(self.tab_logs_body, text="Canli Log", style="Section.TLabelframe")
         frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
