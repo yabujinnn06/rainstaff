@@ -280,9 +280,63 @@
         padding-left: 20px;
       }
 
-      .serial-date {
+      .serial-date,
+      .serial-region {
         display: none;
       }
+    }
+
+    @media print {
+
+      .topbar,
+      .search-box,
+      .stock-toggle-icon {
+        display: none !important;
+      }
+
+      .stock-content {
+        max-height: none !important;
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      .stock-container {
+        width: 100%;
+      }
+
+      .stock-item {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        color: #000;
+      }
+
+      .stock-header {
+        background-color: #f0f0f0;
+        color: #000;
+      }
+
+      .stock-code,
+      .stock-name,
+      .stock-count,
+      .serial-no,
+      .serial-status,
+      .serial-date,
+      .serial-region {
+        color: #000 !important;
+      }
+
+      body {
+        background-color: #fff;
+        color: #000;
+      }
+    }
+
+    .serial-region {
+      color: #aaa;
+      font-size: 11px;
+      text-align: center;
     }
   </style>
 </head>
@@ -297,6 +351,7 @@
     </div>
     <div class="sync">
       <button class="notify-btn" id="refreshBtn" type="button">Yenile</button>
+      <button class="notify-btn" onclick="window.print()" type="button">Yazdır / PDF</button>
       <a class="logout" href="/dashboard">Dashboard</a>
     </div>
   </header>
@@ -348,8 +403,12 @@
         let serialSearch = null;
 
         // Composite barcode check: Code + 'x' + Serial (e.g. 1256xW020814)
-        if (searchTerm.includes('x')) {
-          const parts = searchTerm.split('x');
+        // Case insensitive check for 'x'
+        const lowerTerm = searchTerm.toLowerCase();
+        if (lowerTerm.includes('x')) {
+          const parts = lowerTerm.split('x');
+          // Try to split the original term using the same index to preserve casing if needed, 
+          // but for search purposes lowercasing is fine as per existing logic.
           if (parts.length >= 2 && parts[0].length > 0 && parts[1].length > 0) {
             codeSearch = parts[0];
             serialSearch = parts[1];
@@ -382,22 +441,32 @@
 
       let html = '';
       filteredData.forEach((item, idx) => {
+        // Auto-expand if search is active
+        const isOpen = searchTerm ? 'open' : '';
+
         html += `
             <div class="stock-item" data-idx="${idx}">
-              <div class="stock-header" onclick="toggleStock(this)">
-                <span class="stock-toggle-icon">▶</span>
+              <div class="stock-header ${isOpen}" onclick="toggleStock(this)">
+                <span class="stock-toggle-icon ${isOpen}">▶</span>
                 <span class="stock-code">${item.stok_kod}</span>
                 <span class="stock-name">${item.stok_adi || '-'}</span>
                 <span class="stock-count">${item.seri_count} seri</span>
               </div>
-              <div class="stock-content">
+              <div class="stock-content ${isOpen}">
                 <ul class="serial-list">
                   ${item.seri_list.map(seri => {
           const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
+          // Highlight matching serial if searching
+          let highlightClass = '';
+          if (searchTerm && seri.seri_no && seri.seri_no.toLowerCase().includes(searchTerm)) {
+            highlightClass = 'style="background-color: #3a3a1a;"';
+          }
+          // Note: added region column
           return `
-                      <li class="serial-item">
+                      <li class="serial-item" ${highlightClass}>
                         <span class="serial-icon">•</span>
                         <span class="serial-no">${seri.seri_no || '-'}</span>
+                        <span class="serial-region">${seri.bolge || '-'}</span>
                         <span class="serial-status ${statusClass}">${seri.durum || 'OK'}</span>
                         <span class="serial-date">${seri.tarih || '-'}</span>
                       </li>
@@ -413,6 +482,8 @@
     }
 
     function toggleStock(headerElement) {
+      // Don't toggle if searching (optional, but let's allow it)
+      // Actually standard toggle logic is fine even if opened by search
       const stockItem = headerElement.parentElement;
       const content = stockItem.querySelector('.stock-content');
       const icon = headerElement.querySelector('.stock-toggle-icon');
