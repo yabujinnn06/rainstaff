@@ -377,6 +377,22 @@
   <script>
     let allStockData = [];
 
+    function normalizeCode(value) {
+      if (!value) return '';
+      return value.toString().replace(/[\s\-\_]/g, '').toLowerCase();
+    }
+
+    function splitCompositeSearch(value) {
+      if (!value) return null;
+      const trimmed = value.trim();
+      const match = trimmed.match(/^(.*?)[xX](.+)$/);
+      if (!match) return null;
+      return {
+        code: match[1].trim(),
+        serial: match[2].trim()
+      };
+    }
+
     async function loadStockData() {
       try {
         const response = await fetch('/api/stock-data');
@@ -391,46 +407,39 @@
           '<div class="no-results">❌ Hata: ' + error.message + '</div>';
       }
     }
-
     function renderStockList() {
-      const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
+      const rawSearch = document.getElementById('stockSearch').value;
+      const searchTerm = rawSearch.trim().toLowerCase();
+      const normalizedSearch = normalizeCode(searchTerm);
+      const composite = splitCompositeSearch(rawSearch);
+      const compositeCode = composite ? normalizeCode(composite.code) : null;
+      const compositeSerial = composite ? normalizeCode(composite.serial) : null;
       const container = document.getElementById('stockContainer');
 
       let filteredData = allStockData;
 
       if (searchTerm) {
-        let codeSearch = searchTerm;
-        let serialSearch = null;
-
-        // Composite barcode check: Code + 'x' + Serial (e.g. 1256xW020814)
-        // Case insensitive check for 'x'
-        const lowerTerm = searchTerm.toLowerCase();
-        if (lowerTerm.includes('x')) {
-          const parts = lowerTerm.split('x');
-          // Try to split the original term using the same index to preserve casing if needed, 
-          // but for search purposes lowercasing is fine as per existing logic.
-          if (parts.length >= 2 && parts[0].length > 0 && parts[1].length > 0) {
-            codeSearch = parts[0];
-            serialSearch = parts[1];
-            console.log('Composite scan detected:', codeSearch, serialSearch);
-          }
-        }
-
         filteredData = allStockData.filter(item => {
-          // Standard search
-          const textMatch = item.stok_kod.toLowerCase().includes(searchTerm) ||
-            (item.stok_adi && item.stok_adi.toLowerCase().includes(searchTerm)) ||
-            item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(searchTerm));
+          const stockCode = normalizeCode(item.stok_kod);
+          const stockName = (item.stok_adi || '').toLowerCase();
+          const serialMatch = item.seri_list.some(s => {
+            const serialValue = s.seri_no ? s.seri_no.toString() : '';
+            return serialValue.toLowerCase().includes(searchTerm) ||
+              normalizeCode(serialValue).includes(normalizedSearch);
+          });
 
-          if (textMatch) return true;
-
-          // Composite search
-          if (serialSearch) {
-            const codeMatch = item.stok_kod.toLowerCase().includes(codeSearch);
-            const serialMatch = item.seri_list.some(s => s.seri_no && s.seri_no.toLowerCase().includes(serialSearch));
-            return codeMatch && serialMatch;
+          if (composite) {
+            const codeMatch = stockCode.includes(compositeCode);
+            const compositeSerialMatch = item.seri_list.some(s => {
+              const serialValue = s.seri_no ? s.seri_no.toString() : '';
+              return normalizeCode(serialValue).includes(compositeSerial);
+            });
+            return codeMatch && compositeSerialMatch;
           }
-          return false;
+
+          return stockCode.includes(normalizedSearch) ||
+            stockName.includes(searchTerm) ||
+            serialMatch;
         });
       }
 
@@ -458,7 +467,11 @@
           const statusClass = seri.durum === 'YOK' ? 'yok' : seri.durum === 'FAZLA' ? 'fazla' : 'ok';
           // Highlight matching serial if searching
           let highlightClass = '';
-          if (searchTerm && seri.seri_no && seri.seri_no.toLowerCase().includes(searchTerm)) {
+          const serialValue = seri.seri_no ? seri.seri_no.toString() : '';
+          const normalizedSerial = normalizeCode(serialValue);
+          if (searchTerm && normalizedSerial.includes(normalizedSearch)) {
+            highlightClass = 'style="background-color: #3a3a1a;"';
+          } else if (compositeSerial && normalizedSerial.includes(compositeSerial)) {
             highlightClass = 'style="background-color: #3a3a1a;"';
           }
           // Note: added region column

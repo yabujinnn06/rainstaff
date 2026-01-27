@@ -1712,16 +1712,42 @@
     });
 
     function filterStock() {
-        const search = document.getElementById('stock-search').value.toLowerCase();
+        const rawSearch = document.getElementById('stock-search').value;
+        const search = rawSearch.trim().toLowerCase();
         const region = document.getElementById('stock-region-filter').value;
+        const normalizedSearch = normalizeCode(search);
+        const composite = splitCompositeCode(rawSearch);
+        const compositeCode = composite ? normalizeCode(composite.code) : null;
+        const compositeSerial = composite ? normalizeCode(composite.serial) : null;
 
         let filtered = stockData.filter(item => {
-            const matchSearch = !search ||
-                item.stok_kod.toLowerCase().includes(search) ||
-                item.stok_adi.toLowerCase().includes(search);
-
             const matchRegion = !region ||
                 item.seri_list.some(s => s.bolge === region);
+
+            if (!search && !composite) {
+                return matchRegion;
+            }
+
+            const stockCode = normalizeCode(item.stok_kod);
+            const stockName = (item.stok_adi || '').toLowerCase();
+            const serialMatch = item.seri_list.some(s => {
+                const serialValue = s.seri_no ? s.seri_no.toString() : '';
+                return serialValue.toLowerCase().includes(search) ||
+                    normalizeCode(serialValue).includes(normalizedSearch);
+            });
+
+            let matchSearch = stockCode.includes(normalizedSearch) ||
+                stockName.includes(search) ||
+                serialMatch;
+
+            if (composite) {
+                const codeMatch = stockCode.includes(compositeCode);
+                const compositeSerialMatch = item.seri_list.some(s => {
+                    const serialValue = s.seri_no ? s.seri_no.toString() : '';
+                    return normalizeCode(serialValue).includes(compositeSerial);
+                });
+                matchSearch = codeMatch && compositeSerialMatch;
+            }
 
             return matchSearch && matchRegion;
         });
@@ -1746,8 +1772,43 @@
         return str.toString().replace(/[\s\-\_]/g, '').toLowerCase();
     }
 
+    function splitCompositeCode(raw) {
+        if (!raw) return null;
+        const trimmed = raw.trim();
+        const match = trimmed.match(/^(.*?)[xX](.+)$/);
+        if (!match) return null;
+        return {
+            code: match[1].trim(),
+            serial: match[2].trim()
+        };
+    }
     // Akıllı Eşleştirme (Bidirectional Substring Match)
     function findStockItem(scanCode) {
+        const composite = splitCompositeCode(scanCode);
+        if (composite) {
+            const compositeCode = normalizeCode(composite.code);
+            const compositeSerial = normalizeCode(composite.serial);
+
+            for (const item of stockData) {
+                const normStockKod = normalizeCode(item.stok_kod);
+                if (!normStockKod.includes(compositeCode)) {
+                    continue;
+                }
+
+                for (const seri of item.seri_list) {
+                    const normSeri = normalizeCode(seri.seri_no);
+                    if (normSeri && normSeri.includes(compositeSerial)) {
+                        return {
+                            type: 'serial',
+                            item: item,
+                            seri: seri,
+                            matchCode: seri.seri_no
+                        };
+                    }
+                }
+            }
+        }
+
         const normalizedScan = normalizeCode(scanCode);
 
         for (const item of stockData) {
