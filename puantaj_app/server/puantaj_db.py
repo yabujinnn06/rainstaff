@@ -22,8 +22,12 @@ if os.name == 'nt':  # Windows
     APPDATA_DIR = os.path.join(os.environ.get("APPDATA", LOCAL_DB_DIR), APP_NAME, "data")
     DB_DIR = APPDATA_DIR
 else:  # Linux / Server (Render)
-    # Force temporary storage on Linux
-    DB_DIR = "/tmp/rainstaff_data"
+    # Check for Render persistent disk at /data
+    if os.path.exists("/data"):
+        DB_DIR = "/data"
+    else:
+        # Fallback to /tmp if /data (persistent disk) is not attached
+        DB_DIR = "/tmp/rainstaff_data"
 
 # Ensure DB directory exists
 if not os.path.exists(DB_DIR):
